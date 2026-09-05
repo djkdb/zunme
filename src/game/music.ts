@@ -46,9 +46,9 @@ interface Song {
   swing?: number;
 }
 
-const MAJ = [0, 4, 7, 11];
-const MIN = [0, 3, 7, 10];
-const SUS = [0, 5, 7, 12];
+const MAJ = [0, 4, 7];
+const MIN = [0, 3, 7];
+const SUS = [0, 5, 7];
 const t = (root: number, kind: number[]) => kind.map((k) => root + k);
 
 const SONGS: Record<MusicTrack, Song> = {
@@ -147,6 +147,8 @@ class MusicManager {
   private fileSource: AudioBufferSourceNode | null = null;
   private fileCache = new Map<MusicTrack, AudioBuffer | null>();
   private noiseBuffer: AudioBuffer | null = null;
+  /** per-track bus so switching tracks silences every scheduled voice of the old one */
+  private bus: GainNode | null = null;
 
   /** Attach to the shared audio context (called by the sound manager on unlock). */
   attach(ctx: AudioContext, master: AudioNode) {
@@ -180,6 +182,7 @@ class MusicManager {
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
     this.stopFile();
+    this.retireBus();
   }
 
   private stopFile() {
@@ -191,18 +194,32 @@ class MusicManager {
     this.fileSource = null;
   }
 
+  private retireBus() {
+    const ctx = this.ctx;
+    const old = this.bus;
+    if (!ctx || !old) return;
+    old.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.08);
+    setTimeout(() => old.disconnect(), 600);
+    this.bus = null;
+  }
+
   private async start(track: MusicTrack) {
     if (!this.ctx || !this.out) return;
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
     this.stopFile();
+    this.retireBus();
+    this.bus = this.ctx.createGain();
+    this.bus.gain.setValueAtTime(0.0001, this.ctx.currentTime);
+    this.bus.gain.linearRampToValueAtTime(1, this.ctx.currentTime + 0.6);
+    this.bus.connect(this.out);
     if (USE_MUSIC_FILES) {
       const buf = await this.loadFile(track);
       if (buf && this.track === track) {
         const src = this.ctx.createBufferSource();
         src.buffer = buf;
         src.loop = true;
-        src.connect(this.out);
+        src.connect(this.bus ?? this.out);
         src.start();
         this.fileSource = src;
         return;
@@ -244,7 +261,7 @@ class MusicManager {
 
   private playStep(song: Song, step: number, when: number, dur: number) {
     const ctx = this.ctx;
-    const out = this.out;
+    const out = this.bus;
     if (!ctx || !out) return;
     const bar = Math.floor(step / 16) % song.chords.length;
     const i = step % 16;
@@ -253,12 +270,12 @@ class MusicManager {
 
     // pad on the downbeat
     if (i === 0) {
-      chord.forEach((n) => this.tone(hz(song.root + n), when, dur * 15.5, song.padWave, 0.045, 0.4, out));
+      chord.forEach((n) => this.tone(hz(song.root + n), when, dur * 14, song.padWave, 0.03, 0.5, out, 0.15));
     }
     const b = song.bass[i];
     if (b !== null) this.tone(hz(rootMidi - 12 + b), when, dur * 0.9, song.bassWave, 0.16, 0.02, out, 0.9);
     const a = song.arp[i];
-    if (a !== null) this.tone(hz(song.root + 12 + chord[a % chord.length] + (a >= chord.length ? 12 : 0)), when, dur * 0.8, song.arpWave, 0.06, 0.01, out, 0.3);
+    if (a !== null) this.tone(hz(song.root + 12 + chord[a % chord.length] + (a >= chord.length ? 12 : 0)), when, dur * 0.7, song.arpWave, 0.045, 0.01, out, 0.15);
     const l = song.lead?.[i];
     if (l !== null && l !== undefined && bar % 2 === 1) this.tone(hz(song.root + 12 + l), when, dur * 1.6, "square", 0.05, 0.02, out, 0.5);
     const d = song.drums[i];

@@ -86,7 +86,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
       {/* Winner splash */}
       {phase === "splash" && (
         <div className="flex flex-1 flex-col items-center justify-center">
-          <div className="anim-slam display text-gradient gradient-shadow text-6xl sm:text-8xl">{winner ? "WINNER" : race ? "TIME'S UP" : "DRAW"}</div>
+          <div className="anim-slam display text-gradient gradient-shadow text-6xl sm:text-8xl">{winner ? "WINNER" : state.mode === "GOGUN" ? "WIPEOUT" : race ? "TIME'S UP" : "DRAW"}</div>
           {winner && (
             <div className="anim-rise delay-2 display mt-3 text-4xl text-white hud-text sm:text-5xl" style={{ color: color(winner) }}>
               {name(winner)}
@@ -100,7 +100,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
           <div className="panel anim-rise pointer-events-auto m-auto w-full max-w-md p-5 sm:p-6 short:max-w-2xl short:p-4">
             <div className="text-center">
               <div className="text-[11px] font-black tracking-[0.4em] text-white/60">{meta.icon} {meta.name}</div>
-              <div className="display mt-1 text-2xl text-brand-2">{winner ? "🏆 WINNER" : race ? "⏱ NO FINISHERS" : "💀 NO SURVIVORS"}</div>
+              <div className="display mt-1 text-2xl text-brand-2">{winner ? "🏆 WINNER" : state.mode === "GOGUN" ? "💀 WIPEOUT" : race ? "⏱ NO FINISHERS" : "💀 NO SURVIVORS"}</div>
               {winner && (
                 <div className="display mt-1 text-4xl sm:text-5xl" style={{ color: color(winner) }}>
                   {name(winner)}

@@ -58,7 +58,7 @@ export function Pendulum({ def }: { def: PendulumDef }) {
     const angle = Number.isFinite(e) && e > 0 ? pendulumAngleAt(def, e) : Math.sin(performance.now() * 0.0006) * 0.2;
     pos.current.set(def.x + Math.sin(angle) * ARM, PIVOT_Y - Math.cos(angle) * ARM, def.z);
     rb.setNextKinematicTranslation(pos.current);
-    if (arm.current) arm.current.rotation.z = -angle;
+    if (arm.current) arm.current.rotation.z = angle;
   });
 
   return (

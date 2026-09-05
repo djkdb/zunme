@@ -111,14 +111,17 @@ export function buildCourse(seed: number, targetLength = 420): Course {
     const reach = jumpReach(speed);
     const difficulty = Math.min(1, distance / targetLength);
     // Gap: mostly jumpable, sometimes wire-only (wider than a jump)
-    const wireGap = rng() < 0.28 + difficulty * 0.25;
+    // The first two gaps are always plain, short jumps (tutorial ramp); wire gaps come later.
+    const early = buildings.length < 3;
+    const wireGap = !early && rng() < 0.28 + difficulty * 0.25;
     // Height step: jumps clear ~2.1 m, so plain gaps may rise at most 0.9 m; swings allow more.
-    const rise = wireGap ? 2.4 : 0.9;
+    const rise = wireGap ? 2.4 : early ? 0.3 : 0.9;
     const drop = wireGap ? 3.5 : 2.5;
     const nextTop = Math.max(-1, Math.min(7, top + (rng() < 0.5 ? rng() * rise : -rng() * drop)));
     // Plain gaps stay well inside what a real jump reaches (accounting for the climb).
     const safeReach = jumpReach(speed, nextTop - top) * SAFE_GAP_RATIO;
     let gap = wireGap ? reach * (1.25 + rng() * 0.6) : Math.max(2, 2 + rng() * Math.max(0.5, safeReach - 2));
+    if (early) gap = Math.min(gap, 3);
     gap = Math.min(gap, wireGap ? gap : safeReach);
     const w = 6 + rng() * 5;
     const d = 9 + rng() * 12;

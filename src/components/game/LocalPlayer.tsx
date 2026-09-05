@@ -234,9 +234,13 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
         const targetX = THREE.MathUtils.clamp(t.x + steer * 3, -auto.laneHalf, auto.laneHalf);
         vx = THREE.MathUtils.clamp((targetX - t.x) * 4, -6, 6);
         // Blocked by a wall / box: we commanded forward speed last step but the body barely moved.
-        // Once blocked, stay blocked (no more pushing) until the crash resolves it.
-        const blockedNow = active && ((lastCommandedVz.current < -1 && v.z > lastCommandedVz.current * 0.35 && !jumpPressed) || blockedSince.current > 0);
-        vz = active ? (blockedNow ? 0 : -speed) : 0;
+        // While suspicious we only nudge forward (30%) so a wall can't hold us by friction, and we
+        // release as soon as the body actually moves again (edge clips resolve themselves).
+        const commanded = lastCommandedVz.current;
+        const stalled = commanded < -0.5 && v.z > commanded * 0.35;
+        const rising = v.y > 1.5;
+        const blockedNow = active && !jumpPressed && !rising && (stalled || (blockedSince.current > 0 && v.z > -0.6));
+        vz = active ? (blockedNow ? -speed * 0.3 : -speed) : 0;
         lastCommandedVz.current = vz;
         gogunRuntime.anchorInRange = !grounded.current && auto.findAnchor(t.x, t.y, t.z) !== null;
         if (jumpPressed && canControl) {
