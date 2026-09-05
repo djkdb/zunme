@@ -12,17 +12,26 @@ three Fall Guys-style modes, one 6-letter room code, no accounts:
 Every player is a variation of the ZUN character (navy "ZUN" cap, hoodie in
 the player colour, sneakers) dressed up from the **ZUN Shop**.
 
-## Points & shop
+## Progression, points & shop
 
-Rounds pay out points by placement (1st +120 · 2nd +90 · 3rd +70 · others
-+50, race finishers +30, solo practice pays half). Points buy cosmetics
-only — hats (beanie, party hat, cat ears, halo, crown, coloured caps), face
-items (sunglasses, glasses, visor, headphones), back items (backpack, scarf,
-cape, jetpack, wings) and running trails (sparkle, hearts, fire, rainbow).
-Nothing affects gameplay. The wallet lives in the browser's localStorage
-(there are no accounts) and equipped items travel with presence, so everyone
-in the room sees your outfit. Catalogue and prices: `src/game/items.ts`;
-payout rules: `src/game/rewards.ts`.
+Every round is itemised on the result screen:
+
+- **Placement**: 1st +120 · 2nd +90 · 3rd +70 · others +50
+- **Bonuses**: survival time (elimination modes), checkpoints + finish
+  (race), big room (4+ / 6+ players), win streak ×1.25 / ×1.5, solo practice ½
+- **XP & levels**: points = XP. Levelling up pays +50 and unlocks
+  level-gated items (Gold Cap Lv3, Halo Lv4, Jetpack Lv5, Crown Lv6, Rainbow
+  Lv7, Wings Lv8). Your level shows next to your name in the lobby.
+- **Badges**: 12 one-time achievements (first win, 5 / 25 wins, win every
+  mode, sub-100 s race, 60 s survival, 6-player party, 3-win streak …).
+- **Daily missions**: 3 per day, picked from a pool by date, with their own
+  rewards.
+
+Points buy cosmetics only — hats, face items, back items and running trails.
+Nothing affects gameplay. Wallet and progress live in the browser's
+localStorage (no accounts); equipped items and level travel with presence so
+everyone in the room sees them. Catalogue: `src/game/items.ts`; rules:
+`src/game/progression.ts`.
 
 Built with **Next.js 16 · TypeScript · React Three Fiber · Drei · Rapier ·
 Cloudflare Durable Objects (realtime) · Tailwind CSS · Zustand**. Supabase
@@ -97,7 +106,8 @@ src/
     meltdown.ts         MELTDOWN floor layout
     sync.ts             peer gameplay events (tile vanish) + race runtime
     items.ts            cosmetic catalogue (hats, face, back, trails)
-    rewards.ts          points per placement
+    rewards.ts          placement lookup + claim key
+    progression.ts      XP/levels, bonuses, streaks, achievements, daily missions
     input.ts            keyboard + joystick → single input state
     effects.ts          shake / particle / slow-motion event bus
     audio.ts            sound manager (files with synth fallback)
@@ -111,6 +121,7 @@ src/
   components/shop/      Shop modal, 3D turntable preview, points button
   store/gameStore.ts    Zustand store for slowly-changing game/UI state
   store/walletStore.ts  points / owned / equipped, persisted in localStorage
+  store/progressStore.ts stats, XP, streak, badges, missions (localStorage)
 worker/
   index.ts              Cloudflare Worker entry: /ws → RoomObject, else Next.js
   room-object.ts        Durable Object: presence + broadcast relay per room (+ Neon)

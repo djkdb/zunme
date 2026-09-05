@@ -125,6 +125,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
                   {p.nickname}
                   {p.id === localId && <span className="text-white/50"> (you)</span>}
                 </span>
+                <span className="rounded-full bg-white/10 px-1.5 text-[9px] font-black text-brand-2">LV{p.level ?? 1}</span>
                 {p.isHost && <span className="ml-auto text-[10px] font-black text-brand-2">HOST</span>}
               </li>
             ))}

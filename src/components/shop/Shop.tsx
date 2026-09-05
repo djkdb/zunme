@@ -3,12 +3,16 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { CharacterPreview } from "@/components/shop/CharacterPreview";
+import { BadgesPanel, LevelBar, MissionsPanel } from "@/components/shop/ProgressPanels";
+import { levelFromXp } from "@/game/progression";
+import { useProgressStore } from "@/store/progressStore";
 import { sound } from "@/game/audio";
 import { ITEMS, SLOT_LABELS, itemById, type CosmeticSlot } from "@/game/items";
 import { useGameStore } from "@/store/gameStore";
 import { useWalletStore } from "@/store/walletStore";
 
 const SLOTS: CosmeticSlot[] = ["hat", "face", "back", "trail"];
+type Tab = "shop" | "missions" | "badges";
 
 /** Points shop: buy and equip cosmetics for the ZUN character. */
 export function Shop({ onClose }: { onClose: () => void }) {
@@ -20,12 +24,22 @@ export function Shop({ onClose }: { onClose: () => void }) {
   const equip = useWalletStore((s) => s.equip);
   const setCosmetics = useGameStore((s) => s.setCosmetics);
   const [slot, setSlot] = useState<CosmeticSlot>("hat");
+  const [tab, setTab] = useState<Tab>("shop");
   const [flash, setFlash] = useState<string | null>(null);
+  const xp = useProgressStore((s) => s.xp);
+  const level = levelFromXp(xp).level;
 
   const items = ITEMS.filter((i) => i.slot === slot);
   const previewColor = "#3d8bff";
 
   const onBuy = (id: string) => {
+    const item = itemById(id);
+    if (item?.minLevel && level < item.minLevel) {
+      sound.play("click");
+      setFlash(`Reach level ${item.minLevel} to unlock ${item.name}`);
+      setTimeout(() => setFlash(null), 1600);
+      return;
+    }
     if (buy(id)) {
       sound.play("win", { volume: 0.5 });
       equip(id);
@@ -47,9 +61,14 @@ export function Shop({ onClose }: { onClose: () => void }) {
     <div className="pointer-events-auto fixed inset-0 z-[60] flex items-center justify-center bg-[#12142b]/70 p-3 backdrop-blur-sm safe-pad" onClick={onClose}>
       <div className="panel anim-rise flex max-h-full w-full max-w-3xl flex-col overflow-hidden p-4 sm:p-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="display text-2xl text-white sm:text-3xl">ZUN SHOP</div>
-            <div className="text-[10px] font-bold tracking-[0.3em] text-white/50">COSMETICS ONLY · NO ADVANTAGES</div>
+          <div className="flex items-center gap-3">
+            <div>
+              <div className="display text-2xl text-white sm:text-3xl">ZUN SHOP</div>
+              <div className="text-[10px] font-bold tracking-[0.3em] text-white/50">COSMETICS ONLY · NO ADVANTAGES</div>
+            </div>
+            <div className="hidden sm:block">
+              <LevelBar />
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <div className="chip px-3 py-1.5 text-right">
@@ -62,7 +81,36 @@ export function Shop({ onClose }: { onClose: () => void }) {
           </div>
         </div>
 
-        <div className="mt-3 flex min-h-0 flex-1 gap-3">
+        <div className="mt-3 flex gap-1.5">
+          {(["shop", "missions", "badges"] as Tab[]).map((t) => (
+            <button
+              key={t}
+              className={`rounded-xl px-3 py-1.5 text-[11px] font-black tracking-widest ${tab === t ? "bg-white text-[#12142b]" : "bg-white/10 text-white/80"}`}
+              onClick={() => {
+                sound.play("click");
+                setTab(t);
+              }}
+            >
+              {t === "shop" ? "🛍️ SHOP" : t === "missions" ? "🎯 MISSIONS" : "🎖️ BADGES"}
+            </button>
+          ))}
+          <div className="ml-auto sm:hidden">
+            <LevelBar compact />
+          </div>
+        </div>
+
+        {tab === "missions" && (
+          <div className="mt-3 flex min-h-0 flex-1 flex-col">
+            <MissionsPanel />
+          </div>
+        )}
+        {tab === "badges" && (
+          <div className="mt-3 flex min-h-0 flex-1 flex-col">
+            <BadgesPanel />
+          </div>
+        )}
+
+        <div className={`mt-3 flex min-h-0 flex-1 gap-3 ${tab === "shop" ? "" : "hidden"}`}>
           {/* preview */}
           <div className="hidden w-40 shrink-0 flex-col rounded-2xl bg-white/5 sm:flex">
             <div className="relative h-48 w-full">
@@ -90,7 +138,8 @@ export function Shop({ onClose }: { onClose: () => void }) {
               {items.map((item) => {
                 const isOwned = owned.includes(item.id);
                 const isEquipped = equipped[item.slot] === item.id;
-                const affordable = points >= item.price;
+                const locked = Boolean(item.minLevel && level < item.minLevel);
+                const affordable = points >= item.price && !locked;
                 return (
                   <div key={item.id} className={`flex flex-col rounded-2xl border-2 p-2.5 ${isEquipped ? "border-brand-2 bg-brand-2/10" : "border-white/10 bg-white/5"}`}>
                     <div className="flex items-center gap-2">
@@ -112,7 +161,7 @@ export function Shop({ onClose }: { onClose: () => void }) {
                           className={`w-full rounded-xl py-1.5 text-[11px] font-black tracking-widest active:scale-95 ${affordable ? "bg-brand text-white" : "bg-white/10 text-white/40"}`}
                           onClick={() => onBuy(item.id)}
                         >
-                          BUY · ⭐ {item.price}
+                          {locked ? `🔒 LV ${item.minLevel}` : `BUY · ⭐ ${item.price}`}
                         </button>
                       )}
                     </div>
@@ -124,7 +173,7 @@ export function Shop({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="mt-2 flex h-5 items-center justify-between text-[11px] font-bold text-white/60">
-          <span>{flash ?? "Win rounds to earn points: 1st +120 · 2nd +90 · 3rd +70 · others +50"}</span>
+          <span>{flash ?? "Points come from placement, survival, checkpoints, streaks, missions and badges. Points = XP."}</span>
         </div>
       </div>
     </div>,

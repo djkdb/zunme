@@ -6,6 +6,7 @@
  * set is shared with other players through presence.
  */
 import { create } from "zustand";
+import { levelFromXp } from "@/game/progression";
 import {
   DEFAULT_COSMETICS,
   FREE_ITEMS,
@@ -18,6 +19,16 @@ import {
 } from "@/game/items";
 
 const KEY = "dropzone:wallet";
+
+/** Current XP from the progress store's storage (avoids a circular import). */
+function loadXp(): number {
+  try {
+    const raw = localStorage.getItem("dropzone:progress");
+    return raw ? Math.max(0, Number((JSON.parse(raw) as { xp?: number }).xp) || 0) : 0;
+  } catch {
+    return 0;
+  }
+}
 
 interface Persisted {
   points: number;
@@ -92,6 +103,7 @@ export const useWalletStore = create<WalletStore>((set, get) => ({
     const item = itemById(itemId);
     const cur = sync(set);
     if (!item || cur.owned.includes(itemId) || cur.points < item.price) return false;
+    if (item.minLevel && levelFromXp(loadXp()).level < item.minLevel) return false;
     const next: Persisted = { ...cur, points: cur.points - item.price, owned: [...cur.owned, itemId] };
     set(next);
     save(next);

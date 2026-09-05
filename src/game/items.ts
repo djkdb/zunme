@@ -18,6 +18,8 @@ export interface Item {
   price: number;
   emoji: string;
   description: string;
+  /** unlocks at this level (see progression.ts) */
+  minLevel?: number;
 }
 
 export const SLOT_LABELS: Record<CosmeticSlot, string> = {
@@ -31,31 +33,31 @@ export const ITEMS: Item[] = [
   // hats
   { id: "cap_zun", slot: "hat", name: "ZUN Cap", price: 0, emoji: "🧢", description: "The original navy cap." },
   { id: "cap_red", slot: "hat", name: "Red Cap", price: 150, emoji: "🟥", description: "Same cap, louder colour." },
-  { id: "cap_gold", slot: "hat", name: "Gold Cap", price: 450, emoji: "🟨", description: "For people who win a lot." },
+  { id: "cap_gold", slot: "hat", name: "Gold Cap", price: 450, emoji: "🟨", description: "For people who win a lot.", minLevel: 3 },
   { id: "beanie", slot: "hat", name: "Beanie", price: 250, emoji: "🧶", description: "Cosy knit. Zero aerodynamics." },
   { id: "party", slot: "hat", name: "Party Hat", price: 300, emoji: "🥳", description: "It is always someone's birthday." },
   { id: "cat_ears", slot: "hat", name: "Cat Ears", price: 400, emoji: "🐱", description: "Nya." },
-  { id: "halo", slot: "hat", name: "Halo", price: 600, emoji: "😇", description: "Innocent. Definitely didn't push anyone." },
-  { id: "crown", slot: "hat", name: "Crown", price: 900, emoji: "👑", description: "Last one standing, every time." },
+  { id: "halo", slot: "hat", name: "Halo", price: 600, emoji: "😇", description: "Innocent. Definitely didn't push anyone.", minLevel: 4 },
+  { id: "crown", slot: "hat", name: "Crown", price: 900, emoji: "👑", description: "Last one standing, every time.", minLevel: 6 },
   // face
   { id: "face_none", slot: "face", name: "Nothing", price: 0, emoji: "🙂", description: "Just the face." },
   { id: "sunglasses", slot: "face", name: "Sunglasses", price: 200, emoji: "🕶️", description: "Deal with it." },
   { id: "glasses", slot: "face", name: "Round Glasses", price: 250, emoji: "👓", description: "Clean code energy." },
-  { id: "visor", slot: "face", name: "Cyber Visor", price: 350, emoji: "🥽", description: "Sees the spinner coming." },
+  { id: "visor", slot: "face", name: "Cyber Visor", price: 350, emoji: "🥽", description: "Sees the spinner coming.", minLevel: 3 },
   { id: "headphones", slot: "face", name: "Headphones", price: 300, emoji: "🎧", description: "Lo-fi beats to fall to." },
   // back / neck
   { id: "back_none", slot: "back", name: "Nothing", price: 0, emoji: "🎒", description: "Travelling light." },
   { id: "backpack", slot: "back", name: "Backpack", price: 150, emoji: "🎒", description: "Laptop included." },
   { id: "scarf", slot: "back", name: "Scarf", price: 200, emoji: "🧣", description: "Flaps in the wind." },
   { id: "cape", slot: "back", name: "Cape", price: 600, emoji: "🦸", description: "No capes! ...one cape." },
-  { id: "jetpack", slot: "back", name: "Jetpack", price: 750, emoji: "🚀", description: "Purely decorative. Sadly." },
-  { id: "wings", slot: "back", name: "Wings", price: 950, emoji: "🪽", description: "Also decorative. Sorry." },
+  { id: "jetpack", slot: "back", name: "Jetpack", price: 750, emoji: "🚀", description: "Purely decorative. Sadly.", minLevel: 5 },
+  { id: "wings", slot: "back", name: "Wings", price: 950, emoji: "🪽", description: "Also decorative. Sorry.", minLevel: 8 },
   // trails
   { id: "trail_none", slot: "trail", name: "Nothing", price: 0, emoji: "✨", description: "Leave no trace." },
   { id: "sparkle", slot: "trail", name: "Sparkle", price: 300, emoji: "✨", description: "Glitter with every step." },
   { id: "hearts", slot: "trail", name: "Hearts", price: 400, emoji: "💗", description: "Spread the love (and shoves)." },
-  { id: "fire", slot: "trail", name: "Fire", price: 550, emoji: "🔥", description: "Too fast, too furious." },
-  { id: "rainbow", slot: "trail", name: "Rainbow", price: 800, emoji: "🌈", description: "Full spectrum flex." },
+  { id: "fire", slot: "trail", name: "Fire", price: 550, emoji: "🔥", description: "Too fast, too furious.", minLevel: 4 },
+  { id: "rainbow", slot: "trail", name: "Rainbow", price: 800, emoji: "🌈", description: "Full spectrum flex.", minLevel: 7 },
 ];
 
 export const DEFAULT_COSMETICS: Cosmetics = { hat: "cap_zun", face: "face_none", back: "back_none", trail: "trail_none" };

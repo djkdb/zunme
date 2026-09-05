@@ -12,6 +12,7 @@ import { loadIdentity, pickFreeColor, saveNickname } from "@/lib/room";
 import { sanitizeCosmetics, type Cosmetics } from "@/game/items";
 import { computeReward, rewardKey } from "@/game/rewards";
 import { useWalletStore } from "@/store/walletStore";
+import { currentLevel, useProgressStore } from "@/store/progressStore";
 import type { GameMode, GameState, Player, PlayerPresence } from "@/types";
 
 export interface EliminationNotice {
@@ -41,6 +42,8 @@ interface GameStore {
   eliminationSeq: number;
   lastFinish: EliminationNotice | null;
   finishSeq: number;
+  /** host time when the local player fell / finished this round (0 = not yet) */
+  localOutAt: number;
   muted: boolean;
 
   join(roomCode: string, nickname?: string): Promise<void>;
@@ -77,6 +80,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   eliminationSeq: 0,
   lastFinish: null,
   finishSeq: 0,
+  localOutAt: 0,
   muted: false,
 
   async join(roomCode, nickname) {
@@ -90,6 +94,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       colorIndex: Math.floor(Math.random() * PLAYER_COLORS.length),
       joinedAt: Date.now(),
       cosmetics: { ...useWalletStore.getState().equipped },
+      level: currentLevel(),
     };
     set({ connecting: true, error: null, roomCode, nickname: name, viewingLobby: false, lastElimination: null });
 
@@ -135,10 +140,29 @@ export const useGameStore = create<GameStore>((set, get) => ({
           patch.lastFinish = { playerId: id, nickname: p?.nickname ?? "???", colorHex: PLAYER_COLORS[p?.colorIndex ?? 0].hex, at: performance.now() };
           patch.finishSeq = get().finishSeq + 1;
         }
-        if (state.status === "COUNTDOWN" && prev.status !== "COUNTDOWN") patch.lastFinish = null;
+        if (state.status === "COUNTDOWN" && prev.status !== "COUNTDOWN") {
+          patch.lastFinish = null;
+          patch.localOutAt = 0;
+        }
         if (state.status === "FINISHED" && prev.status !== "FINISHED") {
-          const reward = computeReward(state, get().localId);
-          if (reward) useWalletStore.getState().claimReward(rewardKey(state), reward.points, reward.rank);
+          const localId = get().localId;
+          const reward = computeReward(state, localId);
+          if (reward) {
+            const outAt = get().localOutAt;
+            const roundMs = Math.max(0, state.endAt - state.startAt);
+            const finished = state.finishOrder.includes(localId);
+            const report = useProgressStore.getState().applyRound(rewardKey(state), {
+              mode: state.mode,
+              rank: reward.rank,
+              participants: state.participants.length,
+              won: state.winnerId === localId,
+              finished,
+              survivedMs: outAt > state.startAt ? outAt - state.startAt : roundMs,
+              checkpoints: state.mode === "RACE" ? Math.max(0, Math.min(5, (state.progress[localId] ?? -1) + 1)) : 0,
+              roundMs,
+            });
+            if (report) get().client?.updatePresence({ level: currentLevel() });
+          }
         }
         patch.players = toPlayers(get().presences, get().hostId, state);
         set(patch);
@@ -195,6 +219,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   reportFinish() {
     const { client, localId } = get();
+    if (client && !get().localOutAt) set({ localOutAt: client.now() });
     client?.sendEvent({ type: "finish", playerId: localId, at: Date.now() });
   },
 
@@ -215,6 +240,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   reportFall() {
     const { client, localId } = get();
+    if (client && !get().localOutAt) set({ localOutAt: client.now() });
     client?.sendEvent({ type: "fall", playerId: localId, at: Date.now() });
   },
 

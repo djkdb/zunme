@@ -20,6 +20,11 @@ export interface Transport {
   readonly offline: boolean;
 }
 
+function sanitizeLevel(v: unknown): number {
+  const n = Math.floor(Number(v));
+  return Number.isFinite(n) ? Math.min(99, Math.max(1, n)) : 1;
+}
+
 function isPresence(v: unknown): v is PlayerPresence {
   if (!v || typeof v !== "object") return false;
   const o = v as Record<string, unknown>;
@@ -82,7 +87,7 @@ export class SupabaseTransport implements Transport {
       const entries = state[key];
       const latest = entries[entries.length - 1];
       if (isPresence(latest)) {
-        players.push({ id: latest.id, nickname: latest.nickname, colorIndex: latest.colorIndex, joinedAt: latest.joinedAt, cosmetics: sanitizeCosmetics(latest.cosmetics) });
+        players.push({ id: latest.id, nickname: latest.nickname, colorIndex: latest.colorIndex, joinedAt: latest.joinedAt, cosmetics: sanitizeCosmetics(latest.cosmetics), level: sanitizeLevel(latest.level) });
       }
     }
     this.presenceHandler(players);
@@ -172,7 +177,7 @@ export class WorkerTransport implements Transport {
           return;
         }
         if (msg.t === "presence" && Array.isArray(msg.players)) {
-          this.presenceHandler?.(msg.players.filter(isPresence).map((p) => ({ ...p, cosmetics: sanitizeCosmetics(p.cosmetics) })));
+          this.presenceHandler?.(msg.players.filter(isPresence).map((p) => ({ ...p, cosmetics: sanitizeCosmetics(p.cosmetics), level: sanitizeLevel(p.level) })));
         } else if (msg.t === "bc" && typeof msg.event === "string") {
           this.handlers.get(msg.event)?.forEach((h) => h(msg.payload));
         } else if (msg.t === "full") {

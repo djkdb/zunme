@@ -9,6 +9,8 @@ import { sound } from "@/game/audio";
 import { roomShareUrl } from "@/lib/room";
 import { selectIsHost, selectPlayers, useGameStore } from "@/store/gameStore";
 import { useWalletStore } from "@/store/walletStore";
+import { useProgressStore } from "@/store/progressStore";
+import { levelFromXp } from "@/game/progression";
 import { ShopButton } from "@/components/shop/ShopButton";
 import { rewardKey } from "@/game/rewards";
 
@@ -26,6 +28,10 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
   const reward = useWalletStore((s) => s.lastReward);
   const points = useWalletStore((s) => s.points);
   const earned = reward && reward.key === rewardKey(state) ? reward.points : 0;
+  const report = useProgressStore((s) => s.lastReport);
+  const xp = useProgressStore((s) => s.xp);
+  const lines = report && report.key === rewardKey(state) ? report.lines : [];
+  const level = levelFromXp(xp).level;
   const [phase, setPhase] = useState<"hold" | "splash" | "panel">("hold");
   const [shared, setShared] = useState(false);
 
@@ -104,9 +110,21 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
             </div>
 
             {earned > 0 && (
-              <div className="anim-pop mt-3 flex items-center justify-center gap-2">
-                <div className="rounded-full bg-brand-2 px-4 py-1 text-sm font-black text-[#12142b]">+{earned} PTS</div>
-                <div className="text-xs font-bold text-white/60">⭐ {points} total</div>
+              <div className="anim-pop mt-3">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="rounded-full bg-brand-2 px-4 py-1 text-sm font-black text-[#12142b]">+{earned} PTS</div>
+                  <div className="text-xs font-bold text-white/60">⭐ {points} · LV {level}</div>
+                </div>
+                {lines.length > 0 && (
+                  <ul className="mx-auto mt-2 max-h-24 max-w-xs space-y-0.5 overflow-y-auto text-[11px] font-bold">
+                    {lines.map((l, i) => (
+                      <li key={i} className={`flex justify-between ${l.points < 0 ? "text-white/40" : l.label.startsWith("Mission") || l.label.startsWith("Level") || /^[^A-Za-z]/.test(l.label) ? "text-brand-2" : "text-white/75"}`}>
+                        <span className="truncate">{l.label}</span>
+                        <span>{l.points >= 0 ? "+" : ""}{l.points}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </div>
             )}
             <div className="my-4 grid grid-cols-3 gap-2 border-y border-white/15 py-3 text-center">

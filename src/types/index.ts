@@ -26,6 +26,8 @@ export interface PlayerPresence {
   joinedAt: number;
   /** equipped cosmetics (validated on receipt) */
   cosmetics?: Cosmetics;
+  /** progression level (cosmetic) */
+  level?: number;
 }
 
 export interface Player extends PlayerPresence {
