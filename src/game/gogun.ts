@@ -69,12 +69,27 @@ export const GOGUN_COIN_POINTS = { silver: 2, gold: 10 };
 export const GOGUN_JUMP_CUT = 0.72; // tap = shorter hop, hold = full jump (softer than the arena cut)
 export const GOGUN_CRASH_MS = 250; // blocked by a wall this long while running = you fall
 
-const PALETTE = ["#3a3f5c", "#2f3450", "#454a6d", "#3d3555", "#2b4a5e", "#4a3b5c", "#35505a"];
+export const GOGUN_STAGES = 6;
+export const GOGUN_STAGE_LENGTH = 100; // metres per stage
+/** Building palettes per stage: the city changes character as you go. */
+const STAGE_PALETTES: string[][] = [
+  ["#3a3f5c", "#2f3450", "#454a6d"], // 1 downtown navy
+  ["#3d3555", "#4a3b5c", "#5a3b6c"], // 2 purple district
+  ["#2b4a5e", "#35505a", "#1f5a6a"], // 3 harbour teal
+  ["#5c3a3a", "#6a3f2f", "#4a2f2f"], // 4 brick quarter
+  ["#2a2f4f", "#1c2140", "#3a2f6f"], // 5 midnight
+  ["#5a4a1f", "#6a5a2f", "#7a6a3f"], // 6 golden heights
+];
+export function stageAt(distance: number): number {
+  return Math.min(GOGUN_STAGES, Math.floor(Math.max(0, distance) / GOGUN_STAGE_LENGTH) + 1);
+}
 
 /** Speed grows with distance covered: harder as the run goes on. */
 export function gogunSpeedAt(distance: number, length: number): number {
   const k = Math.min(1, Math.max(0, distance / length));
-  return GOGUN_BASE_SPEED + (GOGUN_MAX_SPEED - GOGUN_BASE_SPEED) * Math.pow(k, 0.8);
+  const stage = stageAt(distance) - 1; // 0..5
+  const stepped = stage / Math.max(1, GOGUN_STAGES - 1);
+  return GOGUN_BASE_SPEED + (GOGUN_MAX_SPEED - GOGUN_BASE_SPEED) * (0.6 * stepped + 0.4 * k);
 }
 
 /**
@@ -91,7 +106,7 @@ function jumpReach(speed: number, rise = 0): number {
 /** Players never jump from the exact edge, and taps are shorter than holds. */
 const SAFE_GAP_RATIO = 0.6;
 
-export function buildCourse(seed: number, targetLength = 420): Course {
+export function buildCourse(seed: number, targetLength = GOGUN_STAGES * GOGUN_STAGE_LENGTH): Course {
   const rng = createRng(seed ^ 0x6a09e667);
   const buildings: Building[] = [];
   const anchors: Anchor[] = [];
@@ -143,7 +158,8 @@ export function buildCourse(seed: number, targetLength = 420): Course {
 
     const zStart = z - gap;
     const zEnd = zStart - d;
-    buildings.push({ index: index++, x, z: (zStart + zEnd) / 2, w, d, top: nextTop, color: PALETTE[Math.floor(rng() * PALETTE.length)], zStart, zEnd });
+    const palette = STAGE_PALETTES[Math.min(STAGE_PALETTES.length - 1, stageAt(distance) - 1)];
+    buildings.push({ index: index++, x, z: (zStart + zEnd) / 2, w, d, top: nextTop, color: palette[Math.floor(rng() * palette.length)], zStart, zEnd });
 
     // Rooftop obstacle to hop (only on long roofs, more often later)
     if (d > 13 && rng() < 0.35 + difficulty * 0.35) {
@@ -180,6 +196,7 @@ export const gogunRuntime = {
   wire: { active: false, anchor: -1, x: 0, y: 0, z: 0, length: 0, since: 0 },
   /** an anchor is hookable right now (airborne + in range) → HUD hint */
   anchorInRange: false,
+  stage: 1,
   finished: false,
   lastProgressTick: -1,
   reset() {
@@ -190,6 +207,7 @@ export const gogunRuntime = {
     this.wire.active = false;
     this.wire.anchor = -1;
     this.anchorInRange = false;
+    this.stage = 1;
     this.finished = false;
     this.lastProgressTick = -1;
   },

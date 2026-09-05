@@ -52,6 +52,10 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
   const winner = state.winnerId;
   const survived = formatClock(state.endAt - state.startAt);
   const race = state.mode === "RACE" || state.mode === "GOGUN";
+  const bossMode = state.mode === "BOSS";
+  const huntersWon = bossMode && state.bossFell;
+  const series = state.series;
+  const seriesRows = players.filter((p) => (series[p.id] ?? 0) > 0).sort((a, b) => (series[b.id] ?? 0) - (series[a.id] ?? 0));
   const meta = GAME_MODES[state.mode];
   const eliminations = state.eliminationOrder.length;
   const dnf = race ? state.participants.length - state.finishOrder.length : 0;
@@ -61,7 +65,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
   const share = async () => {
     sound.play("click");
     const url = roomShareUrl(roomCode);
-    const headline = winner ? `🏆 ${name(winner)} won ${meta.name}!` : race ? "⏱ Nobody finished SKY DASH!" : "💀 Nobody survived DROPZONE!";
+    const headline = huntersWon ? "⚔️ The hunters took down the boss!" : winner ? `🏆 ${name(winner)} won ${meta.name}!` : race ? "⏱ Nobody finished SKY DASH!" : "💀 Nobody survived DROPZONE!";
     const stats = race ? `${state.participants.length} players · ${survived} · ${dnf} DNF` : `${state.participants.length} players · survived ${survived} · ${eliminations} eliminations`;
     const text = `${headline}\n${stats}\nPlay: ${url}`;
     if (navigator.share) {
@@ -86,7 +90,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
       {/* Winner splash */}
       {phase === "splash" && (
         <div className="flex flex-1 flex-col items-center justify-center">
-          <div className="anim-slam display text-gradient gradient-shadow text-6xl sm:text-8xl">{winner ? "WINNER" : state.mode === "GOGUN" ? "WIPEOUT" : race ? "TIME'S UP" : "DRAW"}</div>
+          <div className="anim-slam display text-gradient gradient-shadow text-6xl sm:text-8xl">{huntersWon ? "HUNTERS WIN" : winner ? (bossMode ? "BOSS WINS" : "WINNER") : state.mode === "GOGUN" ? "WIPEOUT" : race ? "TIME'S UP" : "DRAW"}</div>
           {winner && (
             <div className="anim-rise delay-2 display mt-3 text-4xl text-white hud-text sm:text-5xl" style={{ color: color(winner) }}>
               {name(winner)}
@@ -100,7 +104,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
           <div className="panel anim-rise pointer-events-auto m-auto w-full max-w-md p-5 sm:p-6 short:max-w-2xl short:p-4">
             <div className="text-center">
               <div className="text-[11px] font-black tracking-[0.4em] text-white/60">{meta.icon} {meta.name}</div>
-              <div className="display mt-1 text-2xl text-brand-2">{winner ? "🏆 WINNER" : state.mode === "GOGUN" ? "💀 WIPEOUT" : race ? "⏱ NO FINISHERS" : "💀 NO SURVIVORS"}</div>
+              <div className="display mt-1 text-2xl text-brand-2">{huntersWon ? "⚔️ HUNTERS WIN" : winner ? (bossMode ? "👑 BOSS WINS" : "🏆 WINNER") : state.mode === "GOGUN" ? "💀 WIPEOUT" : race ? "⏱ NO FINISHERS" : "💀 NO SURVIVORS"}</div>
               {winner && (
                 <div className="display mt-1 text-4xl sm:text-5xl" style={{ color: color(winner) }}>
                   {name(winner)}
@@ -142,6 +146,16 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
               </div>
             </div>
 
+            {seriesRows.length > 0 && (
+              <div className="mb-3 flex flex-wrap items-center justify-center gap-1.5 text-[11px] font-bold text-white/80">
+                <span className="text-white/50">SERIES</span>
+                {seriesRows.map((p) => (
+                  <span key={p.id} className="rounded-full bg-white/10 px-2 py-0.5">
+                    {name(p.id)} <span className="text-brand-2">{series[p.id]}</span>
+                  </span>
+                ))}
+              </div>
+            )}
             {!race && lastToFall && (
               <div className="mb-3 flex items-center justify-center gap-2 text-sm font-bold text-white/80">
                 <span>💀 LAST TO FALL</span>

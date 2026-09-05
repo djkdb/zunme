@@ -53,6 +53,7 @@ interface GameStore {
   setCosmetics(cosmetics: Cosmetics): void;
   startGame(): void;
   setMode(mode: GameMode): void;
+  setPartyMix(on: boolean): void;
   playAgain(): void;
   reportFinish(): void;
   reportCheckpoint(index: number): void;
@@ -156,7 +157,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               mode: state.mode,
               rank: reward.rank,
               participants: state.participants.length,
-              won: state.winnerId === localId,
+              won: state.winnerId === localId || (state.mode === "BOSS" && state.bossFell && state.alive.includes(localId)),
               finished,
               survivedMs: outAt > state.startAt ? outAt - state.startAt : roundMs,
               checkpoints: state.mode === "RACE" ? Math.max(0, Math.min(5, (state.progress[localId] ?? -1) + 1)) : 0,
@@ -218,6 +219,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setMode(mode) {
     get().client?.setMode(mode);
+  },
+
+  setPartyMix(on) {
+    get().client?.setPartyMix(on);
   },
 
   reportFinish() {

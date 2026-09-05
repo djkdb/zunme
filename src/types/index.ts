@@ -1,7 +1,7 @@
 import type { PlayerColorName } from "@/game/config";
 import type { Cosmetics } from "@/game/items";
 
-export type GameMode = "SUMO" | "RACE" | "MELTDOWN" | "GOGUN";
+export type GameMode = "SUMO" | "RACE" | "MELTDOWN" | "GOGUN" | "BOSS";
 
 export type RoomStatus =
   | "LOBBY"
@@ -57,6 +57,14 @@ export interface GameState {
   finishOrder: string[];
   /** RACE: highest checkpoint index reached per player. */
   progress: Record<string, number>;
+  /** BOSS: who is the boss this round */
+  bossId: string | null;
+  /** BOSS: true when the hunters knocked the boss off */
+  bossFell: boolean;
+  /** rotate modes every round */
+  partyMix: boolean;
+  /** cumulative wins this session (reset when returning to lobby) */
+  series: Record<string, number>;
   winnerId: string | null;
   /** Host id when this state was emitted. */
   hostId: string;

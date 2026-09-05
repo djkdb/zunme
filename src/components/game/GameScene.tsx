@@ -27,6 +27,7 @@ import {
   gogunRuntime,
   gogunSpawn,
   gogunSpeedAt,
+  stageAt,
   type Course,
 } from "@/game/gogun";
 import { burst } from "@/game/effects";
@@ -54,6 +55,7 @@ const BASE_RULES: Record<Exclude<GameMode, "GOGUN">, PlayerRules> = {
     },
   },
   MELTDOWN: { fallY: MELTDOWN_FALL_Y, onFall: "eliminate", onGround: meltdownStep },
+  BOSS: { fallY: FALL_Y, onFall: "eliminate" },
 };
 
 function buildGogunRules(course: Course): PlayerRules {
@@ -82,6 +84,12 @@ function buildGogunRules(course: Course): PlayerRules {
       onStep: (x, y, z) => {
         const store = useGameStore.getState();
         gogunRuntime.distance = Math.max(gogunRuntime.distance, GOGUN_START_Z - z);
+        const stage = stageAt(gogunRuntime.distance);
+        if (stage !== gogunRuntime.stage) {
+          gogunRuntime.stage = stage;
+          sound.play("go", { volume: 0.5 });
+          burst({ position: { x, y: y + 1, z }, color: ["#ffd32a", "#ffffff"], count: 16, speed: 3, life: 0.6, size: 0.12 });
+        }
         // coins
         for (const c of course.coins) {
           if (gogunRuntime.collected.has(c.index)) continue;
@@ -140,6 +148,7 @@ export function GameScene({ mobile }: { mobile: boolean }) {
   const mode = useGameStore((s) => s.state.mode);
   const participants = useGameStore((s) => s.state.participants);
   const alive = useGameStore((s) => s.state.alive);
+  const bossId = useGameStore((s) => s.state.bossId);
   const course = useCourse();
   const rules = useMemo(() => (mode === "GOGUN" ? buildGogunRules(course) : BASE_RULES[mode]), [mode, course]);
 
@@ -161,7 +170,7 @@ export function GameScene({ mobile }: { mobile: boolean }) {
       <Lighting mobile={mobile} />
       <Environment mobile={mobile} />
       <PhysicsStepper />
-      {mode === "SUMO" && (
+      {(mode === "SUMO" || mode === "BOSS") && (
         <>
           <Arena />
           <Obstacles />
@@ -173,11 +182,11 @@ export function GameScene({ mobile }: { mobile: boolean }) {
       {mode === "GOGUN" && <RooftopCourse course={course} />}
       {visible.map((p) => {
         const idx = Math.max(0, spawnOrder.indexOf(p.id));
-        const spawn = spawnFor(mode, idx, spawnOrder.length);
+        const spawn: [number, number, number] = mode === "BOSS" && bossId === p.id ? [0, 2, 0] : spawnFor(mode, idx, spawnOrder.length);
         return p.id === localId ? (
-          <LocalPlayer key={`${p.id}-local-${mode}`} id={p.id} nickname={p.nickname} colorHex={p.colorHex} spawn={spawn} showLabel={showLabels} rules={rules} cosmetics={p.cosmetics} />
+          <LocalPlayer key={`${p.id}-local-${mode}-${bossId === p.id ? "boss" : "n"}`} id={p.id} nickname={p.nickname} colorHex={p.colorHex} spawn={spawn} showLabel={showLabels} rules={rules} cosmetics={p.cosmetics} boss={mode === "BOSS" && bossId === p.id} />
         ) : (
-          <RemotePlayer key={`${p.id}-${mode}`} id={p.id} nickname={p.nickname} colorHex={p.colorHex} spawn={spawn} showLabel={showLabels} cosmetics={p.cosmetics} ghost={mode === "GOGUN"} />
+          <RemotePlayer key={`${p.id}-${mode}-${bossId === p.id ? "boss" : "n"}`} id={p.id} nickname={p.nickname} colorHex={p.colorHex} spawn={spawn} showLabel={showLabels} cosmetics={p.cosmetics} ghost={mode === "GOGUN"} boss={mode === "BOSS" && bossId === p.id} />
         );
       })}
       <Particles max={mobile ? 350 : 600} />

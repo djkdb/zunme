@@ -18,7 +18,7 @@ export function MusicDirector({ screen }: { screen: "menu" | "room" }) {
     if (screen === "menu") track = "menu";
     else if (status === "LOBBY") track = "lobby";
     else if (status === "FINISHED") track = "result";
-    else track = mode;
+    else track = mode === "BOSS" ? "SUMO" : mode;
     music.play(track);
   }, [screen, status, mode]);
 

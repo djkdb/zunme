@@ -18,6 +18,17 @@ export function formatClock(ms: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+/** Polls the GOGUN stage; returns the stage and a key that changes on stage-up (for the banner). */
+function useStage(enabled: boolean): number {
+  const [stage, setStage] = useState(1);
+  useEffect(() => {
+    if (!enabled) return;
+    const id = setInterval(() => setStage((prev) => (prev === gogunRuntime.stage ? prev : gogunRuntime.stage)), 150);
+    return () => clearInterval(id);
+  }, [enabled]);
+  return stage;
+}
+
 /** Polls the runtime for "an anchor is hookable now" (20 Hz). */
 function useWireHint(enabled: boolean): boolean {
   const [hint, setHint] = useState(false);
@@ -40,9 +51,13 @@ export function GameHUD() {
   const mobile = useIsMobile();
   const { dashLeft, dashPct } = useDashCooldown();
   const wireHint = useWireHint(state.mode === "GOGUN" && state.status === "PLAYING");
+  const stage = useStage(state.mode === "GOGUN" && state.status === "PLAYING");
 
   const race = state.mode === "RACE";
   const run = state.mode === "GOGUN";
+  const bossMode = state.mode === "BOSS";
+  const bossName = bossMode ? (players.find((p) => p.id === state.bossId)?.nickname ?? "?") : "";
+  const isBoss = bossMode && state.bossId === localId;
   const finishLine = race || run;
   const meta = GAME_MODES[state.mode];
   const participants = state.participants.length ? state.participants : players.map((p) => p.id);
@@ -62,10 +77,10 @@ export function GameHUD() {
       {/* top bar */}
       <div className="flex items-start justify-between p-3">
         <div className="chip px-3 py-2 text-xs font-black tracking-widest text-white hud-text sm:text-sm">
-          {meta.icon} {meta.name} · R{state.round}
+          {meta.icon} {meta.name} · {run ? `STAGE ${stage}` : `R${state.round}`}
         </div>
         <div className="chip anim-pop px-4 py-2 text-center text-white">
-          <div className="text-[10px] font-bold tracking-[0.3em] text-white/60">{run ? "DISTANCE" : race ? "FINISHED" : "SURVIVORS"}</div>
+          <div className="text-[10px] font-bold tracking-[0.3em] text-white/60">{run ? "DISTANCE" : race ? "FINISHED" : bossMode ? "HUNTERS" : "SURVIVORS"}</div>
           <div className="display text-2xl sm:text-3xl">
             {run ? (
               <>
@@ -74,7 +89,7 @@ export function GameHUD() {
               </>
             ) : (
               <>
-                {race ? state.finishOrder.length : survivors} <span className="text-white/50">/ {participants.length}</span>
+                {race ? state.finishOrder.length : bossMode ? survivors - (state.bossId && state.alive.includes(state.bossId) ? 1 : 0) : survivors} <span className="text-white/50">/ {bossMode ? participants.length - 1 : participants.length}</span>
               </>
             )}
           </div>
@@ -97,10 +112,11 @@ export function GameHUD() {
           const finished = state.finishOrder.includes(p.id);
           const dim = race ? false : !alive;
           const prog = state.progress[p.id] ?? -1;
+          const crown = bossMode && state.bossId === p.id;
           return (
             <li key={p.id} className={`chip flex items-center gap-2 px-3 py-1 text-xs font-bold transition-opacity ${dim ? "text-white/40 line-through" : "text-white"}`}>
               {dim ? <span className="text-[10px] text-white/50">✕</span> : <span className="h-2.5 w-2.5 rounded-full" style={{ background: p.colorHex }} />}
-              <span className="max-w-[110px] truncate">{p.nickname}</span>
+              <span className="max-w-[110px] truncate">{crown ? "👑 " : ""}{p.nickname}</span>
               {race && (finished ? <span className="text-brand-2">🏁</span> : <span className="text-white/50">CP{prog + 1}</span>)}
               {run && (finished ? <span className="text-brand-2">🏁</span> : <span className="text-white/50">{Math.max(0, prog) * GOGUN_PROGRESS_STEP}m</span>)}
             </li>
@@ -117,6 +133,11 @@ export function GameHUD() {
         </div>
       )}
 
+      {bossMode && state.status === "PLAYING" && (
+        <div className="absolute left-1/2 top-24 -translate-x-1/2">
+          <div className={`anim-slam display rounded-2xl px-6 py-2 text-2xl shadow-2xl hud-text ${isBoss ? "bg-brand text-white" : "bg-[#12142b]/80 text-brand-2"}`}>{isBoss ? "YOU ARE THE BOSS" : `⚔️ BOSS: ${bossName}`}</div>
+        </div>
+      )}
       {/* banners */}
       {final2 && (
         <div className="absolute left-1/2 top-24 -translate-x-1/2">
@@ -131,6 +152,11 @@ export function GameHUD() {
       {run && state.status === "PLAYING" && !isSpectating && !localFinished && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
           <div className="chip px-3 py-1.5 text-[11px] font-black tracking-widest text-white/85">{mobile ? "TAP JUMP · TAP AGAIN IN AIR = WIRE" : "SPACE JUMP · SPACE IN AIR = WIRE"}</div>
+        </div>
+      )}
+      {run && stage > 1 && state.status === "PLAYING" && (
+        <div key={stage} className="anim-banner pointer-events-none absolute inset-x-0 top-1/4 flex justify-center">
+          <div className="anim-slam display text-gradient gradient-shadow text-5xl sm:text-6xl">STAGE {stage}</div>
         </div>
       )}
       {run && wireHint && (

@@ -34,6 +34,8 @@ interface Props {
   isLocal?: boolean;
   showLabel?: boolean;
   cosmetics?: Cosmetics;
+  /** uniform scale (the BOSS is bigger) */
+  scale?: number;
 }
 
 // ── ZUN palette ──────────────────────────────────────────────────────
@@ -92,7 +94,7 @@ function getZunLabel(bg: string): THREE.CanvasTexture {
  * from the shop so every player reads as a different ZUN.
  * Feet at y=0, cap top ≈ 1.55 (fits the 1.5 m capsule).
  */
-export function Character({ colorHex, nickname, animRef, isLocal = false, showLabel = true, cosmetics = DEFAULT_COSMETICS }: Props) {
+export function Character({ colorHex, nickname, animRef, isLocal = false, showLabel = true, cosmetics = DEFAULT_COSMETICS, scale = 1 }: Props) {
   const root = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
   const head = useRef<THREE.Group>(null);
@@ -173,7 +175,7 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
   });
 
   return (
-    <group ref={root}>
+    <group ref={root} scale={scale}>
       <group ref={body}>
         {/* ── hoodie torso ── */}
         <mesh castShadow receiveShadow position={[0, 0.56, 0]}>
@@ -502,7 +504,7 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
       ))}
 
       {showLabel && (
-        <Html position={[0, 1.95, 0]} center distanceFactor={14} zIndexRange={[1, 0]} style={{ pointerEvents: "none" }}>
+        <Html position={[0, 1.95, 0]} center distanceFactor={14 * scale} zIndexRange={[1, 0]} style={{ pointerEvents: "none" }}>
           <div
             className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-[13px] font-bold tracking-wide shadow-lg backdrop-blur-sm ${
               isLocal ? "bg-white/90 text-slate-900" : "bg-slate-900/70 text-white"

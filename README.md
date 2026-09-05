@@ -1,14 +1,15 @@
 # DROPZONE — Last One Standing
 
 A mobile-first 3D multiplayer party game in the browser. Up to 8 friends,
-four party modes, one 6-letter room code, no accounts:
+five party modes, one 6-letter room code, no accounts:
 
 | Mode | Goal |
 | --- | --- |
 | 🥊 **DROPZONE** | Sumo island: shove everyone off, dodge the spinner, the sweeper and collapsing tiles. Last one standing wins. |
 | 🏁 **SKY DASH** | A 280 m, 12-section obstacle race: spinner alley, stepping stones, a door-dash wall (two of four doors are fake), conveyor belts that push you toward the gaps, pendulum hammers, a crumbling bridge, a jump-pad gap, sweepers with side pistons, a crosswind fan bridge and a triple-spinner finale. Five checkpoints; falling respawns you at the last one. First across the line wins. |
 | 🔥 **MELTDOWN** | Three shrinking floors of tiles that vanish right after you step on them. Keep moving. Last survivor wins. |
-| 🐱 **GOGUN RUN** | A 3D take on the 2007 Hangame classic *고군분투*: auto-run over night-city rooftops, tap to jump the gaps, tap again in the air to hook a wire onto a lantern anchor and swing across the wide ones, grab silver and gold coins. Fall = out; first to the goal wins (solo = classic single-player). |
+| 🐱 **GOGUN RUN** | A 3D take on the 2007 Hangame classic *고군분투*: auto-run over night-city rooftops, tap to jump the gaps, tap again in the air to hook a wire onto a lantern anchor and swing across the wide ones, grab silver and gold coins. Six stages, faster every stage. Fall = out; first to the goal wins (solo = classic single-player). |
+| ⚔️ **1 vs ALL** | One player is the BOSS (1.35× size, heavy, hard-hitting, fast dash) on the sumo island; everyone else hunts them. Boss survives 60 s or clears the hunters → boss wins; boss falls → hunters win. Boss rotates every round. |
 
 Every player is a variation of the ZUN character (navy "ZUN" cap, hoodie in
 the player colour, sneakers) dressed up from the **ZUN Shop**.
@@ -77,6 +78,9 @@ vulnerable while airborne. Jumps have coyote time and input buffering.
 ## How a round works
 
 `LOBBY (host picks a mode) → 3 · 2 · 1 · GO! → PLAYING → FINISHED`
+
+**🎲 Party Mix** (lobby toggle) rotates the mode every round, and a **series
+scoreboard** counts wins per player until the room returns to the lobby.
 
 - DROPZONE: falling eliminates you. 65 s in which the spinner keeps speeding
   up, 60% of the outer tiles cycle through collapses and **meteors** rain

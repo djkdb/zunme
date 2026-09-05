@@ -45,12 +45,20 @@ export const GAME_MODES = {
     duration: 75_000,
     suddenDeath: 0,
   },
+  BOSS: {
+    name: "1 vs ALL",
+    tagline: "BOSS BRAWL",
+    description: "One player is the BOSS: bigger, heavier, harder-hitting. Everyone else teams up to shove them off before time runs out. Boss rotates every round.",
+    icon: "⚔️",
+    duration: 60_000,
+    suddenDeath: 0,
+  },
   GOGUN: {
     name: "GOGUN RUN",
     tagline: "ROOFTOP WIRE ACTION",
-    description: "Auto-run over the rooftops. Tap to jump, tap in the air to hook a wire and swing. Grab coins, don't fall.",
+    description: "Six stages of rooftops, faster every stage. Tap to jump, tap in the air to hook a wire and swing. Grab coins, don't fall.",
     icon: "🐱",
-    duration: 120_000,
+    duration: 150_000,
     suddenDeath: 0,
   },
 } as const;
@@ -65,6 +73,14 @@ export const MELTDOWN_FALL_Y = -22;
 export const MELTDOWN_STEP_DELAY = 450; // ms after stepping before the tile vanishes (at GO!)
 export const MELTDOWN_STEP_DELAY_MIN = 200; // ...shrinking to this over MELTDOWN_STEP_RAMP_MS
 export const MELTDOWN_STEP_RAMP_MS = 40_000;
+
+// ── Boss (1 vs ALL) ──────────────────────────────────────────────────
+export const BOSS_SCALE = 1.35;
+export const BOSS_MASS = 3;
+export const BOSS_SPEED = 6.8;
+export const BOSS_DASH_COOLDOWN = 1000;
+export const BOSS_HIT_MULTIPLIER = 1.7; // knockback dealt by the boss
+export const BOSS_KNOCKBACK_RESIST = 0.45; // knockback received by the boss
 
 // ── Meteors (DROPZONE) ───────────────────────────────────────────────
 export const METEOR_FIRST_AT = 9_000;

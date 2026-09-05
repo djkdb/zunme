@@ -14,6 +14,12 @@ import * as THREE from "three";
 import { TRAIL_COLORS, type Cosmetics } from "@/game/items";
 import { Character, createAnim, type CharacterAnim } from "@/components/game/Character";
 import {
+  BOSS_DASH_COOLDOWN,
+  BOSS_HIT_MULTIPLIER,
+  BOSS_KNOCKBACK_RESIST,
+  BOSS_MASS,
+  BOSS_SCALE,
+  BOSS_SPEED,
   AIR_HIT_MULTIPLIER,
   COYOTE_TIME_MS,
   DASH_COOLDOWN,
@@ -86,6 +92,8 @@ interface Props {
   showLabel: boolean;
   cosmetics: Cosmetics;
   rules: PlayerRules;
+  /** this player is the BOSS this round */
+  boss?: boolean;
 }
 
 interface BodyUserData {
@@ -96,7 +104,7 @@ interface BodyUserData {
 const tmpVel = new THREE.Vector3();
 const tmpDir = new THREE.Vector3();
 
-export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, cosmetics }: Props) {
+export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, cosmetics, boss = false }: Props) {
   const body = useRef<RapierRigidBody>(null);
   const animRef = useRef<CharacterAnim>(createAnim());
   const { world, rapier } = useRapier();
@@ -108,7 +116,9 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
   }, [rules]);
   const lastRound = useRef(-1);
   const rayRef = useRef<InstanceType<typeof rapier.Ray> | null>(null);
-  const halfHeight = (PLAYER_HEIGHT - PLAYER_RADIUS * 2) / 2;
+  const scale = boss ? BOSS_SCALE : 1;
+  const halfHeight = ((PLAYER_HEIGHT - PLAYER_RADIUS * 2) / 2) * scale;
+  const radius = PLAYER_RADIUS * scale;
   const lastTrail = useRef(0);
   const lastGroundedAt = useRef(0);
   const jumpBufferedAt = useRef(0);
@@ -167,7 +177,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
     ray.origin.x = t.x;
     ray.origin.y = t.y;
     ray.origin.z = t.z;
-    const hit = world.castRay(ray, PLAYER_HEIGHT / 2 + 0.12, true, undefined, undefined, undefined, rb);
+    const hit = world.castRay(ray, (PLAYER_HEIGHT / 2) * scale + 0.12, true, undefined, undefined, undefined, rb);
     const wasGrounded = grounded.current;
     grounded.current = hit !== null && v.y <= 0.5;
     if (hit && grounded.current) rulesRef.current.onGround?.(hit.collider.handle);
@@ -320,7 +330,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       const dz = len > 0.1 ? mz : Math.cos(anim.yaw);
       dashDir.current = { x: dx, z: dz };
       localPose.dashUntil = now + DASH_DURATION;
-      localPose.dashReadyAt = now + DASH_COOLDOWN;
+      localPose.dashReadyAt = now + (boss ? BOSS_DASH_COOLDOWN : DASH_COOLDOWN);
       anim.dashUntil = localPose.dashUntil;
       anim.yaw = Math.atan2(dx, dz);
       sound.play("dash", { volume: 0.7 });
@@ -339,8 +349,9 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       vz = v.z * (grounded.current ? 0.97 : 0.995);
     } else {
       const control = grounded.current ? 1 : PLAYER_AIR_CONTROL;
-      const targetX = mx * PLAYER_SPEED + (surface?.[0] ?? 0) + (wind?.[0] ?? 0);
-      const targetZ = mz * PLAYER_SPEED + (surface?.[1] ?? 0) + (wind?.[1] ?? 0);
+      const moveSpeed = boss ? BOSS_SPEED : PLAYER_SPEED;
+      const targetX = mx * moveSpeed + (surface?.[0] ?? 0) + (wind?.[0] ?? 0);
+      const targetZ = mz * moveSpeed + (surface?.[1] ?? 0) + (wind?.[1] ?? 0);
       const carried = Boolean(surface) || Boolean(wind && (wind[0] !== 0 || wind[1] !== 0));
       const maxDelta = PLAYER_ACCEL * control * dt;
       vx = v.x + THREE.MathUtils.clamp(targetX - v.x, -maxDelta, maxDelta);
@@ -465,6 +476,9 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       let strength = THREE.MathUtils.clamp(PUSH_IMPULSE + relative * PUSH_RELATIVE_FACTOR, PUSH_IMPULSE * 0.6, PUSH_IMPULSE_MAX) * PLAYER_MASS;
       if (!grounded.current) strength *= AIR_HIT_MULTIPLIER;
       if (dashing) strength *= DASH_SELF_KNOCKBACK; // attacker barely recoils
+      const otherIsBoss = useGameStore.getState().state.bossId === data.id;
+      if (otherIsBoss) strength *= BOSS_HIT_MULTIPLIER;
+      if (boss) strength *= BOSS_KNOCKBACK_RESIST * (BOSS_MASS / PLAYER_MASS); // heavier: impulse scaled to mass, then resisted
       rb.applyImpulse({ x: tmpDir.x * strength, y: PUSH_UPWARD * strength, z: tmpDir.z * strength }, true);
       // Hard hits stun: control lost briefly so the shove really lands.
       if (!dashing && strength >= PUSH_IMPULSE * 1.6) {
@@ -513,7 +527,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       type="dynamic"
       colliders={false}
       position={spawn}
-      mass={PLAYER_MASS}
+      mass={boss ? BOSS_MASS : PLAYER_MASS}
       linearDamping={PLAYER_LINEAR_DAMPING}
       angularDamping={1}
       enabledRotations={[false, false, false]}
@@ -522,9 +536,9 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       userData={{ type: "player", id } satisfies BodyUserData}
       onCollisionEnter={onCollisionEnter}
     >
-      <CapsuleCollider args={[halfHeight, PLAYER_RADIUS]} friction={0.2} restitution={0.15} />
-      <group position={[0, -PLAYER_HEIGHT / 2, 0]}>
-        <Character colorHex={colorHex} nickname={nickname} animRef={animRef} isLocal showLabel={showLabel} cosmetics={cosmetics} />
+      <CapsuleCollider args={[halfHeight, radius]} friction={0.2} restitution={0.15} />
+      <group position={[0, (-PLAYER_HEIGHT / 2) * scale, 0]}>
+        <Character colorHex={colorHex} nickname={nickname} animRef={animRef} isLocal showLabel={showLabel} cosmetics={cosmetics} scale={scale} />
       </group>
     </RigidBody>
   );

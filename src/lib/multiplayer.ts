@@ -180,6 +180,12 @@ export class RoomClient {
     this.broadcastState(true);
   }
 
+  setPartyMix(on: boolean) {
+    if (!this.authority) return;
+    this.authority.setPartyMix(on);
+    this.broadcastState(true);
+  }
+
   returnToLobby() {
     if (!this.authority) return;
     this.authority.returnToLobby();

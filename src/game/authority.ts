@@ -27,11 +27,17 @@ export function createInitialState(hostId: string): GameState {
     eliminationOrder: [],
     finishOrder: [],
     progress: {},
+    bossId: null,
+    bossFell: false,
+    partyMix: false,
+    series: {},
     winnerId: null,
     hostId,
     version: 1,
   };
 }
+
+const MODE_ROTATION: GameMode[] = ["SUMO", "RACE", "MELTDOWN", "GOGUN", "BOSS"];
 
 /** Wall-clock (host) time at which the round is over no matter what. */
 export function roundEndAt(state: GameState): number {
@@ -73,11 +79,29 @@ export class GameAuthority {
     this.commit({ mode });
   }
 
+  setPartyMix(on: boolean) {
+    if (this.state.partyMix === on) return;
+    this.commit({ partyMix: on });
+  }
+
   startCountdown(participants: string[], now: number) {
     if (participants.length === 0) return;
-    const duration = GAME_MODES[this.state.mode].duration;
+    let mode = this.state.mode;
+    if (this.state.partyMix && this.state.round > 0) {
+      const i = MODE_ROTATION.indexOf(mode);
+      // skip BOSS when fewer than 2 players
+      let next = MODE_ROTATION[(i + 1) % MODE_ROTATION.length];
+      if (next === "BOSS" && participants.length < 2) next = MODE_ROTATION[(i + 2) % MODE_ROTATION.length];
+      mode = next;
+    }
+    // Boss rotates through the participants by round.
+    const bossId = mode === "BOSS" ? participants[this.state.round % participants.length] : null;
+    const duration = GAME_MODES[mode].duration;
     this.commit({
       status: "COUNTDOWN",
+      mode,
+      bossId,
+      bossFell: false,
       round: this.state.round + 1,
       seed: randomSeed(),
       countdownStartAt: now,
@@ -94,7 +118,7 @@ export class GameAuthority {
 
   returnToLobby() {
     if (this.state.status === "LOBBY") return;
-    this.commit({ status: "LOBBY", participants: [], alive: [], eliminationOrder: [], finishOrder: [], progress: {}, winnerId: null });
+    this.commit({ status: "LOBBY", participants: [], alive: [], eliminationOrder: [], finishOrder: [], progress: {}, winnerId: null, bossId: null, bossFell: false, series: {} });
   }
 
   handleEvent(evt: ClientEvent, now: number) {
@@ -152,6 +176,16 @@ export class GameAuthority {
       if (running.length === 0) this.finish(s.finishOrder[0] ?? null, now);
       return;
     }
+    if (s.mode === "BOSS") {
+      if (s.bossId && !s.alive.includes(s.bossId)) {
+        this.commit({ bossFell: true });
+        this.finish(null, now); // hunters win as a team
+        return;
+      }
+      const hunters = s.alive.filter((id) => id !== s.bossId);
+      if (total >= 2 && hunters.length === 0) this.finish(s.bossId, now);
+      return;
+    }
     if (total >= 2 && s.alive.length <= 1) {
       this.finish(s.alive[0] ?? null, now);
     } else if (total === 1 && s.alive.length === 0) {
@@ -160,7 +194,14 @@ export class GameAuthority {
   }
 
   private finish(winnerId: string | null, now: number) {
-    this.commit({ status: "FINISHED", winnerId, endAt: now });
+    // Series scoreboard: winner +1, or every surviving hunter +1 when the boss fell.
+    const series = { ...this.state.series };
+    const s = this.state;
+    if (winnerId) series[winnerId] = (series[winnerId] ?? 0) + 1;
+    else if (s.mode === "BOSS" && s.bossId && !s.alive.includes(s.bossId)) {
+      for (const id of s.alive) series[id] = (series[id] ?? 0) + 1;
+    }
+    this.commit({ status: "FINISHED", winnerId, endAt: now, series });
   }
 
   /**
@@ -179,6 +220,7 @@ export class GameAuthority {
     if (this.state.status === "PLAYING" && now >= roundEndAt(this.state)) {
       const st = this.state;
       if (hasFinishLine(st.mode)) this.finish(st.finishOrder[0] ?? null, now);
+      else if (st.mode === "BOSS") this.finish(st.bossId && st.alive.includes(st.bossId) ? st.bossId : null, now);
       else this.finish(st.alive.length === 1 ? st.alive[0] : null, now);
     }
     if (this.state.status === "LOBBY" && this.state.participants.length > 0) {
@@ -207,6 +249,16 @@ export function computeRanking(state: GameState): string[] {
       .filter((id) => !ranking.includes(id))
       .sort((a, b) => (state.progress[b] ?? -1) - (state.progress[a] ?? -1));
     for (const id of rest) ranking.push(id);
+    return ranking;
+  }
+  if (state.mode === "BOSS" && state.bossFell && state.bossId) {
+    // hunters who survived first, then fallen hunters, boss last
+    for (const id of state.alive) if (id !== state.bossId) ranking.push(id);
+    for (let i = state.eliminationOrder.length - 1; i >= 0; i--) {
+      const id = state.eliminationOrder[i];
+      if (id !== state.bossId && !ranking.includes(id)) ranking.push(id);
+    }
+    ranking.push(state.bossId);
     return ranking;
   }
   if (state.winnerId) ranking.push(state.winnerId);

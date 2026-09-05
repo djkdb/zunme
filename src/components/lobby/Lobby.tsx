@@ -20,6 +20,10 @@ export function Lobby({ roomCode }: { roomCode: string }) {
   const startGame = useGameStore((s) => s.startGame);
   const mode = useGameStore((s) => s.state.mode);
   const setMode = useGameStore((s) => s.setMode);
+  const partyMix = useGameStore((s) => s.state.partyMix);
+  const setPartyMix = useGameStore((s) => s.setPartyMix);
+  const series = useGameStore((s) => s.state.series);
+  const seriesRows = players.filter((p) => (series[p.id] ?? 0) > 0).sort((a, b) => (series[b.id] ?? 0) - (series[a.id] ?? 0));
   const leave = useGameStore((s) => s.leave);
   const [copied, setCopied] = useState(false);
 
@@ -88,7 +92,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
           </div>
 
           <div className="mt-4 text-xs font-bold tracking-widest text-white/70 short:mt-2">GAME MODE {!isHost && <span className="text-white/40">(host picks)</span>}</div>
-          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
             {(Object.keys(GAME_MODES) as GameMode[]).map((m) => {
               const meta = GAME_MODES[m];
               const active = m === mode;
@@ -110,6 +114,27 @@ export function Lobby({ roomCode }: { roomCode: string }) {
             })}
           </div>
           <p className="mt-1.5 text-center text-[11px] font-semibold text-white/60 short:hidden">{GAME_MODES[mode].description}</p>
+          <button
+            disabled={!isHost || roundInProgress}
+            onClick={() => {
+              sound.play("click");
+              setPartyMix(!partyMix);
+            }}
+            className={`mt-2 flex w-full items-center justify-between rounded-xl border-2 px-3 py-1.5 text-[11px] font-black tracking-widest ${partyMix ? "border-brand-2 bg-brand-2/15 text-brand-2" : "border-white/10 bg-white/5 text-white/70"} ${isHost ? "active:scale-[0.98]" : "cursor-default"}`}
+          >
+            <span>🎲 PARTY MIX — rotate modes every round</span>
+            <span>{partyMix ? "ON" : "OFF"}</span>
+          </button>
+          {seriesRows.length > 0 && (
+            <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-white/80">
+              <span className="text-white/50">SERIES</span>
+              {seriesRows.map((p) => (
+                <span key={p.id} className="rounded-full bg-white/10 px-2 py-0.5">
+                  {p.nickname} <span className="text-brand-2">{series[p.id]}</span>
+                </span>
+              ))}
+            </div>
+          )}
 
           <div className="mt-4 flex items-center justify-between text-xs font-bold tracking-widest text-white/70 short:mt-2">
             <span>PLAYERS</span>
@@ -146,7 +171,10 @@ export function Lobby({ roomCode }: { roomCode: string }) {
             ) : (
               <div className="anim-pulse rounded-2xl bg-white/10 p-3 text-center text-sm font-bold text-white/80">Waiting for the host to start…</div>
             )}
-            {isHost && players.length < 2 && !roundInProgress && (
+            {isHost && mode === "BOSS" && players.length < 2 && !roundInProgress && (
+              <p className="mt-2 text-center text-[11px] font-semibold text-brand-2">1 vs ALL needs at least 2 players — starting solo just lets you try the boss.</p>
+            )}
+            {isHost && players.length < 2 && !roundInProgress && mode !== "BOSS" && (
               <p className="mt-2 text-center text-[11px] font-semibold text-white/55 short:hidden">Share the code — it&apos;s way more fun with friends. You can start solo to practice.</p>
             )}
           </div>
