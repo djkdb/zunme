@@ -128,18 +128,6 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
     const lines = roundPoints(summary, streak);
     let total = lines.reduce((a, l) => a + l.points, 0);
 
-    // level
-    const before = levelFromXp(cur.xp).level;
-    const xp = cur.xp + Math.max(0, total);
-    const after = levelFromXp(xp).level;
-    const levelUps: number[] = [];
-    for (let l = before + 1; l <= after; l++) levelUps.push(l);
-    if (levelUps.length) {
-      const bonus = levelUps.length * LEVEL_UP_BONUS;
-      lines.push({ label: `Level up → ${after}`, points: bonus });
-      total += bonus;
-    }
-
     // achievements
     const unlocked: string[] = [];
     for (const a of ACHIEVEMENTS) {
@@ -167,6 +155,18 @@ export const useProgressStore = create<ProgressStore>((set, get) => ({
       }
       return { id: m.id, progress, done };
     });
+
+    // level: every point earned this round is XP (level-up bonus itself excluded)
+    const before = levelFromXp(cur.xp).level;
+    const xp = cur.xp + Math.max(0, total);
+    const after = levelFromXp(xp).level;
+    const levelUps: number[] = [];
+    for (let l = before + 1; l <= after; l++) levelUps.push(l);
+    if (levelUps.length) {
+      const bonus = levelUps.length * LEVEL_UP_BONUS;
+      lines.push({ label: `Level up → ${after}`, points: bonus });
+      total += bonus;
+    }
 
     stats.pointsLifetime += total;
     const next: Persisted = {
