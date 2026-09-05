@@ -92,7 +92,7 @@ export function missionDefs(day: string): MissionDef[] {
   return dailyMissions(day);
 }
 
-export const useProgressStore = create<ProgressStore>((set, get) => ({
+export const useProgressStore = create<ProgressStore>((set) => ({
   ...load(),
   lastReport: null,
 

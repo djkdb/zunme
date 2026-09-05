@@ -66,20 +66,28 @@ Object locally, `npm run deploy` ships it. Optional Neon match history via
 
 | Platform | Move | Jump |
 | --- | --- | --- |
-| PC | `W A S D` / arrows | `Space` |
-| Mobile | floating joystick (left half) | `JUMP` button |
+| PC | `W A S D` / arrows | `Space` (hold for higher) · `Shift` / `K` = **dash** |
+| Mobile | floating joystick (left half) | `JUMP` button · `DASH` button |
+
+**Dash** is the shove: a 0.2 s burst (1.8 s cooldown). Dash into someone and
+they fly, get briefly stunned (no control, spinning) and are extra
+vulnerable while airborne. Jumps have coyote time and input buffering.
 
 ## How a round works
 
 `LOBBY (host picks a mode) → 3 · 2 · 1 · GO! → PLAYING → FINISHED`
 
-- DROPZONE: falling eliminates you. 75 s, then **sudden death** — outer
-  tiles fall away permanently and obstacles speed up until one remains.
+- DROPZONE: falling eliminates you. 65 s in which the spinner keeps speeding
+  up, 60% of the outer tiles cycle through collapses and **meteors** rain
+  down (warning ring → 1.5 s → impact knocks everyone nearby away). Then
+  **sudden death** — outer tiles fall away permanently and obstacles speed
+  up until one remains.
 - SKY DASH: 150 s. Once someone finishes, everyone else has 15 s to cross.
   Ranking = finish order, then checkpoint progress. Fake doors, tile
   crumbles and obstacle timing are seeded per round, so every client agrees.
-- MELTDOWN: 75 s. Tiles vanish 0.45 s after being stepped on (synced to all
-  players); floors 2 and 3 are smaller, then it's the lava.
+- MELTDOWN: 75 s. Tiles vanish 0.45 s after being stepped on, shrinking to
+  0.2 s over the first 40 s (synced to all players); floors 2 and 3 are
+  smaller, then it's the lava.
 - The result screen shows the winner, survival time, ranking, elimination
   order and a share button (Web Share API with clipboard fallback).
 

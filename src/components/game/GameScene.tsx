@@ -7,6 +7,7 @@ import { EffectsDirector } from "@/components/game/EffectsDirector";
 import { Environment, Lighting } from "@/components/game/Environment";
 import { LocalPlayer, type PlayerRules } from "@/components/game/LocalPlayer";
 import { MeltdownArena, meltdownStep } from "@/components/game/MeltdownArena";
+import { Meteors } from "@/components/game/Meteors";
 import { Obstacles } from "@/components/game/Obstacles";
 import { Particles } from "@/components/game/Particles";
 import { PhysicsStepper } from "@/components/game/PhysicsStepper";
@@ -86,6 +87,7 @@ export function GameScene({ mobile }: { mobile: boolean }) {
         <>
           <Arena />
           <Obstacles />
+          <Meteors />
         </>
       )}
       {mode === "RACE" && <RaceCourse />}

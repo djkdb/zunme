@@ -14,6 +14,17 @@ import * as THREE from "three";
 import { TRAIL_COLORS, type Cosmetics } from "@/game/items";
 import { Character, createAnim, type CharacterAnim } from "@/components/game/Character";
 import {
+  AIR_HIT_MULTIPLIER,
+  COYOTE_TIME_MS,
+  DASH_COOLDOWN,
+  DASH_DURATION,
+  DASH_SELF_KNOCKBACK,
+  DASH_SPEED,
+  HIT_STUN_MS,
+  JUMP_BUFFER_MS,
+  JUMP_CUT_MULTIPLIER,
+  OBSTACLE_STUN_MS,
+  PUSH_RELATIVE_FACTOR,
   JUMP_FORCE,
   OBSTACLE_PUSH_IMPULSE,
   PLAYER_ACCEL,
@@ -28,7 +39,7 @@ import {
   PUSH_UPWARD,
 } from "@/game/config";
 import { burst, shake } from "@/game/effects";
-import { consumeJump, input } from "@/game/input";
+import { consumeDash, consumeJump, input, lastJumpPressAt } from "@/game/input";
 import { livePoses, localPose } from "@/game/remote";
 import { sound } from "@/game/audio";
 import { raceRuntime } from "@/game/sync";
@@ -84,6 +95,10 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
   const rayRef = useRef<InstanceType<typeof rapier.Ray> | null>(null);
   const halfHeight = (PLAYER_HEIGHT - PLAYER_RADIUS * 2) / 2;
   const lastTrail = useRef(0);
+  const lastGroundedAt = useRef(0);
+  const jumpBufferedAt = useRef(0);
+  const jumpCut = useRef(false);
+  const dashDir = useRef({ x: 0, z: 1 });
 
   // Dev-only hook so e2e tests / the console can move the local player.
   useEffect(() => {
@@ -108,6 +123,9 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
         lastRound.current = s.state.round;
         fellReported.current = false;
         raceRuntime.reset();
+        localPose.dashUntil = 0;
+        localPose.dashReadyAt = 0;
+        localPose.stunUntil = 0;
         rb.setTranslation({ x: spawn[0], y: spawn[1], z: spawn[2] }, true);
         rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
         animRef.current.yaw = Math.atan2(-spawn[0], -spawn[2]);
@@ -142,33 +160,91 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
 
     const active = isRoundActive();
     const dt = 1 / 60;
-    let mx = active ? input.moveX : 0;
-    let mz = active ? -input.moveY : 0;
+    const now = performance.now();
+    if (grounded.current) lastGroundedAt.current = now;
+    const stunned = now < localPose.stunUntil;
+    const dashing = now < localPose.dashUntil;
+    const canControl = active && !stunned;
+
+    let mx = canControl ? input.moveX : 0;
+    let mz = canControl ? -input.moveY : 0;
     const len = Math.hypot(mx, mz);
     if (len > 1) {
       mx /= len;
       mz /= len;
     }
-    const control = grounded.current ? 1 : PLAYER_AIR_CONTROL;
-    const targetX = mx * PLAYER_SPEED + (surface?.[0] ?? 0) + (wind?.[0] ?? 0);
-    const targetZ = mz * PLAYER_SPEED + (surface?.[1] ?? 0) + (wind?.[1] ?? 0);
-    const carried = Boolean(surface) || Boolean(wind && (wind[0] !== 0 || wind[1] !== 0));
-    const maxDelta = PLAYER_ACCEL * control * dt;
-    let vx = v.x + THREE.MathUtils.clamp(targetX - v.x, -maxDelta, maxDelta);
-    let vz = v.z + THREE.MathUtils.clamp(targetZ - v.z, -maxDelta, maxDelta);
-    // Extra ground friction when idle so shoves settle quickly.
-    if (grounded.current && len < 0.05 && !carried) {
-      vx *= 0.88;
-      vz *= 0.88;
+
+    // Dash: short burst in the move direction (or facing), with cooldown.
+    if (consumeDash() && canControl && !dashing && now >= localPose.dashReadyAt) {
+      const dx = len > 0.1 ? mx : Math.sin(anim.yaw);
+      const dz = len > 0.1 ? mz : Math.cos(anim.yaw);
+      dashDir.current = { x: dx, z: dz };
+      localPose.dashUntil = now + DASH_DURATION;
+      localPose.dashReadyAt = now + DASH_COOLDOWN;
+      anim.dashUntil = localPose.dashUntil;
+      anim.yaw = Math.atan2(dx, dz);
+      sound.play("dash", { volume: 0.7 });
+      shake(0.12);
+      burst({ position: { x: t.x, y: t.y - PLAYER_HEIGHT / 2 + 0.2, z: t.z }, color: ["#ffffff", colorHex], count: 8, speed: 2.5, life: 0.35, size: 0.12, gravity: 2 });
     }
+
+    let vx: number;
+    let vz: number;
+    if (now < localPose.dashUntil) {
+      vx = dashDir.current.x * DASH_SPEED;
+      vz = dashDir.current.z * DASH_SPEED;
+    } else if (stunned) {
+      // Knockback carries; only air drag.
+      vx = v.x * (grounded.current ? 0.97 : 0.995);
+      vz = v.z * (grounded.current ? 0.97 : 0.995);
+    } else {
+      const control = grounded.current ? 1 : PLAYER_AIR_CONTROL;
+      const targetX = mx * PLAYER_SPEED + (surface?.[0] ?? 0) + (wind?.[0] ?? 0);
+      const targetZ = mz * PLAYER_SPEED + (surface?.[1] ?? 0) + (wind?.[1] ?? 0);
+      const carried = Boolean(surface) || Boolean(wind && (wind[0] !== 0 || wind[1] !== 0));
+      const maxDelta = PLAYER_ACCEL * control * dt;
+      vx = v.x + THREE.MathUtils.clamp(targetX - v.x, -maxDelta, maxDelta);
+      vz = v.z + THREE.MathUtils.clamp(targetZ - v.z, -maxDelta, maxDelta);
+      // Extra ground friction when idle so shoves settle quickly.
+      if (grounded.current && len < 0.05 && !carried) {
+        vx *= 0.88;
+        vz *= 0.88;
+      }
+    }
+
     let vy = v.y;
-    const wantsJump = consumeJump();
-    if (active && wantsJump && grounded.current) {
+    // Jump: buffered presses, coyote time, and a shorter hop when released early.
+    if (consumeJump()) jumpBufferedAt.current = lastJumpPressAt || now;
+    const wantsJump = now - jumpBufferedAt.current < JUMP_BUFFER_MS && jumpBufferedAt.current > 0;
+    const canJump = grounded.current || now - lastGroundedAt.current < COYOTE_TIME_MS;
+    if (canControl && wantsJump && canJump && vy <= 0.5) {
       vy = JUMP_FORCE;
       grounded.current = false;
+      lastGroundedAt.current = 0;
+      jumpBufferedAt.current = 0;
+      jumpCut.current = false;
       anim.landedAt = 0;
       sound.play("jump", { volume: 0.6 });
       burst({ position: { x: t.x, y: t.y - PLAYER_HEIGHT / 2, z: t.z }, color: "#ffffff", count: 5, speed: 1.6, life: 0.35, size: 0.1 });
+    } else if (!grounded.current && vy > 2 && !input.jumpHeld && !jumpCut.current && !stunned) {
+      vy *= JUMP_CUT_MULTIPLIER;
+      jumpCut.current = true;
+    }
+    if (grounded.current) jumpCut.current = false;
+    // Hazard impulses (meteors) queued from the scene.
+    const pending = localPose.pendingImpulse;
+    if (pending && active) {
+      localPose.pendingImpulse = null;
+      vx += pending.x;
+      vz += pending.z;
+      vy = Math.max(vy, pending.y);
+      grounded.current = false;
+      localPose.stunUntil = now + pending.stunMs;
+      anim.stunUntil = localPose.stunUntil;
+      anim.hitAt = now;
+      sound.play("impact", { volume: 0.8, throttleMs: 100 });
+    } else if (pending) {
+      localPose.pendingImpulse = null;
     }
     const launch = active ? (rulesRef.current.consumeLaunch?.() ?? 0) : 0;
     if (launch > 0) {
@@ -245,8 +321,16 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       const otherVel = other.linvel();
       tmpVel.set(myVel.x - otherVel.x, 0, myVel.z - otherVel.z);
       const relative = tmpVel.length();
-      const strength = THREE.MathUtils.clamp(PUSH_IMPULSE + relative * 0.45, PUSH_IMPULSE * 0.6, PUSH_IMPULSE_MAX) * PLAYER_MASS;
+      const dashing = now < localPose.dashUntil;
+      let strength = THREE.MathUtils.clamp(PUSH_IMPULSE + relative * PUSH_RELATIVE_FACTOR, PUSH_IMPULSE * 0.6, PUSH_IMPULSE_MAX) * PLAYER_MASS;
+      if (!grounded.current) strength *= AIR_HIT_MULTIPLIER;
+      if (dashing) strength *= DASH_SELF_KNOCKBACK; // attacker barely recoils
       rb.applyImpulse({ x: tmpDir.x * strength, y: PUSH_UPWARD * strength, z: tmpDir.z * strength }, true);
+      // Hard hits stun: control lost briefly so the shove really lands.
+      if (!dashing && strength >= PUSH_IMPULSE * 1.6) {
+        localPose.stunUntil = now + HIT_STUN_MS;
+        anim.stunUntil = localPose.stunUntil;
+      }
       anim.hitAt = now;
       localPose.lastImpactAt = now;
       const mid = { x: (me.x + them.x) / 2, y: me.y, z: (me.z + them.z) / 2 };
@@ -262,6 +346,8 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       tmpVel.set(me.x, 0, me.z).normalize().multiplyScalar(0.35);
       tmpDir.add(tmpVel).normalize();
       rb.applyImpulse({ x: tmpDir.x * OBSTACLE_PUSH_IMPULSE, y: 2.2, z: tmpDir.z * OBSTACLE_PUSH_IMPULSE }, true);
+      localPose.stunUntil = now + OBSTACLE_STUN_MS;
+      anim.stunUntil = localPose.stunUntil;
       anim.hitAt = now;
       burst({ position: { x: me.x, y: me.y, z: me.z }, color: ["#ff5a3c", "#ffffff"], count: 12, speed: 3.5, life: 0.5, size: 0.14 });
       shake(0.45);
@@ -272,6 +358,8 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       if (tmpDir.lengthSq() < 1e-4) tmpDir.set(0, 0, 1);
       tmpDir.normalize();
       rb.applyImpulse({ x: tmpDir.x * OBSTACLE_PUSH_IMPULSE * 0.8, y: 1.5, z: tmpDir.z * OBSTACLE_PUSH_IMPULSE * 0.8 }, true);
+      localPose.stunUntil = now + OBSTACLE_STUN_MS;
+      anim.stunUntil = localPose.stunUntil;
       anim.hitAt = now;
       burst({ position: { x: me.x, y: me.y, z: me.z }, color: ["#3d8bff", "#ffffff"], count: 10, speed: 3, life: 0.45, size: 0.14 });
       shake(0.35);

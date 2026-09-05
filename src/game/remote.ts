@@ -108,6 +108,12 @@ export const localPose = {
   grounded: false,
   jumpedAt: 0,
   lastImpactAt: 0,
+  /** performance.now() when the next dash is available */
+  dashReadyAt: 0,
+  dashUntil: 0,
+  stunUntil: 0,
+  /** impulse queued by hazards (meteors); consumed by the controller */
+  pendingImpulse: null as { x: number; y: number; z: number; stunMs: number } | null,
 };
 
 // Dev-only inspection hook (positions are not React state, so expose them for e2e tests / console debugging).

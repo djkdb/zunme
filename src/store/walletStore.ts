@@ -95,7 +95,7 @@ function sync(set: (p: Partial<WalletStore>) => void): Persisted {
   return cur;
 }
 
-export const useWalletStore = create<WalletStore>((set, get) => ({
+export const useWalletStore = create<WalletStore>((set) => ({
   ...initial,
   lastReward: null,
 

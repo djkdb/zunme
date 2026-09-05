@@ -114,7 +114,7 @@ export function MainMenu() {
 
         <div className="anim-fade delay-4 mt-6 flex flex-col items-center gap-1 text-center text-[12px] font-semibold text-white/75 hud-text">
           <p>🥊 Sumo island · 🏁 Obstacle race · 🔥 Vanishing floors</p>
-          <p className="text-white/55">{mobile ? "Joystick to move · JUMP button" : "WASD to move · SPACE to jump"}</p>
+          <p className="text-white/55">{mobile ? "Joystick to move · JUMP · DASH to shove" : "WASD move · SPACE jump · SHIFT dash into people"}</p>
           {offline && <p className="mt-2 rounded-full bg-[#ffd32a]/90 px-3 py-1 text-[11px] font-black text-[#12142b]">LOCAL MODE — same-device tabs only. Add Supabase keys for online play</p>}
         </div>
       </div>

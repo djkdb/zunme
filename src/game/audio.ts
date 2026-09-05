@@ -58,6 +58,14 @@ const SYNTH: Record<SoundName, Synth> = {
     noise(0.35, 0.25, 400)(ctx, dest, when);
   },
   win: chord([523, 659, 784, 1046, 1318], 0.6, 0.11),
+  dash: (ctx, dest, when) => {
+    noise(0.18, 0.22, 2400)(ctx, dest, when);
+    tone(220, 0.14, "sine", 0.1, 380)(ctx, dest, when);
+  },
+  warning: (ctx, dest, when) => {
+    tone(880, 0.08, "square", 0.08)(ctx, dest, when);
+    tone(880, 0.08, "square", 0.08)(ctx, dest, when + 0.14);
+  },
 };
 
 class SoundManager {

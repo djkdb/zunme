@@ -4,7 +4,8 @@ import { useFrame } from "@react-three/fiber";
 import { CuboidCollider, RigidBody, type RapierCollider } from "@react-three/rapier";
 import { useCallback, useEffect, useRef } from "react";
 import * as THREE from "three";
-import { MELTDOWN_STEP_DELAY, TILE_SIZE } from "@/game/config";
+import { MELTDOWN_STEP_DELAY, MELTDOWN_STEP_DELAY_MIN, MELTDOWN_STEP_RAMP_MS, TILE_SIZE } from "@/game/config";
+import { elapsedSinceStart } from "@/game/clock";
 import { burst } from "@/game/effects";
 import { MELTDOWN_LAYER_COLORS, MELTDOWN_LAYER_Y, MELTDOWN_TILES, tileInLayer } from "@/game/meltdown";
 import { onGameplayEvent } from "@/game/sync";
@@ -136,6 +137,8 @@ export function MeltdownArena() {
     const now = performance.now();
     const store = useGameStore.getState();
     const active = store.state.status === "PLAYING";
+    const roundElapsed = active ? Math.max(0, elapsedSinceStart(store.state)) : 0;
+    const stepDelay = Math.max(MELTDOWN_STEP_DELAY_MIN, MELTDOWN_STEP_DELAY - (MELTDOWN_STEP_DELAY - MELTDOWN_STEP_DELAY_MIN) * Math.min(1, roundElapsed / MELTDOWN_STEP_RAMP_MS));
 
     // Steps reported by the local player this frame.
     while (pendingSteps.length) {
@@ -157,11 +160,11 @@ export function MeltdownArena() {
         const t = MELTDOWN_TILES[i];
         const elapsed = now - at.current[l][i];
         if (p === 1) {
-          if (elapsed >= MELTDOWN_STEP_DELAY) {
+          if (elapsed >= stepDelay) {
             vanish(l, i);
             store.client?.broadcastGameplay({ k: "tile", layer: l, index: i });
           } else {
-            const k = elapsed / MELTDOWN_STEP_DELAY;
+            const k = elapsed / stepDelay;
             tmpPos.set(t.x, MELTDOWN_LAYER_Y[l] - THICKNESS / 2 - k * 0.15, t.z);
             tmpQuat.setFromEuler(tmpEuler.set(Math.sin(now * 0.05) * 0.06 * k, 0, Math.cos(now * 0.05) * 0.06 * k));
             tmpScale.setScalar(1);

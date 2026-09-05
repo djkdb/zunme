@@ -5,6 +5,12 @@
  */
 import {
   ARENA_RADIUS,
+  METEOR_FIRST_AT,
+  METEOR_INTERVAL_MAX,
+  METEOR_INTERVAL_MIN,
+  SPINNER_RAMP,
+  SUDDEN_DEATH_DURATION as _SD,
+  TILE_ACTIVE_RATIO,
   COLLAPSIBLE_MIN_RADIUS,
   GAME_DURATION,
   SPINNER_SPEED,
@@ -75,7 +81,7 @@ export function buildTileSchedule(seed: number): TileSchedule {
 
   // Only a subset of outer tiles cycle during the main round, so the island
   // never turns into swiss cheese. Sudden death removes the rest.
-  const active = collapsible.filter(() => rng() < 0.45);
+  const active = collapsible.filter(() => rng() < TILE_ACTIVE_RATIO);
   for (const tile of active) {
     let t = TILE_FIRST_COLLAPSE_DELAY + rng() * TILE_CYCLE_MAX;
     const events: TileEvent[] = [];
@@ -152,14 +158,16 @@ export function obstacleSpeedMultiplier(elapsed: number): number {
 /** Spinner angle in radians for a given elapsed time (ms since GO!). */
 export function spinnerAngle(elapsed: number): number {
   const t = Math.max(0, elapsed - SPINNER_START_DELAY) / 1000;
-  // Integrate a speed that ramps in sudden death: approximate with piecewise.
-  const base = Math.min(t, (GAME_DURATION - SPINNER_START_DELAY) / 1000);
-  let angle = base * SPINNER_SPEED;
+  // Main round: speed ramps linearly from 1× to (1 + SPINNER_RAMP)× → integrate analytically.
+  const T = (GAME_DURATION - SPINNER_START_DELAY) / 1000;
+  const base = Math.min(t, T);
+  let angle = SPINNER_SPEED * (base + (SPINNER_RAMP * base * base) / (2 * T));
   const sd = Math.max(0, elapsed - GAME_DURATION) / 1000;
   if (sd > 0) {
-    // speed = SPINNER_SPEED * (1 + min(1, sd/10)); integral:
+    // Sudden death: from (1 + ramp)× up to (2 + ramp)× over 10 s, then hold.
+    const s0 = SPINNER_SPEED * (1 + SPINNER_RAMP);
     const ramp = Math.min(sd, 10);
-    angle += SPINNER_SPEED * (ramp + (ramp * ramp) / 20) + SPINNER_SPEED * 2 * Math.max(0, sd - 10);
+    angle += s0 * ramp + (SPINNER_SPEED * ramp * ramp) / 20 + (s0 + SPINNER_SPEED) * Math.max(0, sd - 10);
   }
   // Soft ease-in at the start so nobody gets clipped on frame one.
   const ease = Math.min(1, t / 2);
@@ -172,6 +180,29 @@ export function wallPosition(elapsed: number): number {
   const t = Math.max(0, elapsed - 1500) * mult;
   const phase = ((t % WALL_PERIOD) / WALL_PERIOD) * Math.PI * 2;
   return Math.sin(phase) * WALL_TRAVEL;
+}
+
+export interface MeteorStrike {
+  at: number; // ms since GO! (impact time)
+  x: number;
+  z: number;
+}
+
+/** Seeded meteor schedule for the whole round incl. sudden death. */
+export function buildMeteorSchedule(seed: number): MeteorStrike[] {
+  const rng = createRng(seed ^ 0x2545f491);
+  const strikes: MeteorStrike[] = [];
+  let t = METEOR_FIRST_AT;
+  const end = GAME_DURATION + _SD;
+  while (t < end) {
+    const r = 1.5 + rng() * (ARENA_RADIUS - 3);
+    const a = rng() * Math.PI * 2;
+    strikes.push({ at: t, x: Math.cos(a) * r, z: Math.sin(a) * r });
+    // faster towards the end
+    const k = Math.min(1, t / GAME_DURATION);
+    t += METEOR_INTERVAL_MAX - (METEOR_INTERVAL_MAX - METEOR_INTERVAL_MIN) * k * (0.5 + rng() * 0.5);
+  }
+  return strikes;
 }
 
 export function spawnPosition(index: number, count: number, radius: number): [number, number, number] {

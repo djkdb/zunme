@@ -11,18 +11,24 @@ export interface InputState {
   jump: boolean;
   /** consumed by the player controller once per press */
   jumpPressed: boolean;
+  /** true while the jump key/button is held */
+  jumpHeld: boolean;
 }
 
 const keys = new Set<string>();
 const joystick = { x: 0, y: 0, active: false };
 let jumpHeld = false;
 let jumpQueued = false;
+let dashQueued = false;
+/** performance.now() of the last jump press, for jump buffering */
+export let lastJumpPressAt = 0;
 
 export const input: InputState = {
   moveX: 0,
   moveY: 0,
   jump: false,
   jumpPressed: false,
+  jumpHeld: false,
 };
 
 function recompute() {
@@ -44,6 +50,7 @@ function recompute() {
   input.moveX = x;
   input.moveY = y;
   input.jump = keys.has("Space") || jumpHeld;
+  input.jumpHeld = input.jump;
 }
 
 let listenersAttached = false;
@@ -54,12 +61,16 @@ export function attachKeyboard(): () => void {
   const down = (e: KeyboardEvent) => {
     if (e.repeat) return;
     if (
-      ["KeyW", "KeyA", "KeyS", "KeyD", "Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)
+      ["KeyW", "KeyA", "KeyS", "KeyD", "Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "ShiftLeft", "ShiftRight", "KeyK"].includes(e.code)
     ) {
       e.preventDefault();
     }
     keys.add(e.code);
-    if (e.code === "Space") jumpQueued = true;
+    if (e.code === "Space") {
+      jumpQueued = true;
+      lastJumpPressAt = performance.now();
+    }
+    if (e.code === "ShiftLeft" || e.code === "ShiftRight" || e.code === "KeyK") dashQueued = true;
     recompute();
   };
   const up = (e: KeyboardEvent) => {
@@ -89,9 +100,25 @@ export function setJoystick(x: number, y: number, active: boolean) {
 }
 
 export function setJumpButton(held: boolean) {
-  if (held && !jumpHeld) jumpQueued = true;
+  if (held && !jumpHeld) {
+    jumpQueued = true;
+    lastJumpPressAt = performance.now();
+  }
   jumpHeld = held;
   recompute();
+}
+
+export function pressDash() {
+  dashQueued = true;
+}
+
+/** Returns true once per dash press. */
+export function consumeDash(): boolean {
+  if (dashQueued) {
+    dashQueued = false;
+    return true;
+  }
+  return false;
 }
 
 /** Returns true once per jump press. */
@@ -110,5 +137,6 @@ export function resetInput() {
   joystick.y = 0;
   jumpHeld = false;
   jumpQueued = false;
+  dashQueued = false;
   recompute();
 }

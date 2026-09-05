@@ -26,7 +26,7 @@ export const GAME_MODES = {
     tagline: "LAST ONE STANDING",
     description: "Shove everyone off the island. Fall = out. Last survivor wins.",
     icon: "🥊",
-    duration: 75_000,
+    duration: 65_000,
     suddenDeath: 30_000,
   },
   RACE: {
@@ -54,7 +54,17 @@ export const RACE_JUMP_PAD_VELOCITY = 17;
 export const RACE_WIND_SPEED = 3.4; // m/s sideways drift inside a fan zone (counter-steer to survive)
 export const RACE_CONVEYOR_SPEED = 4.5; // m/s
 export const MELTDOWN_FALL_Y = -22;
-export const MELTDOWN_STEP_DELAY = 450; // ms after stepping before the tile vanishes
+export const MELTDOWN_STEP_DELAY = 450; // ms after stepping before the tile vanishes (at GO!)
+export const MELTDOWN_STEP_DELAY_MIN = 200; // ...shrinking to this over MELTDOWN_STEP_RAMP_MS
+export const MELTDOWN_STEP_RAMP_MS = 40_000;
+
+// ── Meteors (DROPZONE) ───────────────────────────────────────────────
+export const METEOR_FIRST_AT = 9_000;
+export const METEOR_INTERVAL_MIN = 5_000;
+export const METEOR_INTERVAL_MAX = 9_000;
+export const METEOR_WARNING_MS = 1_500;
+export const METEOR_RADIUS = 2.8;
+export const METEOR_IMPULSE = 11;
 
 // ── Player physics ───────────────────────────────────────────────────
 export const PLAYER_SPEED = 7.5; // m/s target ground speed
@@ -67,7 +77,22 @@ export const PLAYER_RADIUS = 0.45;
 export const PLAYER_HEIGHT = 1.5; // capsule total height
 export const PLAYER_LINEAR_DAMPING = 0.4;
 export const PUSH_IMPULSE = 4.5; // knockback applied on player-player contact
-export const PUSH_IMPULSE_MAX = 9;
+export const PUSH_IMPULSE_MAX = 13;
+export const PUSH_RELATIVE_FACTOR = 0.6; // extra knockback per m/s of closing speed
+export const AIR_HIT_MULTIPLIER = 1.3; // airborne victims fly further
+export const HIT_STUN_MS = 250; // no control right after a hard hit
+export const OBSTACLE_STUN_MS = 350;
+
+// ── Dash ─────────────────────────────────────────────────────────────
+export const DASH_SPEED = 19; // m/s during a dash
+export const DASH_DURATION = 220; // ms
+export const DASH_COOLDOWN = 1800; // ms
+export const DASH_SELF_KNOCKBACK = 0.3; // attacker keeps momentum
+
+// ── Jump feel ────────────────────────────────────────────────────────
+export const JUMP_CUT_MULTIPLIER = 0.5; // release early → shorter hop
+export const COYOTE_TIME_MS = 120;
+export const JUMP_BUFFER_MS = 150;
 export const PUSH_UPWARD = 0.25; // small lift so shoves feel bouncy
 export const OBSTACLE_PUSH_IMPULSE = 9;
 export const FALL_Y = -6; // below this = eliminated
@@ -83,11 +108,13 @@ export const TILE_WARNING_DURATION = 1500;
 export const TILE_COLLAPSE_DURATION = 3500;
 export const TILE_CYCLE_MIN = 5000; // idle time between collapses of a tile
 export const TILE_CYCLE_MAX = 14000;
-export const TILE_FIRST_COLLAPSE_DELAY = 8000; // grace period after GO!
+export const TILE_FIRST_COLLAPSE_DELAY = 6000; // grace period after GO!
+export const TILE_ACTIVE_RATIO = 0.6; // share of outer tiles that cycle during the round
 
 // ── Obstacles ────────────────────────────────────────────────────────
 export const SPINNER_LENGTH = 15;
-export const SPINNER_SPEED = 0.9; // rad/s
+export const SPINNER_SPEED = 1.0; // rad/s at GO!, ramps up over the round
+export const SPINNER_RAMP = 0.7; // +70% speed by the end of the main round
 export const SPINNER_HEIGHT = 0.45; // bar bottom height: low enough to jump over
 export const SPINNER_START_DELAY = 3000;
 export const WALL_TRAVEL = 5; // half travel distance
@@ -137,6 +164,8 @@ export const SOUND_PATHS = {
   impact: "/sounds/impact.mp3",
   elimination: "/sounds/elimination.mp3",
   win: "/sounds/win.mp3",
+  dash: "/sounds/dash.mp3",
+  warning: "/sounds/warning.mp3",
 } as const;
 
 export type SoundName = keyof typeof SOUND_PATHS;

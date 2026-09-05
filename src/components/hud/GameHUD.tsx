@@ -5,6 +5,8 @@ import { isSuddenDeath, roundEndAt } from "@/game/authority";
 import { GAME_MODES } from "@/game/config";
 import { RACE_CHECKPOINTS } from "@/game/race";
 import { useHostClock } from "@/hooks/useHostClock";
+import { useDashCooldown } from "@/hooks/useDashCooldown";
+import { useIsMobile } from "@/hooks/useIsMobile";
 import { selectPlayers, useGameStore } from "@/store/gameStore";
 
 export function formatClock(ms: number): string {
@@ -19,6 +21,8 @@ export function GameHUD() {
   const state = useGameStore((s) => s.state);
   const localId = useGameStore((s) => s.localId);
   const now = useHostClock(200);
+  const mobile = useIsMobile();
+  const { dashLeft, dashPct } = useDashCooldown();
 
   const race = state.mode === "RACE";
   const meta = GAME_MODES[state.mode];
@@ -92,6 +96,16 @@ export function GameHUD() {
       {suddenDeath && !final2 && (
         <div className="absolute left-1/2 top-24 -translate-x-1/2">
           <div className="anim-slam display rounded-2xl bg-brand px-6 py-2 text-2xl text-white shadow-2xl hud-text">SUDDEN DEATH</div>
+        </div>
+      )}
+      {!mobile && !isSpectating && !localFinished && state.status === "PLAYING" && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
+          <div className={`chip flex items-center gap-2 px-3 py-1.5 text-[11px] font-black tracking-widest ${dashLeft > 0 ? "text-white/50" : "text-white"}`}>
+            <span className="relative inline-block h-3 w-16 overflow-hidden rounded-full bg-white/10">
+              <span className={`absolute inset-y-0 left-0 rounded-full ${dashLeft > 0 ? "bg-white/40" : "bg-brand-2"}`} style={{ width: `${dashPct}%` }} />
+            </span>
+            DASH · SHIFT
+          </div>
         </div>
       )}
       {(isSpectating || localFinished) && (

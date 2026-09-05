@@ -17,10 +17,14 @@ export interface CharacterAnim {
   landedAt: number;
   /** performance.now() of the last hit, for a flinch */
   hitAt: number;
+  /** performance.now() until which the character is stunned (spins) */
+  stunUntil: number;
+  /** performance.now() until which the character is dashing (leans) */
+  dashUntil: number;
 }
 
 export function createAnim(): CharacterAnim {
-  return { yaw: 0, speed: 0, grounded: true, vy: 0, landedAt: 0, hitAt: 0 };
+  return { yaw: 0, speed: 0, grounded: true, vy: 0, landedAt: 0, hitAt: 0, stunUntil: 0, dashUntil: 0 };
 }
 
 interface Props {
@@ -97,6 +101,7 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
   const legL = useRef<THREE.Group>(null);
   const legR = useRef<THREE.Group>(null);
   const phase = useRef(-1);
+  const spin = useRef(0);
 
   const colors = useMemo(
     () => ({
@@ -118,7 +123,11 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
     if (!g || !anim) return;
     if (phase.current < 0) phase.current = Math.random() * Math.PI * 2;
     const now = performance.now();
-    g.rotation.y = anim.yaw;
+    const stunned = now < anim.stunUntil;
+    const dashing = now < anim.dashUntil;
+    if (stunned) spin.current += dt * 14;
+    else spin.current = THREE.MathUtils.lerp(spin.current, Math.round(spin.current / (Math.PI * 2)) * Math.PI * 2, dt * 12);
+    g.rotation.y = anim.yaw + spin.current;
 
     const moving = anim.speed > 0.4;
     const target = moving ? Math.min(1, anim.speed / 7) : 0;
@@ -151,7 +160,7 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
       const bob = anim.grounded ? Math.abs(Math.sin(phase.current)) * 0.05 * target : 0;
       body.current.position.y = bob - squash * 0.5;
       body.current.scale.set(1 + squash * 0.6, 1 - squash, 1 + squash * 0.6);
-      body.current.rotation.x = THREE.MathUtils.lerp(body.current.rotation.x, target * 0.14 - flinch * 0.6, dt * 8);
+      body.current.rotation.x = THREE.MathUtils.lerp(body.current.rotation.x, target * 0.14 - flinch * 0.6 + (dashing ? 0.55 : 0) + (stunned ? -0.5 : 0), dt * (dashing ? 20 : 8));
     }
     if (head.current) {
       head.current.rotation.z = Math.sin(phase.current * 0.5) * 0.06 * target;
