@@ -6,6 +6,7 @@ import { GameCanvas } from "@/components/game/GameCanvas";
 import { GameScene } from "@/components/game/GameScene";
 import { Countdown } from "@/components/hud/Countdown";
 import { EliminationBanner } from "@/components/hud/EliminationBanner";
+import { FinishBanner } from "@/components/hud/FinishBanner";
 import { GameHUD } from "@/components/hud/GameHUD";
 import { LandscapeHint } from "@/components/hud/LandscapeHint";
 import { MobileControls } from "@/components/hud/MobileControls";
@@ -137,6 +138,7 @@ export function RoomView({ roomCode }: { roomCode: string }) {
           <GameHUD />
           <Countdown />
           <EliminationBanner />
+          <FinishBanner />
           {showControls && <MobileControls />}
         </>
       )}

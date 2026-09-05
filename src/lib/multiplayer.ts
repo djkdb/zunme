@@ -26,7 +26,8 @@ import { clearSnapshots, pushSnapshot } from "@/game/remote";
 import { electHost, sortPlayers } from "@/lib/room";
 import { getRealtimeBackend, getRealtimeUrl } from "@/lib/realtime";
 import { LocalTransport, SupabaseTransport, WorkerTransport, type Transport } from "@/lib/transport";
-import type { ClientEvent, GameState, PlayerPresence, PlayerSnapshot } from "@/types";
+import { emitGameplayEvent, type GameplayEvent } from "@/game/sync";
+import type { ClientEvent, GameMode, GameState, PlayerPresence, PlayerSnapshot } from "@/types";
 
 interface StateMessage {
   state: GameState;
@@ -91,6 +92,9 @@ export class RoomClient {
     this.transport.on("state", (payload) => this.onStateMessage(payload as StateMessage));
     this.transport.on("snap", (payload) => this.onSnapshot(payload as PlayerSnapshot));
     this.transport.on("event", (payload) => this.onClientEvent(payload as ClientEvent));
+    this.transport.on("play", (payload) => {
+      if (!this.disposed) emitGameplayEvent(payload as GameplayEvent);
+    });
     this.transport.onPresence((players) => this.onPresence(players));
     await this.transport.connect(this.roomCode, this.presence);
     this.hostTimer = setInterval(() => this.hostTick(), 100);
@@ -165,10 +169,22 @@ export class RoomClient {
     this.broadcastState(true);
   }
 
+  setMode(mode: GameMode) {
+    if (!this.authority) return;
+    this.authority.setMode(mode);
+    this.broadcastState(true);
+  }
+
   returnToLobby() {
     if (!this.authority) return;
     this.authority.returnToLobby();
     this.broadcastState(true);
+  }
+
+  /** Fire-and-forget gameplay event to every peer (applied locally too). */
+  broadcastGameplay(evt: GameplayEvent) {
+    emitGameplayEvent(evt);
+    if (this.players.length > 1) this.transport.send("play", evt);
   }
 
   // ── Client → host events ───────────────────────────────────────────

@@ -9,7 +9,7 @@ import { createInitialState } from "@/game/authority";
 import { PLAYER_COLORS } from "@/game/config";
 import { RoomClient } from "@/lib/multiplayer";
 import { loadIdentity, pickFreeColor, saveNickname } from "@/lib/room";
-import type { GameState, Player, PlayerPresence } from "@/types";
+import type { GameMode, GameState, Player, PlayerPresence } from "@/types";
 
 export interface EliminationNotice {
   playerId: string;
@@ -36,13 +36,18 @@ interface GameStore {
   viewingLobby: boolean;
   lastElimination: EliminationNotice | null;
   eliminationSeq: number;
+  lastFinish: EliminationNotice | null;
+  finishSeq: number;
   muted: boolean;
 
   join(roomCode: string, nickname?: string): Promise<void>;
   leave(): void;
   setNickname(nickname: string): void;
   startGame(): void;
+  setMode(mode: GameMode): void;
   playAgain(): void;
+  reportFinish(): void;
+  reportCheckpoint(index: number): void;
   returnToLobby(): void;
   reportFall(): void;
   setMuted(muted: boolean): void;
@@ -66,6 +71,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   viewingLobby: false,
   lastElimination: null,
   eliminationSeq: 0,
+  lastFinish: null,
+  finishSeq: 0,
   muted: false,
 
   async join(roomCode, nickname) {
@@ -117,6 +124,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
           };
           patch.eliminationSeq = get().eliminationSeq + 1;
         }
+        if (state.finishOrder.length > prev.finishOrder.length && state.round === prev.round) {
+          const id = state.finishOrder[state.finishOrder.length - 1];
+          const p = get().presences.find((x) => x.id === id);
+          patch.lastFinish = { playerId: id, nickname: p?.nickname ?? "???", colorHex: PLAYER_COLORS[p?.colorIndex ?? 0].hex, at: performance.now() };
+          patch.finishSeq = get().finishSeq + 1;
+        }
+        if (state.status === "COUNTDOWN" && prev.status !== "COUNTDOWN") patch.lastFinish = null;
         patch.players = toPlayers(get().presences, get().hostId, state);
         set(patch);
       },
@@ -160,6 +174,20 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   startGame() {
     get().client?.startGame();
+  },
+
+  setMode(mode) {
+    get().client?.setMode(mode);
+  },
+
+  reportFinish() {
+    const { client, localId } = get();
+    client?.sendEvent({ type: "finish", playerId: localId, at: Date.now() });
+  },
+
+  reportCheckpoint(index) {
+    const { client, localId } = get();
+    client?.sendEvent({ type: "checkpoint", playerId: localId, index });
   },
 
   playAgain() {

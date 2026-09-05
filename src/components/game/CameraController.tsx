@@ -57,6 +57,8 @@ export function CameraController({ menu = false }: { menu?: boolean }) {
     const now = performance.now();
     const localPlaying = state.alive.includes(localId) && (state.status === "PLAYING" || state.status === "COUNTDOWN");
 
+    const gameMode = state.mode;
+    const race = gameMode === "RACE";
     let mode: Mode = "lobby";
     if (menu) mode = "lobby";
     else if (focus.current.until > now && focus.current.playerId) mode = "focus";
@@ -75,17 +77,20 @@ export function CameraController({ menu = false }: { menu?: boolean }) {
         if (id === localId || !state.alive.includes(id)) return;
         far = Math.max(far, Math.hypot(pos.x - p.x, pos.z - p.z));
       });
-      const targetZoom = THREE.MathUtils.clamp(0.95 + far / 26, CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX);
+      const targetZoom = race ? 1 : THREE.MathUtils.clamp(0.95 + far / 26, CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX);
       zoom.current += (targetZoom - zoom.current) * step * 0.6;
+      const offY = race ? 8 : CAMERA_OFFSET.y;
+      const offZ = race ? 11 : CAMERA_OFFSET.z;
+      const ahead = race ? CAMERA_LOOK_AHEAD * 2.2 : CAMERA_LOOK_AHEAD;
       desired.current.set(
-        target.current.x + CAMERA_OFFSET.x * zoom.current,
-        Math.max(target.current.y, -1) + CAMERA_OFFSET.y * zoom.current,
-        target.current.z + CAMERA_OFFSET.z * zoom.current,
+        target.current.x * (race ? 0.6 : 1) + CAMERA_OFFSET.x * zoom.current,
+        Math.max(target.current.y, -1) + offY * zoom.current,
+        target.current.z + offZ * zoom.current,
       );
       lookAt.current.set(
-        target.current.x + localPose.velocity.x * 0.08 * CAMERA_LOOK_AHEAD,
+        target.current.x + localPose.velocity.x * 0.08 * ahead,
         target.current.y + 1.0,
-        target.current.z + localPose.velocity.z * 0.08 * CAMERA_LOOK_AHEAD,
+        target.current.z + localPose.velocity.z * 0.08 * ahead - (race ? 2.5 : 0),
       );
     } else if (mode === "focus") {
       const p = focus.current.playerId ? livePoses.get(focus.current.playerId) : null;
@@ -99,7 +104,7 @@ export function CameraController({ menu = false }: { menu?: boolean }) {
       const cx = p?.x ?? 0;
       const cz = p?.z ?? 0;
       const cy = p?.y ?? 0;
-      desired.current.set(cx + Math.cos(orbit.current) * 6.5, cy + 3.2, cz + Math.sin(orbit.current) * 6.5);
+      desired.current.set(cx + Math.cos(orbit.current) * 7.5, cy + 3.6, cz + Math.sin(orbit.current) * 7.5);
       lookAt.current.set(cx, cy + 1.1, cz);
       zoom.current = 1;
     } else if (mode === "spectate") {
@@ -122,11 +127,12 @@ export function CameraController({ menu = false }: { menu?: boolean }) {
       desired.current.set(target.current.x + Math.sin(orbit.current) * 4, 16, target.current.z + 20);
       lookAt.current.set(target.current.x, 0.5, target.current.z);
     } else {
-      // lobby / menu: slow wide orbit around the island
+      // lobby / menu: slow wide orbit around the map
       orbit.current += dt * (menu ? 0.08 : 0.12);
-      const r = menu ? 30 : 26;
-      desired.current.set(Math.cos(orbit.current) * r, menu ? 11 : 14, Math.sin(orbit.current) * r);
-      lookAt.current.set(0, menu ? 1.5 : 0.5, 0);
+      const r = menu ? 30 : race ? 34 : 26;
+      const cz = race ? -22 : 0;
+      desired.current.set(Math.cos(orbit.current) * r, menu ? 11 : race ? 18 : 14, cz + Math.sin(orbit.current) * r);
+      lookAt.current.set(0, menu ? 1.5 : 0.5, cz);
     }
 
     if (!initialized.current) {

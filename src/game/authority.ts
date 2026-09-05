@@ -1,20 +1,22 @@
 /**
  * GameAuthority — the rules engine that decides when a round starts, who
- * is eliminated and who wins. It is deliberately free of React, Three.js
- * and networking so it can run on the host client today and be moved to
- * a real server (edge function / game server) later without changes.
+ * is eliminated, who finished and who wins. It is deliberately free of
+ * React, Three.js and networking so it can run on the host client today
+ * and be moved to a real server (edge function / game server) later.
+ *
+ * Modes:
+ *  - SUMO / MELTDOWN: elimination, last survivor wins (SUMO has sudden death)
+ *  - RACE: no elimination; first to the finish line wins, others ranked by
+ *    finish order then by checkpoint progress
  */
-import {
-  COUNTDOWN_DURATION,
-  GAME_DURATION,
-  SUDDEN_DEATH_DURATION,
-} from "@/game/config";
+import { COUNTDOWN_DURATION, DEFAULT_MODE, GAME_MODES, RACE_FINISH_GRACE } from "@/game/config";
 import { randomSeed } from "@/game/random";
-import type { ClientEvent, GameState } from "@/types";
+import type { ClientEvent, GameMode, GameState } from "@/types";
 
 export function createInitialState(hostId: string): GameState {
   return {
     status: "LOBBY",
+    mode: DEFAULT_MODE,
     round: 0,
     seed: randomSeed(),
     countdownStartAt: 0,
@@ -23,15 +25,25 @@ export function createInitialState(hostId: string): GameState {
     participants: [],
     alive: [],
     eliminationOrder: [],
+    finishOrder: [],
+    progress: {},
     winnerId: null,
     hostId,
     version: 1,
   };
 }
 
+/** Wall-clock (host) time at which the round is over no matter what. */
+export function roundEndAt(state: GameState): number {
+  return state.endAt + (state.mode === "SUMO" ? GAME_MODES.SUMO.suddenDeath : 0);
+}
+
+export function isEliminationMode(mode: GameMode): boolean {
+  return mode !== "RACE";
+}
+
 export class GameAuthority {
   state: GameState;
-  private finishedAt = 0;
   private changed = false;
 
   constructor(state: GameState, hostId: string) {
@@ -51,30 +63,48 @@ export class GameAuthority {
     this.changed = true;
   }
 
+  setMode(mode: GameMode) {
+    if (this.state.mode === mode) return;
+    if (this.state.status !== "LOBBY" && this.state.status !== "FINISHED") return;
+    this.commit({ mode });
+  }
+
   startCountdown(participants: string[], now: number) {
     if (participants.length === 0) return;
+    const duration = GAME_MODES[this.state.mode].duration;
     this.commit({
       status: "COUNTDOWN",
       round: this.state.round + 1,
       seed: randomSeed(),
       countdownStartAt: now,
       startAt: now + COUNTDOWN_DURATION,
-      endAt: now + COUNTDOWN_DURATION + GAME_DURATION,
+      endAt: now + COUNTDOWN_DURATION + duration,
       participants: [...participants],
       alive: [...participants],
       eliminationOrder: [],
+      finishOrder: [],
+      progress: {},
       winnerId: null,
     });
-    this.finishedAt = 0;
   }
 
   returnToLobby() {
     if (this.state.status === "LOBBY") return;
-    this.commit({ status: "LOBBY", participants: [], alive: [], eliminationOrder: [], winnerId: null });
+    this.commit({ status: "LOBBY", participants: [], alive: [], eliminationOrder: [], finishOrder: [], progress: {}, winnerId: null });
   }
 
   handleEvent(evt: ClientEvent, now: number) {
-    if (evt.type === "fall") this.eliminate(evt.playerId, now);
+    switch (evt.type) {
+      case "fall":
+        if (isEliminationMode(this.state.mode)) this.eliminate(evt.playerId, now);
+        break;
+      case "checkpoint":
+        this.checkpoint(evt.playerId, evt.index);
+        break;
+      case "finish":
+        this.finishLine(evt.playerId, now);
+        break;
+    }
   }
 
   private eliminate(playerId: string, now: number) {
@@ -86,10 +116,32 @@ export class GameAuthority {
     this.checkFinish(now);
   }
 
+  private checkpoint(playerId: string, index: number) {
+    const s = this.state;
+    if (s.status !== "PLAYING" || !s.participants.includes(playerId)) return;
+    if ((s.progress[playerId] ?? -1) >= index) return;
+    this.commit({ progress: { ...s.progress, [playerId]: index } });
+  }
+
+  private finishLine(playerId: string, now: number) {
+    const s = this.state;
+    if (s.status !== "PLAYING" || s.mode !== "RACE") return;
+    if (!s.alive.includes(playerId) || s.finishOrder.includes(playerId)) return;
+    const finishOrder = [...s.finishOrder, playerId];
+    const patch: Partial<GameState> = { finishOrder, progress: { ...s.progress, [playerId]: 999 } };
+    if (finishOrder.length === 1) patch.endAt = Math.min(s.endAt, now + RACE_FINISH_GRACE);
+    this.commit(patch);
+    this.checkFinish(now);
+  }
+
   private checkFinish(now: number) {
     const s = this.state;
     if (s.status !== "PLAYING") return;
     const total = s.participants.length;
+    if (s.mode === "RACE") {
+      if (s.finishOrder.length > 0 && s.finishOrder.length >= s.alive.length) this.finish(s.finishOrder[0], now);
+      return;
+    }
     if (total >= 2 && s.alive.length <= 1) {
       this.finish(s.alive[0] ?? null, now);
     } else if (total === 1 && s.alive.length === 0) {
@@ -98,13 +150,12 @@ export class GameAuthority {
   }
 
   private finish(winnerId: string | null, now: number) {
-    this.finishedAt = now;
     this.commit({ status: "FINISHED", winnerId, endAt: now });
   }
 
   /**
-   * Advance time-driven transitions. `presentIds` lets the authority
-   * eliminate players who disconnected mid-round.
+   * Advance time-driven transitions. `presentIds` lets the authority drop
+   * players who disconnected mid-round.
    */
   tick(now: number, presentIds: string[]) {
     const s = this.state;
@@ -115,13 +166,10 @@ export class GameAuthority {
       const gone = this.state.alive.filter((id) => !presentIds.includes(id));
       for (const id of gone) this.eliminate(id, now);
     }
-    if (this.state.status === "PLAYING") {
-      const hardEnd = this.state.startAt + GAME_DURATION + SUDDEN_DEATH_DURATION;
-      if (now >= hardEnd) {
-        // Time expired: the survivors tie, unless exactly one remains.
-        const alive = this.state.alive;
-        this.finish(alive.length === 1 ? alive[0] : null, now);
-      }
+    if (this.state.status === "PLAYING" && now >= roundEndAt(this.state)) {
+      const st = this.state;
+      if (st.mode === "RACE") this.finish(st.finishOrder[0] ?? null, now);
+      else this.finish(st.alive.length === 1 ? st.alive[0] : null, now);
     }
     if (this.state.status === "LOBBY" && this.state.participants.length > 0) {
       this.commit({ participants: [] });
@@ -140,9 +188,17 @@ export class GameAuthority {
   }
 }
 
-/** Ranking derived from a finished (or in-progress) state: survivors first, then reverse elimination order. */
+/** Ranking best → worst for the result screen. */
 export function computeRanking(state: GameState): string[] {
   const ranking: string[] = [];
+  if (state.mode === "RACE") {
+    for (const id of state.finishOrder) ranking.push(id);
+    const rest = state.participants
+      .filter((id) => !ranking.includes(id))
+      .sort((a, b) => (state.progress[b] ?? -1) - (state.progress[a] ?? -1));
+    for (const id of rest) ranking.push(id);
+    return ranking;
+  }
   if (state.winnerId) ranking.push(state.winnerId);
   for (const id of state.alive) if (!ranking.includes(id)) ranking.push(id);
   for (let i = state.eliminationOrder.length - 1; i >= 0; i--) {
@@ -153,5 +209,5 @@ export function computeRanking(state: GameState): string[] {
 }
 
 export function isSuddenDeath(state: GameState, hostNow: number): boolean {
-  return state.status === "PLAYING" && hostNow >= state.startAt + GAME_DURATION;
+  return state.status === "PLAYING" && state.mode === "SUMO" && hostNow >= state.endAt;
 }

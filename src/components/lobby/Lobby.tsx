@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MuteButton } from "@/components/hud/MuteButton";
-import { MAX_PLAYERS, MIN_PLAYERS_TO_START } from "@/game/config";
+import { GAME_MODES, MAX_PLAYERS, MIN_PLAYERS_TO_START } from "@/game/config";
+import type { GameMode } from "@/types";
 import { sound } from "@/game/audio";
 import { roomShareUrl } from "@/lib/room";
 import { selectIsHost, selectPlayers, useGameStore } from "@/store/gameStore";
@@ -16,6 +17,8 @@ export function Lobby({ roomCode }: { roomCode: string }) {
   const status = useGameStore((s) => s.state.status);
   const offline = useGameStore((s) => s.offline);
   const startGame = useGameStore((s) => s.startGame);
+  const mode = useGameStore((s) => s.state.mode);
+  const setMode = useGameStore((s) => s.setMode);
   const leave = useGameStore((s) => s.leave);
   const [copied, setCopied] = useState(false);
 
@@ -80,13 +83,37 @@ export function Lobby({ roomCode }: { roomCode: string }) {
             {offline && <p className="mt-3 text-[11px] font-bold text-brand-2">LOCAL MODE — other tabs on this device can join. Add Supabase keys for online play.</p>}
           </div>
 
-          <div className="mt-5 flex items-center justify-between text-xs font-bold tracking-widest text-white/70 short:mt-3">
+          <div className="mt-4 text-xs font-bold tracking-widest text-white/70 short:mt-2">GAME MODE {!isHost && <span className="text-white/40">(host picks)</span>}</div>
+          <div className="mt-2 grid grid-cols-3 gap-2">
+            {(Object.keys(GAME_MODES) as GameMode[]).map((m) => {
+              const meta = GAME_MODES[m];
+              const active = m === mode;
+              return (
+                <button
+                  key={m}
+                  disabled={!isHost || roundInProgress}
+                  onClick={() => {
+                    sound.play("click");
+                    setMode(m);
+                  }}
+                  className={`rounded-xl border-2 px-2 py-2 text-left transition ${active ? "border-brand-2 bg-brand-2/15" : "border-white/10 bg-white/5"} ${isHost ? "active:scale-95" : "cursor-default"}`}
+                >
+                  <div className="text-lg leading-none">{meta.icon}</div>
+                  <div className={`mt-1 text-[12px] font-black leading-tight ${active ? "text-brand-2" : "text-white"}`}>{meta.name}</div>
+                  <div className="text-[9px] font-bold tracking-wider text-white/50">{meta.tagline}</div>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-1.5 text-center text-[11px] font-semibold text-white/60 short:hidden">{GAME_MODES[mode].description}</p>
+
+          <div className="mt-4 flex items-center justify-between text-xs font-bold tracking-widest text-white/70 short:mt-2">
             <span>PLAYERS</span>
             <span>
               {players.length} / {MAX_PLAYERS}
             </span>
           </div>
-          <ul className="mt-2 grid max-h-44 grid-cols-2 gap-2 overflow-y-auto pr-1 short:grid-cols-4">
+          <ul className="mt-2 grid max-h-32 grid-cols-2 gap-2 overflow-y-auto pr-1 short:grid-cols-4">
             {players.map((p) => (
               <li key={p.id} className="flex items-center gap-2 rounded-xl bg-white/8 px-3 py-2">
                 <span className="h-3.5 w-3.5 shrink-0 rounded-full" style={{ background: p.colorHex, boxShadow: `0 0 10px ${p.colorHex}` }} />
@@ -97,7 +124,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
                 {p.isHost && <span className="ml-auto text-[10px] font-black text-brand-2">HOST</span>}
               </li>
             ))}
-            {Array.from({ length: Math.max(0, Math.min(MAX_PLAYERS, 4) - players.length) }).map((_, i) => (
+            {Array.from({ length: Math.max(0, Math.min(MAX_PLAYERS, 2) - players.length) }).map((_, i) => (
               <li key={`empty-${i}`} className="flex items-center gap-2 rounded-xl border border-dashed border-white/15 px-3 py-2 text-sm font-semibold text-white/30">
                 waiting…
               </li>

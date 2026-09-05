@@ -13,7 +13,6 @@ import { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { Character, createAnim, type CharacterAnim } from "@/components/game/Character";
 import {
-  FALL_Y,
   JUMP_FORCE,
   OBSTACLE_PUSH_IMPULSE,
   PLAYER_ACCEL,
@@ -31,8 +30,20 @@ import { burst, shake } from "@/game/effects";
 import { consumeJump, input } from "@/game/input";
 import { livePoses, localPose } from "@/game/remote";
 import { sound } from "@/game/audio";
+import { raceRuntime } from "@/game/sync";
 import { useGameStore } from "@/store/gameStore";
 import { isRoundActive } from "@/game/clock";
+
+/** Mode-specific behaviour injected by the scene. */
+export interface PlayerRules {
+  /** below this y the player has fallen */
+  fallY: number;
+  /** "eliminate" reports the fall to the host; "respawn" teleports to `respawnAt()` */
+  onFall: "eliminate" | "respawn";
+  respawnAt?: () => [number, number, number];
+  /** called every physics step with the collider the player stands on */
+  onGround?: (colliderHandle: number) => void;
+}
 
 interface Props {
   id: string;
@@ -40,6 +51,8 @@ interface Props {
   colorHex: string;
   spawn: [number, number, number];
   showLabel: boolean;
+  variant: number;
+  rules: PlayerRules;
 }
 
 interface BodyUserData {
@@ -50,15 +63,33 @@ interface BodyUserData {
 const tmpVel = new THREE.Vector3();
 const tmpDir = new THREE.Vector3();
 
-export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel }: Props) {
+export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, variant }: Props) {
   const body = useRef<RapierRigidBody>(null);
   const animRef = useRef<CharacterAnim>(createAnim());
   const { world, rapier } = useRapier();
   const grounded = useRef(false);
   const fellReported = useRef(false);
+  const rulesRef = useRef(rules);
+  useEffect(() => {
+    rulesRef.current = rules;
+  }, [rules]);
   const lastRound = useRef(-1);
   const rayRef = useRef<InstanceType<typeof rapier.Ray> | null>(null);
   const halfHeight = (PLAYER_HEIGHT - PLAYER_RADIUS * 2) / 2;
+
+  // Dev-only hook so e2e tests / the console can move the local player.
+  useEffect(() => {
+    if (process.env.NODE_ENV === "production") return;
+    const w = window as unknown as { __dropzone?: Record<string, unknown> };
+    if (!w.__dropzone) w.__dropzone = {};
+    w.__dropzone.teleport = (x: number, y: number, z: number) => {
+      body.current?.setTranslation({ x, y, z }, true);
+      body.current?.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    };
+    return () => {
+      delete w.__dropzone?.teleport;
+    };
+  }, []);
 
   // Reset to the spawn point whenever a new round begins.
   useEffect(() => {
@@ -68,6 +99,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel }: Props)
       if (s.state.status === "COUNTDOWN" && s.state.round !== lastRound.current) {
         lastRound.current = s.state.round;
         fellReported.current = false;
+        raceRuntime.reset();
         rb.setTranslation({ x: spawn[0], y: spawn[1], z: spawn[2] }, true);
         rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
         animRef.current.yaw = Math.atan2(-spawn[0], -spawn[2]);
@@ -92,6 +124,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel }: Props)
     const hit = world.castRay(ray, PLAYER_HEIGHT / 2 + 0.12, true, undefined, undefined, undefined, rb);
     const wasGrounded = grounded.current;
     grounded.current = hit !== null && v.y <= 0.5;
+    if (hit && grounded.current) rulesRef.current.onGround?.(hit.collider.handle);
     if (grounded.current && !wasGrounded && localPose.velocity.y < -4) {
       anim.landedAt = performance.now();
       burst({ position: { x: t.x, y: t.y - PLAYER_HEIGHT / 2, z: t.z }, color: "#ffffff", count: 6, speed: 2, life: 0.4, size: 0.12 });
@@ -130,10 +163,21 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel }: Props)
 
     if (len > 0.1) anim.yaw = Math.atan2(mx, mz);
 
-    // Fell off the island
-    if (t.y < FALL_Y && !fellReported.current && active) {
-      fellReported.current = true;
-      useGameStore.getState().reportFall();
+    // Fell off
+    const r = rulesRef.current;
+    if (t.y < r.fallY && active) {
+      if (r.onFall === "respawn" && r.respawnAt) {
+        const [x, y, z] = r.respawnAt();
+        rb.setTranslation({ x, y, z }, true);
+        rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
+        anim.yaw = 0;
+        burst({ position: { x, y: y - 0.5, z }, color: ["#ffffff", colorHex], count: 14, speed: 3, life: 0.5, size: 0.14 });
+        shake(0.3);
+        sound.play("elimination", { volume: 0.5 });
+      } else if (!fellReported.current) {
+        fellReported.current = true;
+        useGameStore.getState().reportFall();
+      }
     }
   });
 
@@ -204,8 +248,11 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel }: Props)
       shake(0.45);
       sound.play("impact", { volume: 0.9, throttleMs: 120 });
     } else if (data.type === "wall") {
-      tmpDir.set(0, 0, Math.sign(me.z - them.z) || 1);
-      rb.applyImpulse({ x: 0, y: 1.5, z: tmpDir.z * OBSTACLE_PUSH_IMPULSE * 0.8 }, true);
+      // Push away from the wall's centre, horizontally.
+      tmpDir.set(me.x - them.x, 0, me.z - them.z);
+      if (tmpDir.lengthSq() < 1e-4) tmpDir.set(0, 0, 1);
+      tmpDir.normalize();
+      rb.applyImpulse({ x: tmpDir.x * OBSTACLE_PUSH_IMPULSE * 0.8, y: 1.5, z: tmpDir.z * OBSTACLE_PUSH_IMPULSE * 0.8 }, true);
       anim.hitAt = now;
       burst({ position: { x: me.x, y: me.y, z: me.z }, color: ["#3d8bff", "#ffffff"], count: 10, speed: 3, life: 0.45, size: 0.14 });
       shake(0.35);
@@ -230,7 +277,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel }: Props)
     >
       <CapsuleCollider args={[halfHeight, PLAYER_RADIUS]} friction={0.2} restitution={0.15} />
       <group position={[0, -PLAYER_HEIGHT / 2, 0]}>
-        <Character colorHex={colorHex} nickname={nickname} animRef={animRef} isLocal showLabel={showLabel} />
+        <Character colorHex={colorHex} nickname={nickname} animRef={animRef} isLocal showLabel={showLabel} variant={variant} />
       </group>
     </RigidBody>
   );

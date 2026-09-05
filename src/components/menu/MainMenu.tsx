@@ -62,7 +62,7 @@ export function MainMenu() {
 
       <div className="relative z-10 flex h-full w-full flex-col items-center justify-center px-5 safe-pad">
         <div className="anim-rise flex flex-col items-center text-center">
-          <div className="chip mb-4 px-3 py-1 text-[11px] font-bold tracking-[0.3em] text-white/80">8 PLAYERS · 1 ISLAND</div>
+          <div className="chip mb-4 px-3 py-1 text-[11px] font-bold tracking-[0.3em] text-white/80">8 PLAYERS · 3 GAME MODES</div>
           <h1 className="display title-glow text-[64px] text-white sm:text-[96px] md:text-[120px]">DROPZONE</h1>
           <p className="mt-2 text-sm font-extrabold tracking-[0.45em] text-brand-2 hud-text sm:text-lg">LAST ONE STANDING</p>
         </div>
@@ -111,7 +111,7 @@ export function MainMenu() {
         )}
 
         <div className="anim-fade delay-4 mt-6 flex flex-col items-center gap-1 text-center text-[12px] font-semibold text-white/75 hud-text">
-          <p>Push everyone off the island. Fall = out. Last one standing wins.</p>
+          <p>🥊 Sumo island · 🏁 Obstacle race · 🔥 Vanishing floors</p>
           <p className="text-white/55">{mobile ? "Joystick to move · JUMP button" : "WASD to move · SPACE to jump"}</p>
           {offline && <p className="mt-2 rounded-full bg-[#ffd32a]/90 px-3 py-1 text-[11px] font-black text-[#12142b]">LOCAL MODE — same-device tabs only. Add Supabase keys for online play</p>}
         </div>

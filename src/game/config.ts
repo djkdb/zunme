@@ -19,6 +19,40 @@ export const RESULT_AUTO_LOBBY_DELAY = 12_000;
 export const ELIMINATION_SLOWMO_DURATION = 700;
 export const ELIMINATION_SLOWMO_SCALE = 0.3;
 
+// ── Game modes ──────────────────────────────────────────────────────
+export const GAME_MODES = {
+  SUMO: {
+    name: "DROPZONE",
+    tagline: "LAST ONE STANDING",
+    description: "Shove everyone off the island. Fall = out. Last survivor wins.",
+    icon: "🥊",
+    duration: 75_000,
+    suddenDeath: 30_000,
+  },
+  RACE: {
+    name: "SKY DASH",
+    tagline: "FIRST TO THE FINISH",
+    description: "Run the obstacle course. Fall and you respawn at the last checkpoint.",
+    icon: "🏁",
+    duration: 90_000,
+    suddenDeath: 0,
+  },
+  MELTDOWN: {
+    name: "MELTDOWN",
+    tagline: "KEEP MOVING",
+    description: "Tiles vanish right after you step on them. Two floors. Last survivor wins.",
+    icon: "🔥",
+    duration: 60_000,
+    suddenDeath: 0,
+  },
+} as const;
+export const DEFAULT_MODE = "SUMO" as const;
+/** RACE: once someone finishes, everyone else has this long to cross the line. */
+export const RACE_FINISH_GRACE = 12_000;
+export const RACE_FALL_Y = -8;
+export const MELTDOWN_FALL_Y = -14;
+export const MELTDOWN_STEP_DELAY = 450; // ms after stepping before the tile vanishes
+
 // ── Player physics ───────────────────────────────────────────────────
 export const PLAYER_SPEED = 7.5; // m/s target ground speed
 export const PLAYER_ACCEL = 40; // m/s^2 towards target velocity

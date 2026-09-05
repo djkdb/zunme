@@ -1,5 +1,7 @@
 import type { PlayerColorName } from "@/game/config";
 
+export type GameMode = "SUMO" | "RACE" | "MELTDOWN";
+
 export type RoomStatus =
   | "LOBBY"
   | "COUNTDOWN"
@@ -33,6 +35,7 @@ export interface Player extends PlayerPresence {
 /** Authoritative room state. Owned by the host, mirrored on every client. */
 export interface GameState {
   status: RoomStatus;
+  mode: GameMode;
   round: number;
   /** Deterministic seed shared by all clients for obstacle schedules. */
   seed: number;
@@ -44,6 +47,10 @@ export interface GameState {
   participants: string[];
   alive: string[];
   eliminationOrder: string[];
+  /** RACE: ids in the order they crossed the finish line. */
+  finishOrder: string[];
+  /** RACE: highest checkpoint index reached per player. */
+  progress: Record<string, number>;
   winnerId: string | null;
   /** Host id when this state was emitted. */
   hostId: string;
@@ -74,6 +81,8 @@ export interface Room {
 
 export type ClientEvent =
   | { type: "fall"; playerId: string; at: number }
+  | { type: "finish"; playerId: string; at: number }
+  | { type: "checkpoint"; playerId: string; index: number }
   | { type: "impact"; playerId: string; otherId: string; strength: number }
   | { type: "requestStart"; playerId: string };
 

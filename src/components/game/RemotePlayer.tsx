@@ -15,13 +15,14 @@ interface Props {
   colorHex: string;
   spawn: [number, number, number];
   showLabel: boolean;
+  variant: number;
 }
 
 /**
  * Remote players are kinematic bodies moved along their interpolated
  * network path, so the local dynamic body collides with them for real.
  */
-export function RemotePlayer({ id, nickname, colorHex, spawn, showLabel }: Props) {
+export function RemotePlayer({ id, nickname, colorHex, spawn, showLabel, variant }: Props) {
   const body = useRef<RapierRigidBody>(null);
   const animRef = useRef<CharacterAnim>(createAnim());
   const poseRef = useRef<InterpolatedPose>({ position: { x: spawn[0], y: spawn[1], z: spawn[2] }, yaw: 0, velocity: { x: 0, y: 0, z: 0 }, grounded: true, age: 0 });
@@ -70,7 +71,7 @@ export function RemotePlayer({ id, nickname, colorHex, spawn, showLabel }: Props
     <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[spawn[0], spawn[1] + PLAYER_HEIGHT / 2, spawn[2]]} userData={{ type: "player", id }}>
       <CapsuleCollider args={[halfHeight, PLAYER_RADIUS]} />
       <group position={[0, -PLAYER_HEIGHT / 2, 0]}>
-        <Character colorHex={colorHex} nickname={nickname} animRef={animRef} showLabel={showLabel} />
+        <Character colorHex={colorHex} nickname={nickname} animRef={animRef} showLabel={showLabel} variant={variant} />
       </group>
     </RigidBody>
   );

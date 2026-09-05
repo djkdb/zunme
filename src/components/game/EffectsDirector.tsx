@@ -15,6 +15,7 @@ import { useGameStore } from "@/store/gameStore";
 export function EffectsDirector() {
   const lastStatus = useRef(useGameStore.getState().state.status);
   const lastElimSeq = useRef(useGameStore.getState().eliminationSeq);
+  const lastFinishSeq = useRef(useGameStore.getState().finishSeq);
   const confettiTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -40,7 +41,7 @@ export function EffectsDirector() {
             let shots = 0;
             confettiTimer.current = setInterval(() => {
               const p = livePoses.get(winner) ?? { x: 0, y: 0, z: 0 };
-              burst({ position: { x: p.x, y: p.y + 2.5, z: p.z }, color: colors, count: 34, speed: 5, life: 2.4, size: 0.11, gravity: 3.5, spread: 1.4 });
+              burst({ position: { x: p.x, y: p.y + 2.5, z: p.z }, color: colors, count: 34, speed: 5, life: 2.4, size: 0.08, gravity: 3.5, spread: 1.4 });
               if (++shots >= 8 && confettiTimer.current) {
                 clearInterval(confettiTimer.current);
                 confettiTimer.current = null;
@@ -53,6 +54,16 @@ export function EffectsDirector() {
             clearInterval(confettiTimer.current);
             confettiTimer.current = null;
           }
+        }
+      }
+
+      if (s.finishSeq !== lastFinishSeq.current && s.lastFinish) {
+        lastFinishSeq.current = s.finishSeq;
+        const { playerId, colorHex } = s.lastFinish;
+        if (playerId !== s.localId) {
+          const p = livePoses.get(playerId);
+          if (p) burst({ position: { x: p.x, y: p.y + 1.2, z: p.z }, color: [colorHex, "#ffd32a", "#ffffff"], count: 24, speed: 4, life: 1, size: 0.13, gravity: 6 });
+          sound.play("go", { volume: 0.6 });
         }
       }
 
