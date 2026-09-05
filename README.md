@@ -27,6 +27,11 @@ practice. With keys set, rooms are shared through Supabase Realtime
 (Presence + Broadcast) — no database tables required. See
 [`supabase/README.md`](supabase/README.md).
 
+## Deploy
+
+See [`DEPLOY.md`](DEPLOY.md) for the Supabase + Cloudflare Workers setup
+(`npm run preview` to test the Worker locally, `npm run deploy` to ship).
+
 ## Controls
 
 | Platform | Move | Jump |
