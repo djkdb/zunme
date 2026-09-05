@@ -14,7 +14,7 @@ export function FinishBanner() {
   const place = state.finishOrder.indexOf(notice.playerId) + 1;
   return (
     <div key={seq} className="anim-banner pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center">
-      <div className="anim-slam display text-5xl text-brand-2 hud-text sm:text-7xl">{isYou ? "FINISH!" : "FINISHED"}</div>
+      <div className="anim-slam display text-gradient gradient-shadow text-5xl sm:text-7xl">{isYou ? "FINISH!" : "FINISHED"}</div>
       <div className="anim-rise delay-1 mt-2 flex items-center gap-3">
         <span className="h-4 w-4 rounded-full" style={{ background: notice.colorHex, boxShadow: `0 0 14px ${notice.colorHex}` }} />
         <span className="display text-3xl text-white hud-text sm:text-4xl">{notice.nickname}</span>

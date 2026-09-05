@@ -65,8 +65,14 @@ export function MainMenu() {
       <div className="relative z-10 flex h-full w-full flex-col items-center justify-center px-5 safe-pad">
         <div className="anim-rise flex flex-col items-center text-center">
           <div className="chip mb-4 px-3 py-1 text-[11px] font-bold tracking-[0.3em] text-white/80">8 PLAYERS · 3 GAME MODES</div>
-          <h1 className="display title-glow text-[64px] text-white sm:text-[96px] md:text-[120px]">DROPZONE</h1>
-          <p className="mt-2 text-sm font-extrabold tracking-[0.45em] text-brand-2 hud-text sm:text-lg">LAST ONE STANDING</p>
+          <h1 className="display gradient-shadow text-[64px] sm:text-[96px] md:text-[120px]" aria-label="DROPZONE">
+            {"DROPZONE".split("").map((ch, i) => (
+              <span key={i} className="title-letter text-gradient" style={{ animationDelay: `${i * 0.06}s` }}>
+                {ch}
+              </span>
+            ))}
+          </h1>
+          <p className="shimmer mt-2 text-sm font-extrabold tracking-[0.45em] sm:text-lg">LAST ONE STANDING</p>
         </div>
 
         <div className="anim-rise delay-2 mt-8 w-full max-w-sm">

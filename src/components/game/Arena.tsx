@@ -6,9 +6,15 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { ARENA_HEIGHT, ARENA_RADIUS, COLLAPSIBLE_MIN_RADIUS, TILE_SIZE } from "@/game/config";
 import { TILES, buildTileSchedule, getTileState, type TileState } from "@/game/arena";
-import { elapsedSinceStart } from "@/game/clock";
+import { elapsedSinceStart, hostNow } from "@/game/clock";
+
+function hostNowSafe(): number {
+  return hostNow();
+}
 import { useGameStore } from "@/store/gameStore";
 import { burst } from "@/game/effects";
+import { roundedTile } from "@/components/game/tileGeometry";
+import { THEMES } from "@/game/theme";
 
 const TILE_THICKNESS = 0.7;
 const TILE_HALF = TILE_SIZE * 0.5 * 0.98;
@@ -48,6 +54,7 @@ export function Arena() {
   const phases = useRef<TileState[]>(TILES.map(() => ({ phase: "NORMAL", progress: 0, permanent: false })));
   const scratch = useRef<TileState>({ phase: "NORMAL", progress: 0, permanent: false });
   const yOffsets = useRef<Float32Array>(new Float32Array(TILES.length));
+  const rimRef = useRef<THREE.Mesh>(null);
 
   const bindCollider = useCallback((index: number) => (c: RapierCollider | null) => {
     colliders.current[index] = c;
@@ -72,6 +79,12 @@ export function Arena() {
     const mesh = meshRef.current;
     if (!mesh) return;
     const state = useGameStore.getState().state;
+    if (rimRef.current) {
+      const m = rimRef.current.material as THREE.MeshBasicMaterial;
+      const sudden = state.status === "PLAYING" && hostNowSafe() >= state.endAt;
+      m.opacity = 0.45 + 0.25 * Math.sin(performance.now() * (sudden ? 0.012 : 0.003));
+      m.color.set(sudden ? "#ff3b3b" : THEMES.SUMO.rim);
+    }
     const active = state.status === "PLAYING" || state.status === "COUNTDOWN";
     const elapsed = active ? elapsedSinceStart(state) : -Infinity;
     const now = performance.now();
@@ -163,8 +176,8 @@ export function Arena() {
         ))}
       </RigidBody>
       <instancedMesh ref={meshRef} args={[undefined, undefined, TILES.length]} castShadow receiveShadow frustumCulled={false}>
-        <boxGeometry args={[TILE_SIZE * 0.975, TILE_THICKNESS, TILE_SIZE * 0.975]} />
-        <meshStandardMaterial roughness={0.85} metalness={0} />
+        <primitive object={roundedTile(TILE_SIZE * 0.975, TILE_THICKNESS, TILE_SIZE * 0.975)} attach="geometry" />
+        <meshStandardMaterial roughness={0.8} metalness={0} />
       </instancedMesh>
 
       {/* Island rock beneath the core (decorative — outer tiles overhang so falls are real). */}
@@ -188,9 +201,9 @@ export function Arena() {
       </mesh>
 
       {/* Glowing danger ring at the rim, purely visual */}
-      <mesh position={[0, -TILE_THICKNESS - 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh ref={rimRef} position={[0, -TILE_THICKNESS - 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[ARENA_RADIUS - 0.2, ARENA_RADIUS + 0.35, 64]} />
-        <meshBasicMaterial color="#ff8c5a" transparent opacity={0.55} side={THREE.DoubleSide} />
+        <meshBasicMaterial color={THEMES.SUMO.rim} transparent opacity={0.55} side={THREE.DoubleSide} toneMapped={false} />
       </mesh>
 
       {/* Support pillars for the overhang, decorative */}

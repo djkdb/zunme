@@ -37,7 +37,7 @@ export function Countdown() {
   const isGo = label === "GO!";
   return (
     <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-      <div key={label} className={`display anim-pop hud-text ${isGo ? "text-[120px] text-brand-2 sm:text-[180px]" : "text-[140px] text-white sm:text-[200px]"}`}>
+      <div key={label} className={`display anim-pop ${isGo ? "text-gradient gradient-shadow text-[120px] sm:text-[180px]" : "hud-text text-stroke text-[140px] text-white sm:text-[200px]"}`}>
         {label}
       </div>
     </div>

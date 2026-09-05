@@ -232,3 +232,121 @@ textarea {
   padding-bottom: env(safe-area-inset-bottom);
   padding-left: env(safe-area-inset-left);
 }
+
+
+/* ── Design upgrade: text, buttons, screen fx ─────────────────────── */
+.text-gradient {
+  background: linear-gradient(180deg, #ffffff 0%, #fff3d0 40%, #ffd15c 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+/* Outline + glow that work with gradient (transparent) text */
+.gradient-shadow {
+  filter: drop-shadow(0 3px 0 rgba(18, 20, 43, 0.75)) drop-shadow(0 0 2px rgba(18, 20, 43, 0.9)) drop-shadow(0 14px 28px rgba(255, 90, 60, 0.45));
+}
+.text-stroke {
+  -webkit-text-stroke: 3px rgba(18, 20, 43, 0.85);
+  paint-order: stroke fill;
+}
+.text-stroke-thin {
+  -webkit-text-stroke: 1.5px rgba(18, 20, 43, 0.7);
+  paint-order: stroke fill;
+}
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 3px 3px auto 3px;
+  height: 42%;
+  border-radius: 12px 12px 6px 6px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+.btn {
+  position: relative;
+  overflow: hidden;
+}
+.btn-primary:hover,
+.btn-secondary:hover,
+.btn-accent:hover {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+}
+.title-letter {
+  display: inline-block;
+  animation: letter-in 0.6s cubic-bezier(0.2, 1.5, 0.4, 1) both;
+}
+@keyframes letter-in {
+  0% {
+    transform: translateY(40px) rotate(-8deg) scale(0.6);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) rotate(0) scale(1);
+    opacity: 1;
+  }
+}
+.shimmer {
+  filter: drop-shadow(0 2px 0 rgba(18, 20, 43, 0.7)) drop-shadow(0 4px 12px rgba(0, 0, 0, 0.35));
+  background: linear-gradient(90deg, #ffd32a 0%, #fff6c2 45%, #ffd32a 60%, #ffd32a 100%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 3s linear infinite;
+}
+.fx-speedlines {
+  background: repeating-conic-gradient(from 0deg at 50% 50%, rgba(255, 255, 255, 0) 0deg, rgba(255, 255, 255, 0) 6deg, rgba(255, 255, 255, 0.5) 7.5deg, rgba(255, 255, 255, 0) 9deg);
+  mask-image: radial-gradient(circle at 50% 50%, transparent 28%, black 70%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 28%, black 70%);
+  animation: speedlines 0.2s linear infinite;
+}
+@keyframes speedlines {
+  from {
+    transform: rotate(0deg) scale(1.05);
+  }
+  to {
+    transform: rotate(6deg) scale(1.05);
+  }
+}
+.fx-stun {
+  background: radial-gradient(circle at 50% 50%, rgba(255, 60, 60, 0) 45%, rgba(255, 60, 60, 0.45) 100%);
+  animation: fade-in 0.1s ease both;
+}
+.fx-lowtime {
+  background: radial-gradient(circle at 50% 50%, rgba(255, 90, 60, 0) 55%, rgba(255, 90, 60, 0.35) 100%);
+  animation: lowtime 1s ease-in-out infinite;
+}
+@keyframes lowtime {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+.fx-flash {
+  background: #ffffff;
+  animation: flash 0.45s ease-out both;
+}
+@keyframes flash {
+  0% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.podium-bar {
+  animation: podium 0.6s cubic-bezier(0.2, 1.2, 0.3, 1) both;
+  transform-origin: bottom;
+}
+@keyframes podium {
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}

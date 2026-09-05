@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { MELTDOWN_STEP_DELAY, MELTDOWN_STEP_DELAY_MIN, MELTDOWN_STEP_RAMP_MS, TILE_SIZE } from "@/game/config";
 import { elapsedSinceStart } from "@/game/clock";
 import { burst } from "@/game/effects";
+import { roundedTile } from "@/components/game/tileGeometry";
 import { MELTDOWN_LAYER_COLORS, MELTDOWN_LAYER_Y, MELTDOWN_TILES, tileInLayer } from "@/game/meltdown";
 import { onGameplayEvent } from "@/game/sync";
 import { useGameStore } from "@/store/gameStore";
@@ -198,8 +199,8 @@ export function MeltdownArena() {
             ))}
           </RigidBody>
           <instancedMesh ref={bindMesh(layer)} args={[undefined, undefined, N]} castShadow receiveShadow frustumCulled={false}>
-            <boxGeometry args={[TILE_SIZE * 0.94, THICKNESS, TILE_SIZE * 0.94]} />
-            <meshStandardMaterial roughness={0.7} />
+            <primitive object={roundedTile(TILE_SIZE * 0.94, THICKNESS, TILE_SIZE * 0.94)} attach="geometry" />
+            <meshStandardMaterial roughness={0.6} />
           </instancedMesh>
         </group>
       ))}

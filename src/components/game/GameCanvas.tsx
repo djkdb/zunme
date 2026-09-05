@@ -5,6 +5,7 @@ import { Physics } from "@react-three/rapier";
 import { Suspense, type ReactNode } from "react";
 import * as THREE from "three";
 import { CAMERA_FOV, GRAVITY } from "@/game/config";
+import { PostFX } from "@/components/game/PostFX";
 
 interface Props {
   children: ReactNode;
@@ -39,6 +40,7 @@ export function GameCanvas({ children, mobile, ambient = false }: Props) {
         <Physics paused gravity={[0, GRAVITY, 0]} timeStep={1 / 60} interpolate={false} updateLoop="follow">
           {children}
         </Physics>
+        <PostFX enabled={!mobile} />
       </Suspense>
     </Canvas>
   );

@@ -11,6 +11,7 @@ import { GameHUD } from "@/components/hud/GameHUD";
 import { LandscapeHint } from "@/components/hud/LandscapeHint";
 import { MobileControls } from "@/components/hud/MobileControls";
 import { ResultScreen } from "@/components/hud/ResultScreen";
+import { ScreenEffects } from "@/components/hud/ScreenEffects";
 import { Lobby } from "@/components/lobby/Lobby";
 import { NICKNAME_MAX_LENGTH } from "@/game/config";
 import { attachKeyboard, resetInput } from "@/game/input";
@@ -135,6 +136,7 @@ export function RoomView({ roomCode }: { roomCode: string }) {
       {connected && showLobby && <Lobby roomCode={roomCode} />}
       {connected && inRound && isParticipant && !viewingLobby && (
         <>
+          <ScreenEffects />
           <GameHUD />
           <Countdown />
           <EliminationBanner />

@@ -86,7 +86,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
       {/* Winner splash */}
       {phase === "splash" && (
         <div className="flex flex-1 flex-col items-center justify-center">
-          <div className="anim-slam display text-6xl text-brand-2 hud-text sm:text-8xl">{winner ? "WINNER" : race ? "TIME'S UP" : "DRAW"}</div>
+          <div className="anim-slam display text-gradient gradient-shadow text-6xl sm:text-8xl">{winner ? "WINNER" : race ? "TIME'S UP" : "DRAW"}</div>
           {winner && (
             <div className="anim-rise delay-2 display mt-3 text-4xl text-white hud-text sm:text-5xl" style={{ color: color(winner) }}>
               {name(winner)}
@@ -149,6 +149,22 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
               </div>
             )}
 
+            {ranking.length >= 2 && (
+              <div className="mb-3 flex items-end justify-center gap-2 short:hidden">
+                {[1, 0, 2].map((idx, col) => {
+                  const id = ranking[idx];
+                  if (!id) return <div key={col} className="w-16" />;
+                  const h = idx === 0 ? 56 : idx === 1 ? 40 : 28;
+                  return (
+                    <div key={id} className="flex w-16 flex-col items-center">
+                      <span className="mb-1 max-w-full truncate text-[10px] font-black text-white/85">{name(id)}</span>
+                      <div className="podium-bar w-full rounded-t-lg" style={{ height: h, background: color(id), animationDelay: `${col * 0.1}s`, boxShadow: `0 0 16px ${color(id)}66` }} />
+                      <span className="mt-1 text-sm">{MEDALS[idx]}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
             <ol className="max-h-40 space-y-1 overflow-y-auto pr-1 short:grid short:max-h-24 short:grid-cols-2 short:gap-1 short:space-y-0">
               {ranking.map((id, i) => (
                 <li key={id} className={`flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-bold ${i === 0 ? "bg-brand-2/20 text-white" : "bg-white/5 text-white/85"}`}>

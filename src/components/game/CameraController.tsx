@@ -4,6 +4,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import {
+  CAMERA_FOV,
   CAMERA_FOLLOW_SMOOTH,
   CAMERA_LOOK_AHEAD,
   CAMERA_OFFSET,
@@ -34,6 +35,8 @@ export function CameraController({ menu = false }: { menu?: boolean }) {
   const focus = useRef<{ playerId: string | null; until: number; pos: THREE.Vector3 }>({ playerId: null, until: 0, pos: new THREE.Vector3() });
   const initialized = useRef(false);
   const shakeOffset = useMemo(() => new THREE.Vector3(), []);
+  const fovKick = useRef(0);
+  const prevVy = useRef(0);
 
   useEffect(() => {
     const offShake = shakeEvents.on((s) => {
@@ -51,7 +54,7 @@ export function CameraController({ menu = false }: { menu?: boolean }) {
     };
   }, []);
 
-  useFrame((_, dt) => {
+  useFrame((frame, dt) => {
     const store = useGameStore.getState();
     const { state, localId } = store;
     const now = performance.now();
@@ -153,6 +156,19 @@ export function CameraController({ menu = false }: { menu?: boolean }) {
       trauma.current = Math.max(0, trauma.current - dt * 2.2);
     }
     camera.lookAt(smoothLook.current);
+
+    // FOV kick while dashing, tiny dip on landing.
+    const cam = frame.camera as THREE.PerspectiveCamera;
+    const dashing = performance.now() < localPose.dashUntil;
+    const targetKick = mode === "follow" && dashing ? 9 : 0;
+    fovKick.current = THREE.MathUtils.lerp(fovKick.current, targetKick, 1 - Math.exp(-(dashing ? 18 : 6) * dt));
+    const fov = CAMERA_FOV + fovKick.current;
+    if (Math.abs(cam.fov - fov) > 0.01) {
+      cam.fov = fov;
+      cam.updateProjectionMatrix();
+    }
+    if (mode === "follow" && localPose.grounded && prevVy.current < -7) trauma.current = Math.min(1, trauma.current + 0.12);
+    prevVy.current = localPose.grounded ? 0 : localPose.velocity.y;
   });
 
   return null;

@@ -15,6 +15,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { Sweeper, currentElapsed } from "@/components/game/Obstacles";
+import { roundedTile } from "@/components/game/tileGeometry";
 import { buildCrumbleSchedule, getTileState, type TileState } from "@/game/arena";
 import { GAME_MODES, RACE_CONVEYOR_SPEED, RACE_JUMP_PAD_VELOCITY, RACE_WIND_SPEED, TILE_SIZE } from "@/game/config";
 import { burst, shake } from "@/game/effects";
@@ -385,8 +386,8 @@ export function CrumbleBridge({ x, z, cols, rows }: { x: number; z: number; cols
         receiveShadow
         frustumCulled={false}
       >
-        <boxGeometry args={[TILE_SIZE * 0.96, CRUMBLE_THICKNESS, TILE_SIZE * 0.96]} />
-        <meshStandardMaterial roughness={0.85} />
+        <primitive object={roundedTile(TILE_SIZE * 0.96, CRUMBLE_THICKNESS, TILE_SIZE * 0.96)} attach="geometry" />
+        <meshStandardMaterial roughness={0.8} />
       </instancedMesh>
     </group>
   );
