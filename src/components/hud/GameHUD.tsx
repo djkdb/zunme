@@ -7,6 +7,7 @@ import { RACE_CHECKPOINTS } from "@/game/race";
 import { useHostClock } from "@/hooks/useHostClock";
 import { useDashCooldown } from "@/hooks/useDashCooldown";
 import { GOGUN_PROGRESS_STEP, gogunRuntime } from "@/game/gogun";
+import { useEffect, useState } from "react";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { selectPlayers, useGameStore } from "@/store/gameStore";
 
@@ -17,6 +18,20 @@ export function formatClock(ms: number): string {
   return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
 }
 
+/** Polls the runtime for "an anchor is hookable now" (20 Hz). */
+function useWireHint(enabled: boolean): boolean {
+  const [hint, setHint] = useState(false);
+  useEffect(() => {
+    if (!enabled) return;
+    const id = setInterval(() => {
+      const next = gogunRuntime.anchorInRange && !gogunRuntime.wire.active;
+      setHint((prev) => (prev === next ? prev : next));
+    }, 50);
+    return () => clearInterval(id);
+  }, [enabled]);
+  return enabled && hint;
+}
+
 export function GameHUD() {
   const players = useGameStore(selectPlayers);
   const state = useGameStore((s) => s.state);
@@ -24,6 +39,7 @@ export function GameHUD() {
   const now = useHostClock(200);
   const mobile = useIsMobile();
   const { dashLeft, dashPct } = useDashCooldown();
+  const wireHint = useWireHint(state.mode === "GOGUN" && state.status === "PLAYING");
 
   const race = state.mode === "RACE";
   const run = state.mode === "GOGUN";
@@ -115,6 +131,11 @@ export function GameHUD() {
       {run && state.status === "PLAYING" && !isSpectating && !localFinished && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
           <div className="chip px-3 py-1.5 text-[11px] font-black tracking-widest text-white/85">{mobile ? "TAP JUMP · TAP AGAIN IN AIR = WIRE" : "SPACE JUMP · SPACE IN AIR = WIRE"}</div>
+        </div>
+      )}
+      {run && wireHint && (
+        <div className="absolute left-1/2 top-1/3 -translate-x-1/2">
+          <div className="anim-pulse display rounded-2xl bg-brand-2 px-5 py-1.5 text-2xl text-[#12142b] shadow-2xl">🪝 WIRE!</div>
         </div>
       )}
       {!mobile && !run && !isSpectating && !localFinished && state.status === "PLAYING" && (

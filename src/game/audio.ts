@@ -5,6 +5,7 @@
  * user gesture to satisfy browser autoplay policies.
  */
 import { SOUND_PATHS, USE_SOUND_FILES, type SoundName } from "@/game/config";
+import { music } from "@/game/music";
 
 type Synth = (ctx: AudioContext, dest: AudioNode, when: number) => void;
 
@@ -90,6 +91,7 @@ class SoundManager {
       this.master = this.ctx.createGain();
       this.master.gain.value = this._muted ? 0 : 0.8;
       this.master.connect(this.ctx.destination);
+      music.attach(this.ctx, this.master);
       void this.preload();
     }
     if (this.ctx.state === "suspended") void this.ctx.resume();
@@ -97,6 +99,7 @@ class SoundManager {
 
   setMuted(muted: boolean) {
     this._muted = muted;
+    music.setMuted(muted);
     if (this.master) this.master.gain.value = muted ? 0 : 0.8;
     try {
       localStorage.setItem("dropzone:muted", muted ? "1" : "0");
@@ -108,6 +111,7 @@ class SoundManager {
   restoreMutePreference() {
     try {
       this._muted = localStorage.getItem("dropzone:muted") === "1";
+      music.setMuted(this._muted);
     } catch {
       /* ignore */
     }

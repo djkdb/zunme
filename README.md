@@ -157,7 +157,15 @@ neon/schema.sql         optional match-history table
   automatically. `GameAuthority` has no React/Three/network imports so it
   can move to a real server later without changes.
 
-## Sounds
+## Music & sounds
+
+Background music is **generated procedurally** (`src/game/music.ts`): a
+WebAudio step sequencer with a different key, tempo and pattern for the
+menu, lobby, each mode and the result screen, speeding up in sudden death /
+hurry-up. No licensed audio is shipped. To use real loops instead, see
+`public/music/README.md` (drop files, set `USE_MUSIC_FILES`).
+
+### Sounds
 
 `src/game/config.ts` lists the expected files under `public/sounds/`
 (`click, countdown, go, jump, impact, elimination, win`). Drop in your own

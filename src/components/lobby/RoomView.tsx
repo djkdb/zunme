@@ -12,6 +12,7 @@ import { LandscapeHint } from "@/components/hud/LandscapeHint";
 import { MobileControls } from "@/components/hud/MobileControls";
 import { ResultScreen } from "@/components/hud/ResultScreen";
 import { ScreenEffects } from "@/components/hud/ScreenEffects";
+import { MusicDirector } from "@/components/hud/MusicDirector";
 import { Lobby } from "@/components/lobby/Lobby";
 import { NICKNAME_MAX_LENGTH } from "@/game/config";
 import { attachKeyboard, resetInput } from "@/game/input";
@@ -87,6 +88,7 @@ export function RoomView({ roomCode }: { roomCode: string }) {
       <GameCanvas mobile={mobile}>
         <GameScene mobile={mobile} />
       </GameCanvas>
+      {connected && <MusicDirector screen="room" />}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#12142b]/25 to-transparent" style={{ height: "30%" }} />
 
       {needsName && (

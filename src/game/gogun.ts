@@ -59,7 +59,7 @@ export const GOGUN_BASE_SPEED = 7.5;
 export const GOGUN_MAX_SPEED = 13;
 export const GOGUN_JUMP = 9.6;
 export const GOGUN_WIRE_RANGE_AHEAD = 20; // how far ahead an anchor may be
-export const GOGUN_WIRE_MIN_AHEAD = 1.5;
+export const GOGUN_WIRE_MIN_AHEAD = 0.5;
 export const GOGUN_WIRE_RELEASE_BOOST = 1.12;
 export const GOGUN_WIRE_MAX_MS = 1500;
 export const GOGUN_COIN_RADIUS = 1.1;
@@ -67,7 +67,7 @@ export const GOGUN_FALL_Y = -12;
 export const GOGUN_PROGRESS_STEP = 25; // metres per progress tick sent to the host
 export const GOGUN_COIN_POINTS = { silver: 2, gold: 10 };
 export const GOGUN_JUMP_CUT = 0.72; // tap = shorter hop, hold = full jump (softer than the arena cut)
-export const GOGUN_CRASH_MS = 350; // blocked by a wall this long while running = you fall
+export const GOGUN_CRASH_MS = 250; // blocked by a wall this long while running = you fall
 
 const PALETTE = ["#3a3f5c", "#2f3450", "#454a6d", "#3d3555", "#2b4a5e", "#4a3b5c", "#35505a"];
 
@@ -77,11 +77,19 @@ export function gogunSpeedAt(distance: number, length: number): number {
   return GOGUN_BASE_SPEED + (GOGUN_MAX_SPEED - GOGUN_BASE_SPEED) * Math.pow(k, 0.8);
 }
 
-/** Max flat jump distance at a given speed (used to decide which gaps need the wire). */
-function jumpReach(speed: number): number {
-  const air = (2 * GOGUN_JUMP) / 22; // gravity from config (GRAVITY = -22)
+/**
+ * Horizontal distance a full jump covers at a given speed when landing
+ * `rise` metres higher (gravity 22, see GRAVITY in config).
+ */
+function jumpReach(speed: number, rise = 0): number {
+  const g = 22;
+  const disc = GOGUN_JUMP * GOGUN_JUMP - 2 * g * Math.max(0, rise);
+  if (disc <= 0) return 0;
+  const air = (GOGUN_JUMP + Math.sqrt(disc)) / g;
   return speed * air;
 }
+/** Players never jump from the exact edge, and taps are shorter than holds. */
+const SAFE_GAP_RATIO = 0.6;
 
 export function buildCourse(seed: number, targetLength = 420): Course {
   const rng = createRng(seed ^ 0x6a09e667);
@@ -104,12 +112,14 @@ export function buildCourse(seed: number, targetLength = 420): Course {
     const difficulty = Math.min(1, distance / targetLength);
     // Gap: mostly jumpable, sometimes wire-only (wider than a jump)
     const wireGap = rng() < 0.28 + difficulty * 0.25;
-    let gap = wireGap ? reach * (1.25 + rng() * 0.6) : 2.5 + rng() * (reach * 0.72 - 2.5);
-    // Height step: jumps clear ~2.1 m, so plain gaps may rise at most 1.1 m; swings allow more.
-    const rise = wireGap ? 2.4 : 1.1;
+    // Height step: jumps clear ~2.1 m, so plain gaps may rise at most 0.9 m; swings allow more.
+    const rise = wireGap ? 2.4 : 0.9;
     const drop = wireGap ? 3.5 : 2.5;
     const nextTop = Math.max(-1, Math.min(7, top + (rng() < 0.5 ? rng() * rise : -rng() * drop)));
-    if (!wireGap && nextTop > top) gap = Math.max(2.5, gap - (nextTop - top) * 1.5);
+    // Plain gaps stay well inside what a real jump reaches (accounting for the climb).
+    const safeReach = jumpReach(speed, nextTop - top) * SAFE_GAP_RATIO;
+    let gap = wireGap ? reach * (1.25 + rng() * 0.6) : Math.max(2, 2 + rng() * Math.max(0.5, safeReach - 2));
+    gap = Math.min(gap, wireGap ? gap : safeReach);
     const w = 6 + rng() * 5;
     const d = 9 + rng() * 12;
     const x = (rng() - 0.5) * 2.5;
@@ -165,6 +175,8 @@ export const gogunRuntime = {
   coinPoints: 0,
   collected: new Set<number>(),
   wire: { active: false, anchor: -1, x: 0, y: 0, z: 0, length: 0, since: 0 },
+  /** an anchor is hookable right now (airborne + in range) → HUD hint */
+  anchorInRange: false,
   finished: false,
   lastProgressTick: -1,
   reset() {
@@ -174,6 +186,7 @@ export const gogunRuntime = {
     this.collected.clear();
     this.wire.active = false;
     this.wire.anchor = -1;
+    this.anchorInRange = false;
     this.finished = false;
     this.lastProgressTick = -1;
   },

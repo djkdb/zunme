@@ -115,6 +115,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
   const jumpCut = useRef(false);
   const dashDir = useRef({ x: 0, z: 1 });
   const blockedSince = useRef(0);
+  const lastCommandedVz = useRef(0);
 
   // Dev-only hook so e2e tests / the console can move the local player.
   useEffect(() => {
@@ -141,6 +142,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
         raceRuntime.reset();
         gogunRuntime.reset();
         blockedSince.current = 0;
+        lastCommandedVz.current = 0;
         localPose.dashUntil = 0;
         localPose.dashReadyAt = 0;
         localPose.stunUntil = 0;
@@ -215,6 +217,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
         }
         // pump forward a little so swings carry
         vz -= 4 * dt;
+        lastCommandedVz.current = 0;
         const passed = t.z < wire.z - 0.5; // swung past the anchor
         const timeout = now - wire.since > GOGUN_WIRE_MAX_MS;
         if (jumpPressed || passed || timeout || grounded.current) {
@@ -230,7 +233,12 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
         const steer = canControl ? input.moveX : 0;
         const targetX = THREE.MathUtils.clamp(t.x + steer * 3, -auto.laneHalf, auto.laneHalf);
         vx = THREE.MathUtils.clamp((targetX - t.x) * 4, -6, 6);
-        vz = active ? -speed : 0;
+        // Blocked by a wall / box: we commanded forward speed last step but the body barely moved.
+        // Once blocked, stay blocked (no more pushing) until the crash resolves it.
+        const blockedNow = active && ((lastCommandedVz.current < -1 && v.z > lastCommandedVz.current * 0.35 && !jumpPressed) || blockedSince.current > 0);
+        vz = active ? (blockedNow ? 0 : -speed) : 0;
+        lastCommandedVz.current = vz;
+        gogunRuntime.anchorInRange = !grounded.current && auto.findAnchor(t.x, t.y, t.z) !== null;
         if (jumpPressed && canControl) {
           if (grounded.current || now - lastGroundedAt.current < COYOTE_TIME_MS) {
             vy = auto.jumpForce;
@@ -259,9 +267,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
         }
         if (grounded.current) jumpCut.current = false;
         // Ran into a wall: the original punishes this with a fall.
-        // (grounded or pressed against a wall mid-air — either way you are not moving forward)
-        const blocked = active && speed > 1 && v.z > -speed * 0.35 && !jumpPressed && now - lastGroundedAt.current < 1500;
-        if (blocked) {
+        if (blockedNow) {
           if (!blockedSince.current) blockedSince.current = now;
           else if (now - blockedSince.current > GOGUN_CRASH_MS && !fellReported.current) {
             fellReported.current = true;
@@ -271,13 +277,17 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
             sound.play("elimination");
             burst({ position: { x: t.x, y: t.y, z: t.z }, color: ["#ffffff", "#ff5a3c"], count: 16, speed: 3, life: 0.6, size: 0.14 });
             // fling backwards off the roof
-            vz = 4;
-            vy = 3;
+            vz = 5;
+            vy = 4;
+            rb.setTranslation({ x: t.x, y: t.y + 0.05, z: t.z + 0.3 }, true);
             useGameStore.getState().reportFall();
           }
         } else {
           blockedSince.current = 0;
         }
+      }
+      if (fellReported.current) {
+        vz = Math.max(vz, 2);
       }
       rb.setLinvel({ x: vx, y: vy, z: vz }, true);
       anim.yaw = Math.PI; // always face -z
