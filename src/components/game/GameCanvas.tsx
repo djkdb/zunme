@@ -13,6 +13,8 @@ interface Props {
   ambient?: boolean;
 }
 
+const MENU_DPR: [number, number] = [1, 1.25];
+
 /**
  * Shared Canvas config: ACES tone mapping, soft shadows, DPR capped for
  * mobile, and a manually stepped Rapier world (see PhysicsStepper).
@@ -21,7 +23,7 @@ export function GameCanvas({ children, mobile, ambient = false }: Props) {
   return (
     <Canvas
       shadows={{ type: THREE.PCFShadowMap }}
-      dpr={mobile ? [1, 1.5] : [1, 2]}
+      dpr={ambient ? MENU_DPR : mobile ? [1, 1.5] : [1, 2]}
       camera={{ fov: CAMERA_FOV, near: 0.1, far: 900, position: [0, 14, 26] }}
       gl={{
         antialias: !mobile,
@@ -38,7 +40,6 @@ export function GameCanvas({ children, mobile, ambient = false }: Props) {
           {children}
         </Physics>
       </Suspense>
-      {ambient ? null : null}
     </Canvas>
   );
 }

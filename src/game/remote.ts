@@ -50,10 +50,11 @@ export class SnapshotBuffer {
       }
     }
     if (a === b || b.t <= a.t) {
-      // Extrapolate briefly from the latest snapshot using its velocity.
-      const dt = Math.min(Math.max(0, renderT - b.t), 200) / 1000;
+      // Extrapolate briefly from the latest snapshot using its velocity
+      // (horizontal only when grounded, so nobody sinks through the floor).
+      const dt = Math.min(Math.max(0, renderT - b.t), 150) / 1000;
       out.position.x = b.p[0] + b.v[0] * dt;
-      out.position.y = b.p[1] + b.v[1] * dt;
+      out.position.y = b.g ? b.p[1] : Math.max(b.p[1] + b.v[1] * dt, b.p[1] - 1.5);
       out.position.z = b.p[2] + b.v[2] * dt;
       out.yaw = b.r;
       out.velocity.x = b.v[0];

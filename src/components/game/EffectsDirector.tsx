@@ -40,7 +40,7 @@ export function EffectsDirector() {
             let shots = 0;
             confettiTimer.current = setInterval(() => {
               const p = livePoses.get(winner) ?? { x: 0, y: 0, z: 0 };
-              burst({ position: { x: p.x, y: p.y + 2.5, z: p.z }, color: colors, count: 30, speed: 5, life: 2.2, size: 0.17, gravity: 4, spread: 1.4 });
+              burst({ position: { x: p.x, y: p.y + 2.5, z: p.z }, color: colors, count: 34, speed: 5, life: 2.4, size: 0.11, gravity: 3.5, spread: 1.4 });
               if (++shots >= 8 && confettiTimer.current) {
                 clearInterval(confettiTimer.current);
                 confettiTimer.current = null;

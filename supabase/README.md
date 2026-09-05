@@ -8,9 +8,11 @@ required for the MVP: rooms live entirely in realtime channels named
 2. Copy the project URL and anon key into `.env.local` (see `.env.example`).
 3. Make sure Realtime is enabled for the project (it is by default).
 
-That's it. Rate limits: the client caps broadcasts at ~15 msg/s per player
-(`NET_TICK_RATE` in `src/game/config.ts`); the free tier comfortably handles
-an 8-player room.
+That's it. Rate limits: each player broadcasts transforms at 10 Hz
+(`NET_TICK_RATE` in `src/game/config.ts`), so an 8-player room sends roughly
+80 messages/s plus the host's state heartbeat — under the default Realtime
+quota of 100 messages/s. Raise the quota in *Project Settings → Realtime* if
+you increase the tick rate.
 
 ## Optional: persisting rooms
 

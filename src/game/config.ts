@@ -60,8 +60,8 @@ export const WALL_Z = -8.6; // sweeps the outer southern ring
 export const OBSTACLE_SPEED = 1; // global multiplier, 2 in sudden death
 
 // ── Networking ───────────────────────────────────────────────────────
-export const NET_TICK_RATE = 15; // Hz for transform broadcasts
-export const NET_INTERPOLATION_DELAY = 120; // ms behind for smooth remote motion
+export const NET_TICK_RATE = 10; // Hz for transform broadcasts (8 players ≈ 80 msg/s, under Supabase's default 100/s quota)
+export const NET_INTERPOLATION_DELAY = 150; // ms behind for smooth remote motion (≥ 1 tick)
 export const NET_STATE_HEARTBEAT = 1000; // host re-broadcasts state every second
 export const PRESENCE_TIMEOUT = 8000; // ms before a silent player is considered gone
 export const HOST_LEADERSHIP_GRACE = 1500;
