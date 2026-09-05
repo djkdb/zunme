@@ -1,0 +1,231 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-display), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --color-brand: #ff5a3c;
+  --color-brand-2: #ffd32a;
+  --color-ink: #12142b;
+}
+
+:root {
+  color-scheme: light;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  background: #12142b;
+  color: #ffffff;
+  overflow: hidden;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+  font-family: var(--font-sans);
+}
+
+body {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+input,
+textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* ── Type ────────────────────────────────────────────────────────────── */
+.display {
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  line-height: 0.95;
+}
+.title-glow {
+  text-shadow:
+    0 2px 0 rgba(0, 0, 0, 0.25),
+    0 12px 40px rgba(255, 90, 60, 0.45);
+}
+.hud-text {
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-2xl font-extrabold tracking-wide transition-transform duration-100 select-none;
+  min-height: 56px;
+  padding: 0 28px;
+  font-size: 18px;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.28), 0 14px 30px rgba(0, 0, 0, 0.25);
+}
+.btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.28), 0 6px 16px rgba(0, 0, 0, 0.25);
+}
+.btn:disabled {
+  opacity: 0.5;
+  transform: none;
+}
+.btn-primary {
+  background: linear-gradient(180deg, #ff7a5c 0%, #ff5a3c 100%);
+  color: #fff;
+}
+.btn-secondary {
+  background: linear-gradient(180deg, #ffffff 0%, #eef0f6 100%);
+  color: #12142b;
+}
+.btn-ghost {
+  background: rgba(18, 20, 43, 0.55);
+  color: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(8px);
+}
+.btn-accent {
+  background: linear-gradient(180deg, #ffe066 0%, #ffd32a 100%);
+  color: #12142b;
+}
+
+/* ── Panels ──────────────────────────────────────────────────────────── */
+.panel {
+  background: rgba(18, 20, 43, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-radius: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+.chip {
+  background: rgba(18, 20, 43, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(10px);
+  border-radius: 999px;
+}
+
+/* ── Animations ──────────────────────────────────────────────────────── */
+@keyframes pop-in {
+  0% {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+@keyframes rise-in {
+  from {
+    transform: translateY(24px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes pulse-soft {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+@keyframes slam {
+  0% {
+    transform: scale(2.4) rotate(-6deg);
+    opacity: 0;
+  }
+  40% {
+    transform: scale(0.95) rotate(1deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.anim-pop {
+  animation: pop-in 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.anim-rise {
+  animation: rise-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+.anim-fade {
+  animation: fade-in 0.3s ease both;
+}
+.anim-pulse {
+  animation: pulse-soft 1.2s ease-in-out infinite;
+}
+.anim-slam {
+  animation: slam 0.5s cubic-bezier(0.2, 1.2, 0.3, 1) both;
+}
+.anim-float {
+  animation: float-y 3s ease-in-out infinite;
+}
+@keyframes banner-life {
+  0%,
+  75% {
+    opacity: 1;
+    visibility: visible;
+  }
+  100% {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+.anim-banner {
+  animation: banner-life 2.2s ease-in forwards;
+}
+.delay-1 {
+  animation-delay: 0.08s;
+}
+.delay-2 {
+  animation-delay: 0.16s;
+}
+.delay-3 {
+  animation-delay: 0.24s;
+}
+.delay-4 {
+  animation-delay: 0.32s;
+}
+
+.safe-pad {
+  padding-top: env(safe-area-inset-top);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+}
