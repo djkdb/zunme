@@ -1,4 +1,5 @@
 import type { PlayerColorName } from "@/game/config";
+import type { Cosmetics } from "@/game/items";
 
 export type GameMode = "SUMO" | "RACE" | "MELTDOWN";
 
@@ -23,9 +24,12 @@ export interface PlayerPresence {
   nickname: string;
   colorIndex: number;
   joinedAt: number;
+  /** equipped cosmetics (validated on receipt) */
+  cosmetics?: Cosmetics;
 }
 
 export interface Player extends PlayerPresence {
+  cosmetics: Cosmetics;
   color: PlayerColorName;
   colorHex: string;
   alive: boolean;

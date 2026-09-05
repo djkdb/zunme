@@ -9,6 +9,9 @@ import { createInitialState } from "@/game/authority";
 import { PLAYER_COLORS } from "@/game/config";
 import { RoomClient } from "@/lib/multiplayer";
 import { loadIdentity, pickFreeColor, saveNickname } from "@/lib/room";
+import { sanitizeCosmetics, type Cosmetics } from "@/game/items";
+import { computeReward, rewardKey } from "@/game/rewards";
+import { useWalletStore } from "@/store/walletStore";
 import type { GameMode, GameState, Player, PlayerPresence } from "@/types";
 
 export interface EliminationNotice {
@@ -43,6 +46,7 @@ interface GameStore {
   join(roomCode: string, nickname?: string): Promise<void>;
   leave(): void;
   setNickname(nickname: string): void;
+  setCosmetics(cosmetics: Cosmetics): void;
   startGame(): void;
   setMode(mode: GameMode): void;
   playAgain(): void;
@@ -85,6 +89,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       nickname: name,
       colorIndex: Math.floor(Math.random() * PLAYER_COLORS.length),
       joinedAt: Date.now(),
+      cosmetics: { ...useWalletStore.getState().equipped },
     };
     set({ connecting: true, error: null, roomCode, nickname: name, viewingLobby: false, lastElimination: null });
 
@@ -131,6 +136,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
           patch.finishSeq = get().finishSeq + 1;
         }
         if (state.status === "COUNTDOWN" && prev.status !== "COUNTDOWN") patch.lastFinish = null;
+        if (state.status === "FINISHED" && prev.status !== "FINISHED") {
+          const reward = computeReward(state, get().localId);
+          if (reward) useWalletStore.getState().claimReward(rewardKey(state), reward.points, reward.rank);
+        }
         patch.players = toPlayers(get().presences, get().hostId, state);
         set(patch);
       },
@@ -170,6 +179,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
     saveNickname(nickname);
     set({ nickname });
     get().client?.updateNickname(nickname);
+  },
+
+  setCosmetics(cosmetics) {
+    get().client?.updatePresence({ cosmetics: { ...cosmetics } });
   },
 
   startGame() {
@@ -215,6 +228,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
 export function toPlayers(presences: PlayerPresence[], hostId: string | null, state: GameState): Player[] {
   return presences.map((p) => ({
     ...p,
+    cosmetics: sanitizeCosmetics(p.cosmetics),
     color: PLAYER_COLORS[p.colorIndex % PLAYER_COLORS.length].name,
     colorHex: PLAYER_COLORS[p.colorIndex % PLAYER_COLORS.length].hex,
     alive: state.status === "LOBBY" ? true : state.alive.includes(p.id),
@@ -226,3 +240,9 @@ export const selectPlayers = (s: GameStore) => s.players;
 export const selectIsHost = (s: GameStore) => s.hostId === s.localId;
 export const selectLocalAlive = (s: GameStore) => s.state.alive.includes(s.localId);
 export const selectIsParticipant = (s: GameStore) => s.state.participants.includes(s.localId);
+
+// Dev-only inspection hook for e2e tests / console debugging.
+if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+  const w = window as unknown as { __dropzone?: Record<string, unknown> };
+  w.__dropzone = { ...(w.__dropzone ?? {}), store: useGameStore };
+}

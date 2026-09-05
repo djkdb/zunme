@@ -11,6 +11,7 @@ import {
 } from "@react-three/rapier";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { TRAIL_COLORS, type Cosmetics } from "@/game/items";
 import { Character, createAnim, type CharacterAnim } from "@/components/game/Character";
 import {
   JUMP_FORCE,
@@ -57,7 +58,7 @@ interface Props {
   colorHex: string;
   spawn: [number, number, number];
   showLabel: boolean;
-  variant: number;
+  cosmetics: Cosmetics;
   rules: PlayerRules;
 }
 
@@ -69,7 +70,7 @@ interface BodyUserData {
 const tmpVel = new THREE.Vector3();
 const tmpDir = new THREE.Vector3();
 
-export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, variant }: Props) {
+export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, cosmetics }: Props) {
   const body = useRef<RapierRigidBody>(null);
   const animRef = useRef<CharacterAnim>(createAnim());
   const { world, rapier } = useRapier();
@@ -82,6 +83,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, v
   const lastRound = useRef(-1);
   const rayRef = useRef<InstanceType<typeof rapier.Ray> | null>(null);
   const halfHeight = (PLAYER_HEIGHT - PLAYER_RADIUS * 2) / 2;
+  const lastTrail = useRef(0);
 
   // Dev-only hook so e2e tests / the console can move the local player.
   useEffect(() => {
@@ -215,6 +217,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, v
     anim.speed = Math.hypot(v.x, v.z);
     anim.grounded = grounded.current;
     anim.vy = v.y;
+    emitTrail(cosmetics.trail, localPose.position, anim.speed, grounded.current, lastTrail);
 
     useGameStore.getState().client?.sendSnapshot(() => ({
       p: [round(t.x), round(t.y - PLAYER_HEIGHT / 2), round(t.z)],
@@ -293,10 +296,20 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, v
     >
       <CapsuleCollider args={[halfHeight, PLAYER_RADIUS]} friction={0.2} restitution={0.15} />
       <group position={[0, -PLAYER_HEIGHT / 2, 0]}>
-        <Character colorHex={colorHex} nickname={nickname} animRef={animRef} isLocal showLabel={showLabel} variant={variant} />
+        <Character colorHex={colorHex} nickname={nickname} animRef={animRef} isLocal showLabel={showLabel} cosmetics={cosmetics} />
       </group>
     </RigidBody>
   );
+}
+
+/** Running trail particles for equipped trail cosmetics (throttled). */
+export function emitTrail(trail: string, p: { x: number; y: number; z: number }, speed: number, grounded: boolean, last: { current: number }) {
+  const colors = TRAIL_COLORS[trail];
+  if (!colors || !grounded || speed < 2.5) return;
+  const now = performance.now();
+  if (now - last.current < 70) return;
+  last.current = now;
+  burst({ position: { x: p.x, y: p.y + 0.15, z: p.z }, color: colors, count: 2, speed: 1.2, life: 0.55, size: 0.11, gravity: trail === "fire" ? -3 : 1.5, spread: 0.6 });
 }
 
 function round(n: number): number {

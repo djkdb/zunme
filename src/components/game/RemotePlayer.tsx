@@ -4,7 +4,9 @@ import { useFrame } from "@react-three/fiber";
 import { CapsuleCollider, RigidBody, useBeforePhysicsStep, type RapierRigidBody } from "@react-three/rapier";
 import { useRef } from "react";
 import * as THREE from "three";
+import type { Cosmetics } from "@/game/items";
 import { Character, createAnim, type CharacterAnim } from "@/components/game/Character";
+import { emitTrail } from "@/components/game/LocalPlayer";
 import { PLAYER_HEIGHT, PLAYER_RADIUS } from "@/game/config";
 import { hostNow } from "@/game/clock";
 import { livePoses, remoteBuffers, type InterpolatedPose } from "@/game/remote";
@@ -15,14 +17,14 @@ interface Props {
   colorHex: string;
   spawn: [number, number, number];
   showLabel: boolean;
-  variant: number;
+  cosmetics: Cosmetics;
 }
 
 /**
  * Remote players are kinematic bodies moved along their interpolated
  * network path, so the local dynamic body collides with them for real.
  */
-export function RemotePlayer({ id, nickname, colorHex, spawn, showLabel, variant }: Props) {
+export function RemotePlayer({ id, nickname, colorHex, spawn, showLabel, cosmetics }: Props) {
   const body = useRef<RapierRigidBody>(null);
   const animRef = useRef<CharacterAnim>(createAnim());
   const poseRef = useRef<InterpolatedPose>({ position: { x: spawn[0], y: spawn[1], z: spawn[2] }, yaw: 0, velocity: { x: 0, y: 0, z: 0 }, grounded: true, age: 0 });
@@ -30,6 +32,7 @@ export function RemotePlayer({ id, nickname, colorHex, spawn, showLabel, variant
   const smoothed = useRef(new THREE.Vector3(spawn[0], spawn[1], spawn[2]));
   const halfHeight = (PLAYER_HEIGHT - PLAYER_RADIUS * 2) / 2;
   const wasGrounded = useRef(true);
+  const lastTrail = useRef(0);
 
   useBeforePhysicsStep(() => {
     const rb = body.current;
@@ -65,13 +68,14 @@ export function RemotePlayer({ id, nickname, colorHex, spawn, showLabel, variant
     live.y = t.y - PLAYER_HEIGHT / 2;
     live.z = t.z;
     livePoses.set(id, live);
+    emitTrail(cosmetics.trail, live, animRef.current.speed, animRef.current.grounded, lastTrail);
   });
 
   return (
     <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[spawn[0], spawn[1] + PLAYER_HEIGHT / 2, spawn[2]]} userData={{ type: "player", id }}>
       <CapsuleCollider args={[halfHeight, PLAYER_RADIUS]} />
       <group position={[0, -PLAYER_HEIGHT / 2, 0]}>
-        <Character colorHex={colorHex} nickname={nickname} animRef={animRef} showLabel={showLabel} variant={variant} />
+        <Character colorHex={colorHex} nickname={nickname} animRef={animRef} showLabel={showLabel} cosmetics={cosmetics} />
       </group>
     </RigidBody>
   );

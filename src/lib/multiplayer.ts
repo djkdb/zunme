@@ -112,6 +112,11 @@ export class RoomClient {
     this.transport.updatePresence(this.presence);
   }
 
+  updatePresence(patch: Partial<PlayerPresence>) {
+    this.presence = { ...this.presence, ...patch, id: this.presence.id };
+    this.transport.updatePresence(this.presence);
+  }
+
   // ── Presence / host election ───────────────────────────────────────
   private onPresence(players: PlayerPresence[]) {
     if (this.disposed) return;

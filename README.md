@@ -10,7 +10,19 @@ three Fall Guys-style modes, one 6-letter room code, no accounts:
 | 🔥 **MELTDOWN** | Three shrinking floors of tiles that vanish right after you step on them. Keep moving. Last survivor wins. |
 
 Every player is a variation of the ZUN character (navy "ZUN" cap, hoodie in
-the player colour, sneakers, plus headphones / sunglasses / backpack / scarf).
+the player colour, sneakers) dressed up from the **ZUN Shop**.
+
+## Points & shop
+
+Rounds pay out points by placement (1st +120 · 2nd +90 · 3rd +70 · others
++50, race finishers +30, solo practice pays half). Points buy cosmetics
+only — hats (beanie, party hat, cat ears, halo, crown, coloured caps), face
+items (sunglasses, glasses, visor, headphones), back items (backpack, scarf,
+cape, jetpack, wings) and running trails (sparkle, hearts, fire, rainbow).
+Nothing affects gameplay. The wallet lives in the browser's localStorage
+(there are no accounts) and equipped items travel with presence, so everyone
+in the room sees your outfit. Catalogue and prices: `src/game/items.ts`;
+payout rules: `src/game/rewards.ts`.
 
 Built with **Next.js 16 · TypeScript · React Three Fiber · Drei · Rapier ·
 Cloudflare Durable Objects (realtime) · Tailwind CSS · Zustand**. Supabase
@@ -84,6 +96,8 @@ src/
     race.ts             SKY DASH course data (platforms, obstacles, checkpoints)
     meltdown.ts         MELTDOWN floor layout
     sync.ts             peer gameplay events (tile vanish) + race runtime
+    items.ts            cosmetic catalogue (hats, face, back, trails)
+    rewards.ts          points per placement
     input.ts            keyboard + joystick → single input state
     effects.ts          shake / particle / slow-motion event bus
     audio.ts            sound manager (files with synth fallback)
@@ -94,7 +108,9 @@ src/
     transport.ts        Transport interface: Supabase / Worker WebSocket / Local
     multiplayer.ts      RoomClient: presence, host election, state mirror
     room.ts             room codes, nicknames, colours
+  components/shop/      Shop modal, 3D turntable preview, points button
   store/gameStore.ts    Zustand store for slowly-changing game/UI state
+  store/walletStore.ts  points / owned / equipped, persisted in localStorage
 worker/
   index.ts              Cloudflare Worker entry: /ws → RoomObject, else Next.js
   room-object.ts        Durable Object: presence + broadcast relay per room (+ Neon)

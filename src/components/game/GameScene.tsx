@@ -94,9 +94,9 @@ export function GameScene({ mobile }: { mobile: boolean }) {
         const idx = Math.max(0, spawnOrder.indexOf(p.id));
         const spawn = spawnFor(mode, idx, spawnOrder.length);
         return p.id === localId ? (
-          <LocalPlayer key={`${p.id}-local-${mode}`} id={p.id} nickname={p.nickname} colorHex={p.colorHex} spawn={spawn} showLabel={showLabels} rules={RULES[mode]} variant={p.colorIndex} />
+          <LocalPlayer key={`${p.id}-local-${mode}`} id={p.id} nickname={p.nickname} colorHex={p.colorHex} spawn={spawn} showLabel={showLabels} rules={RULES[mode]} cosmetics={p.cosmetics} />
         ) : (
-          <RemotePlayer key={`${p.id}-${mode}`} id={p.id} nickname={p.nickname} colorHex={p.colorHex} spawn={spawn} showLabel={showLabels} variant={p.colorIndex} />
+          <RemotePlayer key={`${p.id}-${mode}`} id={p.id} nickname={p.nickname} colorHex={p.colorHex} spawn={spawn} showLabel={showLabels} cosmetics={p.cosmetics} />
         );
       })}
       <Particles max={mobile ? 350 : 600} />

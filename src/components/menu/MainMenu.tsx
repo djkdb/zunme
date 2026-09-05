@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { MenuBackground } from "@/components/menu/MenuBackground";
 import { MuteButton } from "@/components/hud/MuteButton";
+import { ShopButton } from "@/components/shop/ShopButton";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { NICKNAME_MAX_LENGTH } from "@/game/config";
 import { sound } from "@/game/audio";
@@ -56,7 +57,8 @@ export function MainMenu() {
       <MenuBackground mobile={mobile} />
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#12142b]/35 via-transparent to-[#12142b]/60" />
 
-      <div className="absolute right-3 top-3 z-20 safe-pad">
+      <div className="absolute right-3 top-3 z-20 flex items-center gap-2 safe-pad">
+        <ShopButton />
         <MuteButton />
       </div>
 

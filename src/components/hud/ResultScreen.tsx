@@ -8,6 +8,9 @@ import { GAME_MODES } from "@/game/config";
 import { sound } from "@/game/audio";
 import { roomShareUrl } from "@/lib/room";
 import { selectIsHost, selectPlayers, useGameStore } from "@/store/gameStore";
+import { useWalletStore } from "@/store/walletStore";
+import { ShopButton } from "@/components/shop/ShopButton";
+import { rewardKey } from "@/game/rewards";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
@@ -20,6 +23,9 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
   const playAgain = useGameStore((s) => s.playAgain);
   const returnToLobby = useGameStore((s) => s.returnToLobby);
   const leave = useGameStore((s) => s.leave);
+  const reward = useWalletStore((s) => s.lastReward);
+  const points = useWalletStore((s) => s.points);
+  const earned = reward && reward.key === rewardKey(state) ? reward.points : 0;
   const [phase, setPhase] = useState<"hold" | "splash" | "panel">("hold");
   const [shared, setShared] = useState(false);
 
@@ -97,6 +103,12 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
               )}
             </div>
 
+            {earned > 0 && (
+              <div className="anim-pop mt-3 flex items-center justify-center gap-2">
+                <div className="rounded-full bg-brand-2 px-4 py-1 text-sm font-black text-[#12142b]">+{earned} PTS</div>
+                <div className="text-xs font-bold text-white/60">⭐ {points} total</div>
+              </div>
+            )}
             <div className="my-4 grid grid-cols-3 gap-2 border-y border-white/15 py-3 text-center">
               <div>
                 <div className="display text-xl text-white">{state.participants.length}</div>
@@ -146,9 +158,12 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
                   {isHost ? "RETURN TO LOBBY" : "LOBBY"}
                 </button>
               </div>
-              <button className="text-center text-xs font-bold text-white/50" onClick={() => { leave(); router.push("/"); }}>
-                Leave room
-              </button>
+              <div className="flex items-center justify-between">
+                <ShopButton compact />
+                <button className="text-center text-xs font-bold text-white/50" onClick={() => { leave(); router.push("/"); }}>
+                  Leave room
+                </button>
+              </div>
             </div>
           </div>
         </div>

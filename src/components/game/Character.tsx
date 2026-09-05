@@ -4,6 +4,7 @@ import { Html } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { useMemo, useRef, type RefObject } from "react";
 import * as THREE from "three";
+import { DEFAULT_COSMETICS, type Cosmetics } from "@/game/items";
 
 /** Mutable animation input written by the owning controller every frame. */
 export interface CharacterAnim {
@@ -28,8 +29,7 @@ interface Props {
   animRef: RefObject<CharacterAnim>;
   isLocal?: boolean;
   showLabel?: boolean;
-  /** picks the accessory variant (0..n) */
-  variant?: number;
+  cosmetics?: Cosmetics;
 }
 
 // ── ZUN palette ──────────────────────────────────────────────────────
@@ -43,6 +43,12 @@ const SHOE = "#f5f5f5";
 const SHOE_ACCENT = "#2f6fd6";
 const STRING = "#f2f2f2";
 
+const CAP_COLORS: Record<string, [string, string]> = {
+  cap_zun: [CAP, CAP_DARK],
+  cap_red: ["#d63447", "#a8283a"],
+  cap_gold: ["#e6b422", "#b48a12"],
+};
+
 function shade(hex: string, amount: number): string {
   const c = new THREE.Color(hex);
   const hsl = { h: 0, s: 0, l: 0 };
@@ -51,16 +57,17 @@ function shade(hex: string, amount: number): string {
   return `#${c.getHexString()}`;
 }
 
-let zunLabel: THREE.CanvasTexture | null = null;
-/** "ZUN" cap logo, drawn once into a canvas texture. */
-function getZunLabel(): THREE.CanvasTexture {
-  if (zunLabel) return zunLabel;
+const zunLabels = new Map<string, THREE.CanvasTexture>();
+/** "ZUN" cap logo, drawn once per cap colour into a canvas texture. */
+function getZunLabel(bg: string): THREE.CanvasTexture {
+  const cached = zunLabels.get(bg);
+  if (cached) return cached;
   const canvas = document.createElement("canvas");
   canvas.width = 256;
   canvas.height = 96;
   const ctx = canvas.getContext("2d");
   if (ctx) {
-    ctx.fillStyle = CAP;
+    ctx.fillStyle = bg;
     ctx.fillRect(0, 0, 256, 96);
     ctx.fillStyle = "#ffffff";
     ctx.font = "900 62px system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif";
@@ -68,19 +75,20 @@ function getZunLabel(): THREE.CanvasTexture {
     ctx.textBaseline = "middle";
     ctx.fillText("ZUN", 128, 52);
   }
-  zunLabel = new THREE.CanvasTexture(canvas);
-  zunLabel.colorSpace = THREE.SRGBColorSpace;
-  zunLabel.anisotropy = 4;
-  return zunLabel;
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 4;
+  zunLabels.set(bg, tex);
+  return tex;
 }
 
 /**
  * ZUN-style chibi: navy "ZUN" cap, black hair, hoodie in the player colour,
- * black pants, white sneakers. `variant` adds an accessory (headphones,
- * sunglasses, backpack, scarf) so every player reads as a different ZUN.
+ * black pants, white sneakers. `cosmetics` picks the hat / face / back items
+ * from the shop so every player reads as a different ZUN.
  * Feet at y=0, cap top ≈ 1.55 (fits the 1.5 m capsule).
  */
-export function Character({ colorHex, nickname, animRef, isLocal = false, showLabel = true, variant = 0 }: Props) {
+export function Character({ colorHex, nickname, animRef, isLocal = false, showLabel = true, cosmetics = DEFAULT_COSMETICS }: Props) {
   const root = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
   const head = useRef<THREE.Group>(null);
@@ -98,8 +106,11 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
     }),
     [colorHex],
   );
-  const label = useMemo(() => getZunLabel(), []);
-  const accessory = variant % 4;
+  const capColors = CAP_COLORS[cosmetics.hat] ?? CAP_COLORS.cap_zun;
+  const label = useMemo(() => getZunLabel(capColors[0]), [capColors]);
+  const cape = useRef<THREE.Mesh>(null);
+  const halo = useRef<THREE.Mesh>(null);
+  const flames = useRef<THREE.Group>(null);
 
   useFrame((_, dt) => {
     const g = root.current;
@@ -146,6 +157,10 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
       head.current.rotation.z = Math.sin(phase.current * 0.5) * 0.06 * target;
       head.current.rotation.x = -flinch * 0.4 + (anim.grounded ? 0 : -0.15);
     }
+    // cosmetic idle motion
+    if (cape.current) cape.current.rotation.x = 0.25 + target * 0.9 + Math.sin(phase.current * 0.8) * 0.08 + (anim.grounded ? 0 : 0.6);
+    if (halo.current) halo.current.position.y = 0.78 + Math.sin(now * 0.003) * 0.04;
+    if (flames.current) flames.current.scale.y = 0.8 + Math.random() * 0.4;
   });
 
   return (
@@ -225,32 +240,138 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
             <meshStandardMaterial color="#8a4b4b" roughness={0.9} />
           </mesh>
 
-          {/* ── cap ── */}
-          <mesh castShadow position={[0, 0.34, -0.02]}>
-            <boxGeometry args={[0.76, 0.2, 0.7]} />
-            <meshStandardMaterial color={CAP} roughness={0.75} flatShading />
-          </mesh>
-          <mesh position={[0, 0.46, -0.02]}>
-            <boxGeometry args={[0.62, 0.08, 0.56]} />
-            <meshStandardMaterial color={CAP} roughness={0.75} flatShading />
-          </mesh>
-          {/* brim */}
-          <mesh castShadow position={[0, 0.27, 0.42]}>
-            <boxGeometry args={[0.64, 0.05, 0.34]} />
-            <meshStandardMaterial color={CAP_DARK} roughness={0.7} />
-          </mesh>
-          {/* ZUN logo */}
-          <mesh position={[0, 0.35, 0.336]}>
-            <planeGeometry args={[0.42, 0.15]} />
-            <meshStandardMaterial map={label} roughness={0.7} />
-          </mesh>
-          <mesh position={[0, 0.52, -0.02]}>
-            <sphereGeometry args={[0.05, 6, 5]} />
-            <meshStandardMaterial color={CAP_DARK} />
-          </mesh>
+          {/* ── hat slot ── */}
+          {(cosmetics.hat === "cap_zun" || cosmetics.hat === "cap_red" || cosmetics.hat === "cap_gold" || cosmetics.hat === "cat_ears") && (
+            <group>
+              <mesh castShadow position={[0, 0.34, -0.02]}>
+                <boxGeometry args={[0.76, 0.2, 0.7]} />
+                <meshStandardMaterial color={capColors[0]} roughness={0.75} flatShading />
+              </mesh>
+              <mesh position={[0, 0.46, -0.02]}>
+                <boxGeometry args={[0.62, 0.08, 0.56]} />
+                <meshStandardMaterial color={capColors[0]} roughness={0.75} flatShading />
+              </mesh>
+              <mesh castShadow position={[0, 0.27, 0.42]}>
+                <boxGeometry args={[0.64, 0.05, 0.34]} />
+                <meshStandardMaterial color={capColors[1]} roughness={0.7} />
+              </mesh>
+              <mesh position={[0, 0.35, 0.336]}>
+                <planeGeometry args={[0.42, 0.15]} />
+                <meshStandardMaterial map={label} roughness={0.7} />
+              </mesh>
+              <mesh position={[0, 0.52, -0.02]}>
+                <sphereGeometry args={[0.05, 6, 5]} />
+                <meshStandardMaterial color={capColors[1]} />
+              </mesh>
+              {cosmetics.hat === "cat_ears" &&
+                [-0.24, 0.24].map((x) => (
+                  <group key={x} position={[x, 0.58, -0.02]} rotation={[0, 0, x < 0 ? 0.25 : -0.25]}>
+                    <mesh castShadow>
+                      <coneGeometry args={[0.13, 0.28, 4]} />
+                      <meshStandardMaterial color={CAP} roughness={0.8} flatShading />
+                    </mesh>
+                    <mesh position={[0, -0.02, 0.03]}>
+                      <coneGeometry args={[0.07, 0.16, 4]} />
+                      <meshStandardMaterial color="#ff9ad5" roughness={0.8} />
+                    </mesh>
+                  </group>
+                ))}
+            </group>
+          )}
+          {cosmetics.hat === "beanie" && (
+            <group>
+              <mesh castShadow position={[0, 0.36, -0.02]}>
+                <boxGeometry args={[0.76, 0.26, 0.7]} />
+                <meshStandardMaterial color="#ff5a3c" roughness={0.95} flatShading />
+              </mesh>
+              <mesh position={[0, 0.5, -0.02]}>
+                <boxGeometry args={[0.6, 0.14, 0.54]} />
+                <meshStandardMaterial color="#ff5a3c" roughness={0.95} flatShading />
+              </mesh>
+              <mesh position={[0, 0.3, -0.02]}>
+                <boxGeometry args={[0.8, 0.12, 0.74]} />
+                <meshStandardMaterial color="#fff3d6" roughness={0.95} />
+              </mesh>
+              <mesh position={[0, 0.62, -0.02]}>
+                <sphereGeometry args={[0.1, 8, 6]} />
+                <meshStandardMaterial color="#fff3d6" roughness={0.95} />
+              </mesh>
+            </group>
+          )}
+          {cosmetics.hat === "party" && (
+            <group position={[0.08, 0.5, 0]} rotation={[0, 0, -0.15]}>
+              <mesh castShadow position={[0, 0.25, 0]}>
+                <coneGeometry args={[0.2, 0.55, 12]} />
+                <meshStandardMaterial color="#a55eea" roughness={0.6} />
+              </mesh>
+              {[0.08, 0.28].map((y) => (
+                <mesh key={y} position={[0, y, 0]}>
+                  <cylinderGeometry args={[0.2 - y * 0.34, 0.2 - (y - 0.04) * 0.34, 0.05, 12]} />
+                  <meshStandardMaterial color="#ffd32a" roughness={0.6} />
+                </mesh>
+              ))}
+              <mesh position={[0, 0.54, 0]}>
+                <sphereGeometry args={[0.06, 6, 5]} />
+                <meshStandardMaterial color="#ff6bcb" />
+              </mesh>
+            </group>
+          )}
+          {cosmetics.hat === "halo" && (
+            <mesh ref={halo} position={[0, 0.78, 0]} rotation={[Math.PI / 2, 0, 0]}>
+              <torusGeometry args={[0.28, 0.05, 8, 24]} />
+              <meshStandardMaterial color="#ffe066" emissive="#ffd32a" emissiveIntensity={0.9} roughness={0.3} />
+            </mesh>
+          )}
+          {cosmetics.hat === "crown" && (
+            <group position={[0, 0.34, -0.02]}>
+              <mesh castShadow position={[0, 0.06, 0]}>
+                <cylinderGeometry args={[0.34, 0.36, 0.22, 8]} />
+                <meshStandardMaterial color="#e6b422" roughness={0.35} metalness={0.5} flatShading />
+              </mesh>
+              {[0, 1, 2, 3, 4].map((i) => {
+                const a = (i / 5) * Math.PI * 2;
+                return (
+                  <mesh key={i} position={[Math.cos(a) * 0.3, 0.26, Math.sin(a) * 0.3]}>
+                    <coneGeometry args={[0.07, 0.2, 4]} />
+                    <meshStandardMaterial color="#e6b422" roughness={0.35} metalness={0.5} flatShading />
+                  </mesh>
+                );
+              })}
+              <mesh position={[0, 0.06, 0.36]}>
+                <sphereGeometry args={[0.06, 6, 5]} />
+                <meshStandardMaterial color="#ff4757" roughness={0.3} />
+              </mesh>
+            </group>
+          )}
 
-          {/* ── accessories ── */}
-          {accessory === 1 && (
+          {/* ── face slot ── */}
+          {cosmetics.face === "sunglasses" && (
+            <mesh position={[0, -0.05, 0.345]}>
+              <boxGeometry args={[0.5, 0.12, 0.03]} />
+              <meshStandardMaterial color="#0b0c14" roughness={0.2} metalness={0.4} />
+            </mesh>
+          )}
+          {cosmetics.face === "visor" && (
+            <mesh position={[0, -0.05, 0.35]}>
+              <boxGeometry args={[0.58, 0.16, 0.04]} />
+              <meshStandardMaterial color="#18dcff" emissive="#18dcff" emissiveIntensity={0.5} transparent opacity={0.75} roughness={0.2} />
+            </mesh>
+          )}
+          {cosmetics.face === "glasses" && (
+            <group position={[0, -0.05, 0.345]}>
+              {[-0.13, 0.13].map((x) => (
+                <mesh key={x} position={[x, 0, 0]}>
+                  <torusGeometry args={[0.085, 0.018, 6, 16]} />
+                  <meshStandardMaterial color="#2b2d42" roughness={0.4} />
+                </mesh>
+              ))}
+              <mesh>
+                <boxGeometry args={[0.08, 0.02, 0.02]} />
+                <meshStandardMaterial color="#2b2d42" />
+              </mesh>
+            </group>
+          )}
+          {cosmetics.face === "headphones" && (
             <group>
               {[-0.37, 0.37].map((x) => (
                 <mesh key={x} position={[x, -0.04, 0]} rotation={[0, 0, Math.PI / 2]}>
@@ -263,18 +384,6 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
                 <meshStandardMaterial color="#2b3a7a" roughness={0.5} />
               </mesh>
             </group>
-          )}
-          {accessory === 2 && (
-            <mesh position={[0, -0.05, 0.345]}>
-              <boxGeometry args={[0.5, 0.12, 0.03]} />
-              <meshStandardMaterial color="#0b0c14" roughness={0.2} metalness={0.4} />
-            </mesh>
-          )}
-          {accessory === 3 && (
-            <mesh position={[0, -0.3, 0.02]}>
-              <boxGeometry args={[0.7, 0.12, 0.66]} />
-              <meshStandardMaterial color={colors.hoodieLight} roughness={0.9} flatShading />
-            </mesh>
           )}
         </group>
 
@@ -292,12 +401,76 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
           </group>
         ))}
 
-        {/* backpack */}
-        {accessory === 0 && (
-          <mesh castShadow position={[0, 0.58, -0.28]}>
-            <boxGeometry args={[0.42, 0.4, 0.18]} />
-            <meshStandardMaterial color="#5b4636" roughness={0.9} flatShading />
-          </mesh>
+        {/* ── back / neck slot ── */}
+        {cosmetics.back === "backpack" && (
+          <group position={[0, 0.58, -0.28]}>
+            <mesh castShadow>
+              <boxGeometry args={[0.42, 0.4, 0.18]} />
+              <meshStandardMaterial color="#5b4636" roughness={0.9} flatShading />
+            </mesh>
+            <mesh position={[0, 0.1, -0.1]}>
+              <boxGeometry args={[0.3, 0.16, 0.04]} />
+              <meshStandardMaterial color="#8a6a52" roughness={0.9} />
+            </mesh>
+          </group>
+        )}
+        {cosmetics.back === "scarf" && (
+          <group>
+            <mesh position={[0, 0.82, 0.04]}>
+              <boxGeometry args={[0.66, 0.14, 0.5]} />
+              <meshStandardMaterial color="#ff4757" roughness={0.95} flatShading />
+            </mesh>
+            <mesh position={[0.12, 0.6, -0.3]} rotation={[0.2, 0, 0.1]}>
+              <boxGeometry args={[0.14, 0.42, 0.05]} />
+              <meshStandardMaterial color="#ff4757" roughness={0.95} />
+            </mesh>
+          </group>
+        )}
+        {cosmetics.back === "cape" && (
+          <group position={[0, 0.82, -0.2]}>
+            <mesh ref={cape} castShadow position={[0, 0, 0]} rotation={[0.25, 0, 0]}>
+              <boxGeometry args={[0.66, 0.05, 0.05]} />
+              <meshStandardMaterial color={colors.hoodieDark} />
+              <mesh position={[0, -0.45, 0]}>
+                <boxGeometry args={[0.7, 0.9, 0.04]} />
+                <meshStandardMaterial color="#ff4757" roughness={0.9} side={THREE.DoubleSide} />
+              </mesh>
+            </mesh>
+          </group>
+        )}
+        {cosmetics.back === "jetpack" && (
+          <group position={[0, 0.55, -0.3]}>
+            {[-0.13, 0.13].map((x) => (
+              <mesh key={x} castShadow position={[x, 0, 0]}>
+                <cylinderGeometry args={[0.1, 0.12, 0.5, 10]} />
+                <meshStandardMaterial color="#c9c9c9" roughness={0.3} metalness={0.7} />
+              </mesh>
+            ))}
+            <group ref={flames} position={[0, -0.28, 0]}>
+              {[-0.13, 0.13].map((x) => (
+                <mesh key={x} position={[x, -0.12, 0]} rotation={[Math.PI, 0, 0]}>
+                  <coneGeometry args={[0.08, 0.28, 8]} />
+                  <meshStandardMaterial color="#ffb020" emissive="#ff5a3c" emissiveIntensity={1.2} />
+                </mesh>
+              ))}
+            </group>
+          </group>
+        )}
+        {cosmetics.back === "wings" && (
+          <group position={[0, 0.72, -0.24]}>
+            {[-1, 1].map((s) => (
+              <group key={s} rotation={[0, s * 0.5, s * 0.35]}>
+                <mesh castShadow position={[s * 0.35, 0.05, 0]}>
+                  <boxGeometry args={[0.6, 0.28, 0.04]} />
+                  <meshStandardMaterial color="#ffffff" roughness={0.8} />
+                </mesh>
+                <mesh position={[s * 0.5, -0.12, 0]}>
+                  <boxGeometry args={[0.4, 0.18, 0.04]} />
+                  <meshStandardMaterial color="#e8f1ff" roughness={0.8} />
+                </mesh>
+              </group>
+            ))}
+          </group>
         )}
       </group>
 

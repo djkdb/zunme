@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { MuteButton } from "@/components/hud/MuteButton";
+import { ShopButton } from "@/components/shop/ShopButton";
 import { GAME_MODES, MAX_PLAYERS, MIN_PLAYERS_TO_START } from "@/game/config";
 import type { GameMode } from "@/types";
 import { sound } from "@/game/audio";
@@ -63,7 +64,10 @@ export function Lobby({ roomCode }: { roomCode: string }) {
         <button className="chip px-4 py-2 text-sm font-extrabold text-white" onClick={() => { sound.play("click"); leave(); router.push("/"); }}>
           ← LEAVE
         </button>
-        <MuteButton />
+        <div className="flex items-center gap-2">
+          <ShopButton compact />
+          <MuteButton />
+        </div>
       </div>
 
       <div className="flex min-h-0 flex-1 overflow-y-auto px-3 pb-3 short:px-2 short:pb-2">

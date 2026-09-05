@@ -5,6 +5,7 @@
  */
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { getSupabase } from "@/lib/supabase";
+import { sanitizeCosmetics } from "@/game/items";
 import type { PlayerPresence } from "@/types";
 
 export type MessageHandler = (payload: unknown) => void;
@@ -81,7 +82,7 @@ export class SupabaseTransport implements Transport {
       const entries = state[key];
       const latest = entries[entries.length - 1];
       if (isPresence(latest)) {
-        players.push({ id: latest.id, nickname: latest.nickname, colorIndex: latest.colorIndex, joinedAt: latest.joinedAt });
+        players.push({ id: latest.id, nickname: latest.nickname, colorIndex: latest.colorIndex, joinedAt: latest.joinedAt, cosmetics: sanitizeCosmetics(latest.cosmetics) });
       }
     }
     this.presenceHandler(players);
@@ -171,7 +172,7 @@ export class WorkerTransport implements Transport {
           return;
         }
         if (msg.t === "presence" && Array.isArray(msg.players)) {
-          this.presenceHandler?.(msg.players.filter(isPresence));
+          this.presenceHandler?.(msg.players.filter(isPresence).map((p) => ({ ...p, cosmetics: sanitizeCosmetics(p.cosmetics) })));
         } else if (msg.t === "bc" && typeof msg.event === "string") {
           this.handlers.get(msg.event)?.forEach((h) => h(msg.payload));
         } else if (msg.t === "full") {
