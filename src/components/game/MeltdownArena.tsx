@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef } from "react";
 import * as THREE from "three";
 import { MELTDOWN_STEP_DELAY, TILE_SIZE } from "@/game/config";
 import { burst } from "@/game/effects";
-import { MELTDOWN_LAYER_COLORS, MELTDOWN_LAYER_Y, MELTDOWN_TILES } from "@/game/meltdown";
+import { MELTDOWN_LAYER_COLORS, MELTDOWN_LAYER_Y, MELTDOWN_TILES, tileInLayer } from "@/game/meltdown";
 import { onGameplayEvent } from "@/game/sync";
 import { useGameStore } from "@/store/gameStore";
 
@@ -14,6 +14,7 @@ const THICKNESS = 0.6;
 const HALF = TILE_SIZE * 0.5 * 0.97;
 const LAYERS = MELTDOWN_LAYER_Y.length;
 const N = MELTDOWN_TILES.length;
+const HIDDEN = new THREE.Matrix4().makeScale(0, 0, 0);
 
 // ── module registry: collider handle → tile, and steps waiting to be processed ──
 const handleToTile = new Map<number, { layer: number; index: number }>();
@@ -37,10 +38,10 @@ type Phase = 0 | 1 | 2; // intact, stepped (about to vanish), gone
 
 /** MELTDOWN — two floors of tiles that vanish once stepped on. */
 export function MeltdownArena() {
-  const meshes = useRef<(THREE.InstancedMesh | null)[]>([null, null]);
-  const colliders = useRef<(RapierCollider | null)[][]>([Array(N).fill(null), Array(N).fill(null)]);
-  const phase = useRef<Phase[][]>([Array(N).fill(0), Array(N).fill(0)]);
-  const at = useRef<number[][]>([Array(N).fill(0), Array(N).fill(0)]);
+  const meshes = useRef<(THREE.InstancedMesh | null)[]>(MELTDOWN_LAYER_Y.map(() => null));
+  const colliders = useRef<(RapierCollider | null)[][]>(MELTDOWN_LAYER_Y.map(() => Array(N).fill(null)));
+  const phase = useRef<Phase[][]>(MELTDOWN_LAYER_Y.map(() => Array(N).fill(0)));
+  const at = useRef<number[][]>(MELTDOWN_LAYER_Y.map(() => Array(N).fill(0)));
   const lastRound = useRef(-1);
 
   const resetAll = useCallback(() => {
@@ -52,8 +53,12 @@ export function MeltdownArena() {
         colliders.current[l][i]?.setEnabled(true);
         if (mesh) {
           const t = MELTDOWN_TILES[i];
-          tmpMatrix.makeTranslation(t.x, MELTDOWN_LAYER_Y[l] - THICKNESS / 2, t.z);
-          mesh.setMatrixAt(i, tmpMatrix);
+          if (tileInLayer(t, l)) {
+            tmpMatrix.makeTranslation(t.x, MELTDOWN_LAYER_Y[l] - THICKNESS / 2, t.z);
+            mesh.setMatrixAt(i, tmpMatrix);
+          } else {
+            mesh.setMatrixAt(i, HIDDEN);
+          }
           mesh.setColorAt(i, baseColor(l, i));
         }
       }
@@ -92,8 +97,12 @@ export function MeltdownArena() {
     if (!m) return;
     for (let i = 0; i < N; i++) {
       const t = MELTDOWN_TILES[i];
-      tmpMatrix.makeTranslation(t.x, MELTDOWN_LAYER_Y[layer] - THICKNESS / 2, t.z);
-      m.setMatrixAt(i, tmpMatrix);
+      if (tileInLayer(t, layer)) {
+        tmpMatrix.makeTranslation(t.x, MELTDOWN_LAYER_Y[layer] - THICKNESS / 2, t.z);
+        m.setMatrixAt(i, tmpMatrix);
+      } else {
+        m.setMatrixAt(i, HIDDEN);
+      }
       m.setColorAt(i, baseColor(layer, i));
     }
     m.instanceMatrix.needsUpdate = true;
@@ -181,7 +190,7 @@ export function MeltdownArena() {
       {MELTDOWN_LAYER_Y.map((y, layer) => (
         <group key={layer}>
           <RigidBody type="fixed" colliders={false} userData={{ type: "ground" }}>
-            {MELTDOWN_TILES.map((t) => (
+            {MELTDOWN_TILES.filter((t) => tileInLayer(t, layer)).map((t) => (
               <CuboidCollider key={t.index} ref={bindCollider(layer, t.index)} args={[HALF, THICKNESS / 2, HALF]} position={[t.x, y - THICKNESS / 2, t.z]} friction={0.9} />
             ))}
           </RigidBody>
@@ -192,12 +201,12 @@ export function MeltdownArena() {
         </group>
       ))}
       {/* central column the floors hang around, purely decorative */}
-      <mesh position={[0, -10, 0]}>
-        <cylinderGeometry args={[1.2, 1.8, 14, 8]} />
+      <mesh position={[0, -12, 0]}>
+        <cylinderGeometry args={[1.2, 2, 22, 8]} />
         <meshStandardMaterial color="#3a3f5c" roughness={0.8} flatShading />
       </mesh>
       {/* lava glow far below */}
-      <mesh position={[0, -18, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[0, -25, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[16, 32]} />
         <meshBasicMaterial color="#ff7a3c" transparent opacity={0.85} />
       </mesh>

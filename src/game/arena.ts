@@ -102,6 +102,27 @@ export function buildTileSchedule(seed: number): TileSchedule {
   return schedule;
 }
 
+/**
+ * Generic cycling schedule for a field of `count` tiles (race crumble
+ * bridge): every tile crumbles periodically, staggered, for the whole round.
+ */
+export function buildCrumbleSchedule(seed: number, count: number, opts: { firstDelay: number; cycleMin: number; cycleMax: number; duration: number }): TileSchedule {
+  const rng = createRng(seed ^ 0x51ed270b);
+  const schedule: TileSchedule = [];
+  for (let i = 0; i < count; i++) {
+    const events: TileEvent[] = [];
+    let t = opts.firstDelay + rng() * opts.cycleMax;
+    while (t < opts.duration) {
+      const collapseAt = t + TILE_WARNING_DURATION;
+      const restoreAt = collapseAt + TILE_COLLAPSE_DURATION * 0.7;
+      events.push({ warnAt: t, collapseAt, restoreAt });
+      t = restoreAt + opts.cycleMin + rng() * (opts.cycleMax - opts.cycleMin);
+    }
+    schedule.push(events);
+  }
+  return schedule;
+}
+
 export function getTileState(events: TileEvent[], elapsed: number, out: TileState): TileState {
   out.phase = "NORMAL";
   out.progress = 0;

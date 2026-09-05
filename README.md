@@ -6,8 +6,8 @@ three Fall Guys-style modes, one 6-letter room code, no accounts:
 | Mode | Goal |
 | --- | --- |
 | 🥊 **DROPZONE** | Sumo island: shove everyone off, dodge the spinner, the sweeper and collapsing tiles. Last one standing wins. |
-| 🏁 **SKY DASH** | Obstacle race over the clouds: spinner alley, stepping stones, sweepers, a narrow bridge. First across the finish line wins; falling respawns you at the last checkpoint. |
-| 🔥 **MELTDOWN** | Two floors of tiles that vanish right after you step on them. Keep moving. Last survivor wins. |
+| 🏁 **SKY DASH** | A 280 m, 12-section obstacle race: spinner alley, stepping stones, a door-dash wall (two of four doors are fake), conveyor belts that push you toward the gaps, pendulum hammers, a crumbling bridge, a jump-pad gap, sweepers with side pistons, a crosswind fan bridge and a triple-spinner finale. Five checkpoints; falling respawns you at the last one. First across the line wins. |
+| 🔥 **MELTDOWN** | Three shrinking floors of tiles that vanish right after you step on them. Keep moving. Last survivor wins. |
 
 Every player is a variation of the ZUN character (navy "ZUN" cap, hoodie in
 the player colour, sneakers, plus headphones / sunglasses / backpack / scarf).
@@ -54,10 +54,11 @@ Object locally, `npm run deploy` ships it. Optional Neon match history via
 
 - DROPZONE: falling eliminates you. 75 s, then **sudden death** — outer
   tiles fall away permanently and obstacles speed up until one remains.
-- SKY DASH: 90 s. Once someone finishes, everyone else has 12 s to cross.
-  Ranking = finish order, then checkpoint progress.
-- MELTDOWN: 60 s. Tiles vanish 0.45 s after being stepped on (synced to all
-  players), floor 2 catches you once, then it's the lava.
+- SKY DASH: 150 s. Once someone finishes, everyone else has 15 s to cross.
+  Ranking = finish order, then checkpoint progress. Fake doors, tile
+  crumbles and obstacle timing are seeded per round, so every client agrees.
+- MELTDOWN: 75 s. Tiles vanish 0.45 s after being stepped on (synced to all
+  players); floors 2 and 3 are smaller, then it's the lava.
 - The result screen shows the winner, survival time, ranking, elimination
   order and a share button (Web Share API with clipboard fallback).
 
@@ -67,8 +68,10 @@ Object locally, `npm run deploy` ships it. Optional Neon match history via
 src/
   app/                  routes (/ and /room/[code])
   components/
-    game/               Three.js scene: Arena, RaceCourse, MeltdownArena,
-                        Obstacles (Spinner/Sweeper), Character (ZUN chibi),
+    game/               Three.js scene: Arena, RaceCourse + RaceObstacles
+                        (doors, belts, hammers, crumble, jump pad, fans,
+                        pistons), MeltdownArena, Obstacles (Spinner/Sweeper),
+                        Character (ZUN chibi),
                         LocalPlayer, RemotePlayer, CameraController,
                         Particles, Environment, EffectsDirector
     hud/                HUD, Countdown, EliminationBanner, ResultScreen,

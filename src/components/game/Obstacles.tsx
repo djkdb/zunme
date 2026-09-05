@@ -148,6 +148,7 @@ export function Obstacles() {
     <>
       <Spinner angleAt={spinnerAngle} />
       <Sweeper z={WALL_Z} xAt={(e) => (e > 0 ? wallPosition(e) : 0)} />
+      <Sweeper z={-WALL_Z} xAt={(e) => (e > 0 ? -wallPosition(e + 1800) : 0)} color="#a55eea" />
     </>
   );
 }

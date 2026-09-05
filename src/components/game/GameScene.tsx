@@ -22,7 +22,18 @@ import type { GameMode } from "@/types";
 
 const RULES: Record<GameMode, PlayerRules> = {
   SUMO: { fallY: FALL_Y, onFall: "eliminate" },
-  RACE: { fallY: RACE_FALL_Y, onFall: "respawn", respawnAt: () => raceRuntime.respawn },
+  RACE: {
+    fallY: RACE_FALL_Y,
+    onFall: "respawn",
+    respawnAt: () => raceRuntime.respawn,
+    surfaceVelocity: (handle) => raceRuntime.surfaces.get(handle),
+    wind: () => [raceRuntime.windX, raceRuntime.windZ],
+    consumeLaunch: () => {
+      const v = raceRuntime.launch;
+      raceRuntime.launch = 0;
+      return v;
+    },
+  },
   MELTDOWN: { fallY: MELTDOWN_FALL_Y, onFall: "eliminate", onGround: meltdownStep },
 };
 

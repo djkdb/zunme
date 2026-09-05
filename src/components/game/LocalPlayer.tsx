@@ -43,6 +43,12 @@ export interface PlayerRules {
   respawnAt?: () => [number, number, number];
   /** called every physics step with the collider the player stands on */
   onGround?: (colliderHandle: number) => void;
+  /** surface velocity of the collider stood on (conveyor belts) */
+  surfaceVelocity?: (colliderHandle: number) => [number, number] | undefined;
+  /** horizontal velocity offset applied while in a wind zone */
+  wind?: () => [number, number];
+  /** returns a queued vertical launch velocity once, 0 otherwise */
+  consumeLaunch?: () => number;
 }
 
 interface Props {
@@ -125,6 +131,8 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, v
     const wasGrounded = grounded.current;
     grounded.current = hit !== null && v.y <= 0.5;
     if (hit && grounded.current) rulesRef.current.onGround?.(hit.collider.handle);
+    const surface = hit && grounded.current ? rulesRef.current.surfaceVelocity?.(hit.collider.handle) : undefined;
+    const wind = rulesRef.current.wind?.();
     if (grounded.current && !wasGrounded && localPose.velocity.y < -4) {
       anim.landedAt = performance.now();
       burst({ position: { x: t.x, y: t.y - PLAYER_HEIGHT / 2, z: t.z }, color: "#ffffff", count: 6, speed: 2, life: 0.4, size: 0.12 });
@@ -140,13 +148,14 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, v
       mz /= len;
     }
     const control = grounded.current ? 1 : PLAYER_AIR_CONTROL;
-    const targetX = mx * PLAYER_SPEED;
-    const targetZ = mz * PLAYER_SPEED;
+    const targetX = mx * PLAYER_SPEED + (surface?.[0] ?? 0) + (wind?.[0] ?? 0);
+    const targetZ = mz * PLAYER_SPEED + (surface?.[1] ?? 0) + (wind?.[1] ?? 0);
+    const carried = Boolean(surface) || Boolean(wind && (wind[0] !== 0 || wind[1] !== 0));
     const maxDelta = PLAYER_ACCEL * control * dt;
     let vx = v.x + THREE.MathUtils.clamp(targetX - v.x, -maxDelta, maxDelta);
     let vz = v.z + THREE.MathUtils.clamp(targetZ - v.z, -maxDelta, maxDelta);
     // Extra ground friction when idle so shoves settle quickly.
-    if (grounded.current && len < 0.05) {
+    if (grounded.current && len < 0.05 && !carried) {
       vx *= 0.88;
       vz *= 0.88;
     }
@@ -158,6 +167,13 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, v
       anim.landedAt = 0;
       sound.play("jump", { volume: 0.6 });
       burst({ position: { x: t.x, y: t.y - PLAYER_HEIGHT / 2, z: t.z }, color: "#ffffff", count: 5, speed: 1.6, life: 0.35, size: 0.1 });
+    }
+    const launch = active ? (rulesRef.current.consumeLaunch?.() ?? 0) : 0;
+    if (launch > 0) {
+      vy = launch;
+      grounded.current = false;
+      sound.play("jump", { volume: 0.9 });
+      burst({ position: { x: t.x, y: t.y - PLAYER_HEIGHT / 2, z: t.z }, color: ["#ffd32a", "#ffffff"], count: 14, speed: 3, life: 0.5, size: 0.14 });
     }
     rb.setLinvel({ x: vx, y: vy, z: vz }, true);
 

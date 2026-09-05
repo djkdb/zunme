@@ -4,10 +4,18 @@ import { CuboidCollider, RigidBody, type IntersectionEnterPayload } from "@react
 import { useMemo } from "react";
 import * as THREE from "three";
 import { Spinner, Sweeper } from "@/components/game/Obstacles";
+import { Conveyor, CrumbleBridge, DoorWall, FanZone, JumpPad, Pendulum, Piston } from "@/components/game/RaceObstacles";
 import { burst, shake } from "@/game/effects";
 import {
+  CRUMBLE_ORIGIN,
+  DOOR_WALL_Z,
+  JUMP_PAD,
   RACE_CHECKPOINTS,
+  RACE_CONVEYORS,
+  RACE_FANS,
   RACE_FINISH_Z,
+  RACE_PENDULUMS,
+  RACE_PISTONS,
   RACE_PLATFORMS,
   RACE_SPINNERS,
   RACE_SWEEPERS,
@@ -80,6 +88,10 @@ function CheckpointArch({ z, halfWidth, index }: { z: number; halfWidth: number;
         <boxGeometry args={[halfWidth * 2 + 1.1, 0.35, 0.5]} />
         <meshStandardMaterial color="#ffd32a" roughness={0.5} />
       </mesh>
+      <mesh position={[0, 4.55, 0]}>
+        <boxGeometry args={[1.6, 0.55, 0.3]} />
+        <meshStandardMaterial color="#12142b" roughness={0.5} />
+      </mesh>
     </group>
   );
 }
@@ -111,7 +123,6 @@ function FinishGate() {
         <boxGeometry args={[TRACK_WIDTH + 1.5, 1.6, 0.3]} />
         <meshStandardMaterial map={texture} roughness={0.6} />
       </mesh>
-      {/* chequered strip on the floor */}
       <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[TRACK_WIDTH, 1.2]} />
         <meshStandardMaterial map={texture} roughness={0.8} />
@@ -120,7 +131,7 @@ function FinishGate() {
   );
 }
 
-/** SKY DASH — a linear obstacle course over the clouds. */
+/** SKY DASH — a long obstacle course over the clouds. */
 export function RaceCourse() {
   return (
     <group>
@@ -132,7 +143,6 @@ export function RaceCourse() {
               <boxGeometry args={[p.w, PLATFORM_THICKNESS, p.d]} />
               <meshStandardMaterial color={p.color ?? "#f4f1ea"} roughness={0.85} />
             </mesh>
-            {/* rock underside */}
             <mesh position={[p.x, -PLATFORM_THICKNESS - 0.9, p.z]}>
               <boxGeometry args={[p.w * 0.8, 1.8, p.d * 0.8]} />
               <meshStandardMaterial color="#8a6a52" roughness={1} flatShading />
@@ -141,7 +151,7 @@ export function RaceCourse() {
         ))}
       </RigidBody>
 
-      {/* lane markings */}
+      {/* start line */}
       <mesh position={[0, 0.02, 2]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[TRACK_WIDTH, 0.6]} />
         <meshBasicMaterial color="#ff5a3c" />
@@ -150,8 +160,23 @@ export function RaceCourse() {
       {RACE_SPINNERS.map((def, i) => (
         <Spinner key={i} position={[def.x, 0, def.z]} length={def.length} angleAt={(e) => spinnerAngleAt(def, e)} color={i % 2 ? "#a55eea" : "#ff5a3c"} />
       ))}
+      <DoorWall z={DOOR_WALL_Z} width={12} />
+      {RACE_CONVEYORS.map((def, i) => (
+        <Conveyor key={i} def={def} />
+      ))}
+      {RACE_PENDULUMS.map((def, i) => (
+        <Pendulum key={i} def={def} />
+      ))}
+      <CrumbleBridge x={CRUMBLE_ORIGIN.x} z={CRUMBLE_ORIGIN.z} cols={CRUMBLE_ORIGIN.cols} rows={CRUMBLE_ORIGIN.rows} />
+      <JumpPad x={JUMP_PAD.x} z={JUMP_PAD.z} />
       {RACE_SWEEPERS.map((def, i) => (
         <Sweeper key={i} z={def.z} length={def.length} rotated xAt={(e) => (e > 0 ? sweeperXAt(def, e) : def.x)} color={i % 2 ? "#18dcff" : "#3d8bff"} />
+      ))}
+      {RACE_PISTONS.map((def, i) => (
+        <Piston key={i} def={def} trackHalf={5.5} />
+      ))}
+      {RACE_FANS.map((def, i) => (
+        <FanZone key={i} def={def} trackHalf={2.25} />
       ))}
       {RACE_CHECKPOINTS.map((cp) => (
         <CheckpointArch key={cp.index} z={cp.z} halfWidth={cp.halfWidth} index={cp.index} />
