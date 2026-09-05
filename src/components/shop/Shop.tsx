@@ -45,7 +45,7 @@ export function Shop({ onClose }: { onClose: () => void }) {
 
   return createPortal(
     <div className="pointer-events-auto fixed inset-0 z-[60] flex items-center justify-center bg-[#12142b]/70 p-3 backdrop-blur-sm safe-pad" onClick={onClose}>
-      <div className="panel anim-pop flex max-h-full w-full max-w-3xl flex-col overflow-hidden p-4 sm:p-5" onClick={(e) => e.stopPropagation()}>
+      <div className="panel anim-rise flex max-h-full w-full max-w-3xl flex-col overflow-hidden p-4 sm:p-5" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between gap-3">
           <div>
             <div className="display text-2xl text-white sm:text-3xl">ZUN SHOP</div>
