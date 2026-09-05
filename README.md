@@ -1,9 +1,16 @@
 # DROPZONE — Last One Standing
 
-A mobile-first 3D multiplayer browser game. Up to 8 friends drop onto a
-floating island, shove each other around, dodge a spinning bar, a sweeping
-wall and collapsing tiles — the last one standing wins. Share a 6-letter
-room code and play instantly, no accounts.
+A mobile-first 3D multiplayer party game in the browser. Up to 8 friends,
+three Fall Guys-style modes, one 6-letter room code, no accounts:
+
+| Mode | Goal |
+| --- | --- |
+| 🥊 **DROPZONE** | Sumo island: shove everyone off, dodge the spinner, the sweeper and collapsing tiles. Last one standing wins. |
+| 🏁 **SKY DASH** | Obstacle race over the clouds: spinner alley, stepping stones, sweepers, a narrow bridge. First across the finish line wins; falling respawns you at the last checkpoint. |
+| 🔥 **MELTDOWN** | Two floors of tiles that vanish right after you step on them. Keep moving. Last survivor wins. |
+
+Every player is a variation of the ZUN character (navy "ZUN" cap, hoodie in
+the player colour, sneakers, plus headphones / sunglasses / backpack / scarf).
 
 Built with **Next.js 16 · TypeScript · React Three Fiber · Drei · Rapier ·
 Cloudflare Durable Objects (realtime) · Tailwind CSS · Zustand**. Supabase
@@ -43,11 +50,14 @@ Object locally, `npm run deploy` ships it. Optional Neon match history via
 
 ## How a round works
 
-`LOBBY → 3 · 2 · 1 · GO! → PLAYING → (eliminations) → FINISHED`
+`LOBBY (host picks a mode) → 3 · 2 · 1 · GO! → PLAYING → FINISHED`
 
-- Falling below the island eliminates you. Last survivor wins.
-- 75 s main round, then **sudden death**: the outer tiles fall away
-  permanently and obstacles speed up until one player remains.
+- DROPZONE: falling eliminates you. 75 s, then **sudden death** — outer
+  tiles fall away permanently and obstacles speed up until one remains.
+- SKY DASH: 90 s. Once someone finishes, everyone else has 12 s to cross.
+  Ranking = finish order, then checkpoint progress.
+- MELTDOWN: 60 s. Tiles vanish 0.45 s after being stepped on (synced to all
+  players), floor 2 catches you once, then it's the lava.
 - The result screen shows the winner, survival time, ranking, elimination
   order and a share button (Web Share API with clipboard fallback).
 
@@ -57,16 +67,20 @@ Object locally, `npm run deploy` ships it. Optional Neon match history via
 src/
   app/                  routes (/ and /room/[code])
   components/
-    game/               Three.js scene: Arena, Obstacles, Character,
+    game/               Three.js scene: Arena, RaceCourse, MeltdownArena,
+                        Obstacles (Spinner/Sweeper), Character (ZUN chibi),
                         LocalPlayer, RemotePlayer, CameraController,
                         Particles, Environment, EffectsDirector
     hud/                HUD, Countdown, EliminationBanner, ResultScreen,
                         MobileControls, LandscapeHint
     lobby/ menu/        Lobby, RoomView, MainMenu
   game/
-    config.ts           every tunable constant (speeds, timers, radii…)
+    config.ts           every tunable constant + GAME_MODES metadata
     authority.ts        GameAuthority — the rules engine (pure, no React/3D)
-    arena.ts            tile layout + seeded obstacle/collapse schedules
+    arena.ts            sumo island layout + seeded collapse schedules
+    race.ts             SKY DASH course data (platforms, obstacles, checkpoints)
+    meltdown.ts         MELTDOWN floor layout
+    sync.ts             peer gameplay events (tile vanish) + race runtime
     input.ts            keyboard + joystick → single input state
     effects.ts          shake / particle / slow-motion event bus
     audio.ts            sound manager (files with synth fallback)
