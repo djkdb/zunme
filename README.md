@@ -6,7 +6,8 @@ wall and collapsing tiles — the last one standing wins. Share a 6-letter
 room code and play instantly, no accounts.
 
 Built with **Next.js 16 · TypeScript · React Three Fiber · Drei · Rapier ·
-Supabase Realtime · Tailwind CSS · Zustand**.
+Cloudflare Durable Objects (realtime) · Tailwind CSS · Zustand**. Supabase
+Realtime and Neon (match history) are optional plug-ins.
 
 ## Quick start
 
@@ -21,16 +22,17 @@ npm run build   # production build
 npm run lint    # eslint
 ```
 
-Without Supabase keys the game runs in **local mode**: other tabs on the
-same device can join a room (handy for testing), otherwise it is solo
-practice. With keys set, rooms are shared through Supabase Realtime
-(Presence + Broadcast) — no database tables required. See
-[`supabase/README.md`](supabase/README.md).
+`npm run dev` runs in **local mode**: other tabs on the same device can join
+a room (handy for testing), otherwise it is solo practice. Production builds
+talk to the bundled Cloudflare Durable Object over WebSocket (`/ws`), so the
+deployed game is multiplayer out of the box. Supabase Realtime can be used
+instead by setting its env vars (see [`supabase/README.md`](supabase/README.md)).
 
 ## Deploy
 
-See [`DEPLOY.md`](DEPLOY.md) for the Supabase + Cloudflare Workers setup
-(`npm run preview` to test the Worker locally, `npm run deploy` to ship).
+See [`DEPLOY.md`](DEPLOY.md): `npm run preview` runs the Worker + Durable
+Object locally, `npm run deploy` ships it. Optional Neon match history via
+`neon/schema.sql` + a `DATABASE_URL` secret.
 
 ## Controls
 
@@ -70,11 +72,16 @@ src/
     audio.ts            sound manager (files with synth fallback)
     remote.ts           snapshot buffers + interpolation for remote players
   lib/
+    realtime.ts         backend selection (Supabase → Worker WebSocket → local)
     supabase.ts         client factory (env-based)
-    transport.ts        Transport interface: SupabaseTransport / LocalTransport
+    transport.ts        Transport interface: Supabase / Worker WebSocket / Local
     multiplayer.ts      RoomClient: presence, host election, state mirror
     room.ts             room codes, nicknames, colours
   store/gameStore.ts    Zustand store for slowly-changing game/UI state
+worker/
+  index.ts              Cloudflare Worker entry: /ws → RoomObject, else Next.js
+  room-object.ts        Durable Object: presence + broadcast relay per room (+ Neon)
+neon/schema.sql         optional match-history table
 ```
 
 ### Networking model

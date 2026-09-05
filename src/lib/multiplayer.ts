@@ -9,12 +9,23 @@
  *  - If the host disappears, the next player in join order takes over the
  *    last known state automatically.
  */
+
+function createTransport(): Transport {
+  switch (getRealtimeBackend()) {
+    case "supabase":
+      return new SupabaseTransport();
+    case "worker":
+      return new WorkerTransport(getRealtimeUrl() as string);
+    default:
+      return new LocalTransport();
+  }
+}
 import { GameAuthority, createInitialState } from "@/game/authority";
 import { NET_STATE_HEARTBEAT, NET_TICK_RATE } from "@/game/config";
 import { clearSnapshots, pushSnapshot } from "@/game/remote";
 import { electHost, sortPlayers } from "@/lib/room";
-import { LocalTransport, SupabaseTransport, type Transport } from "@/lib/transport";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import { getRealtimeBackend, getRealtimeUrl } from "@/lib/realtime";
+import { LocalTransport, SupabaseTransport, WorkerTransport, type Transport } from "@/lib/transport";
 import type { ClientEvent, GameState, PlayerPresence, PlayerSnapshot } from "@/types";
 
 interface StateMessage {
@@ -51,7 +62,7 @@ export class RoomClient {
     this.localId = presence.id;
     this.presence = presence;
     this.callbacks = callbacks;
-    this.transport = isSupabaseConfigured() ? new SupabaseTransport() : new LocalTransport();
+    this.transport = createTransport();
     this.state = createInitialState(presence.id);
   }
 

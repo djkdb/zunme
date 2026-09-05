@@ -1,104 +1,117 @@
-# Deploying DROPZONE — Supabase + Cloudflare
+# Deploying DROPZONE — Cloudflare Workers (+ optional Neon)
 
-DROPZONE needs two things in production:
+DROPZONE ships with its own realtime server: a **Cloudflare Durable Object**
+(`worker/room-object.ts`) that handles presence and message relay for each
+room. It deploys together with the Next.js app in one Worker, so the whole
+game runs on Cloudflare's free plan with **no Supabase required**.
 
-1. **Supabase** for the realtime room channels (Presence + Broadcast).
-2. **Cloudflare Workers** to host the Next.js app (via the OpenNext adapter).
+**Neon** (serverless Postgres) is optional: when you give the Worker a
+`DATABASE_URL`, every finished round is recorded in a `results` table
+(winner, ranking, survival time) for a future leaderboard. Neon is a
+database, not a realtime channel — it does not replace the Durable Object.
 
-Total cost on free tiers: $0 for a friends-scale game.
+| Piece | Service | Cost |
+| --- | --- | --- |
+| Next.js app + static assets | Cloudflare Workers (OpenNext) | free |
+| Realtime rooms (`/ws`) | Cloudflare Durable Objects (SQLite-backed) | free plan OK |
+| Match history (optional) | Neon Postgres | free tier |
+| Alternative realtime | Supabase Realtime | only if you set its env vars |
 
----
+### Free-tier budget (Cloudflare Workers Free plan)
 
-## 1. Supabase (realtime backend)
-
-1. Go to <https://supabase.com/dashboard> → **New project**. Pick a region
-   close to your players (e.g. `ap-northeast-2` Seoul).
-2. When it is ready open **Project Settings → API** and copy:
-   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
-   - **Publishable key** (`sb_publishable_…`) or the legacy **anon** key →
-     `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-3. Nothing else is required: no tables, no auth, no RLS. Rooms live only in
-   realtime channels named `room:<CODE>`.
-4. Optional, under **Project Settings → Realtime**: the default quota is
-   100 messages/s. DROPZONE sends ~10 msg/s per player, so 8 players fit.
-   Raise it if you increase `NET_TICK_RATE` in `src/game/config.ts`.
-
-Test locally first:
-
-```bash
-cp .env.example .env.local     # paste the two values
-npm run dev                    # open two browsers → same room code
-```
-
-> These are **public** keys by design (they only allow what the anon role
-> can do, which here is joining realtime channels). Never put the
-> `service_role` key in the client.
+- Workers: 100,000 requests/day — page loads and assets.
+- Durable Objects: included on the Free plan (SQLite-backed). Incoming
+  WebSocket messages via the Hibernation API are billed at 1/20 of a
+  request, so the 100,000/day allowance covers ~2 million game messages —
+  roughly 300 full 8-player rounds per day at the default 10 Hz tick.
+- Nothing else is needed: no database, no card on file.
 
 ---
 
-## 2. Cloudflare Workers (hosting)
+## 1. Deploy to Cloudflare
 
-The repo is already configured:
-
-| File | Purpose |
-| --- | --- |
-| `wrangler.jsonc` | Worker name, `nodejs_compat`, static assets binding |
-| `open-next.config.ts` | OpenNext Cloudflare adapter config |
-| `package.json` → `preview` / `deploy` scripts | build + run locally / build + deploy |
-
-### Option A — deploy from your machine
+### Option A — from your machine
 
 ```bash
-npx wrangler login                  # one-time, opens the browser
-# NEXT_PUBLIC_* vars are inlined at BUILD time, so export them first:
-export NEXT_PUBLIC_SUPABASE_URL=https://xxxx.supabase.co
-export NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_xxxx
-npm run preview                     # test on http://localhost:8787
-npm run deploy                      # → https://dropzone.<your-subdomain>.workers.dev
+npx wrangler login          # one-time, opens the browser
+npm run preview             # builds + runs the Worker (with the Durable Object) at http://localhost:8787
+npm run deploy              # → https://dropzone.<your-subdomain>.workers.dev
 ```
 
-On Windows PowerShell use `$env:NEXT_PUBLIC_SUPABASE_URL="..."` instead of
-`export`. Alternatively put the two lines in `.env.production.local` (git-
-ignored) and just run `npm run deploy`.
+That's it. Production builds default `NEXT_PUBLIC_REALTIME_URL` to `/ws`
+(same origin), so the client talks to the Durable Object automatically.
 
 ### Option B — Git-connected (auto-deploy on push)
 
-1. Cloudflare dashboard → **Workers & Pages → Create → Workers → Import a
-   repository** → pick this repo and branch.
+1. Cloudflare dashboard → **Workers & Pages → Create → Workers →
+   Import a repository** → pick this repo/branch.
 2. Build settings:
    - **Build command**: `npx opennextjs-cloudflare build`
    - **Deploy command**: `npx opennextjs-cloudflare deploy`
-3. **Variables and Secrets** (build *and* runtime): add
-   `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
-   They must be present at build time because Next.js inlines
-   `NEXT_PUBLIC_*` into the client bundle.
-4. Save → every push to the branch redeploys.
+3. No environment variables are required for the default setup.
+4. Save → every push redeploys.
+
+The first deploy applies the Durable Object migration in `wrangler.jsonc`
+(`new_sqlite_classes: ["RoomObject"]`). SQLite-backed Durable Objects are
+available on the free plan.
 
 ### Custom domain
 
-Worker → **Settings → Domains & Routes → Add custom domain**. Cloudflare
-provisions the certificate automatically. Then share
-`https://your-domain.com/room/ABC123`-style links.
-
-### Notes
-
-- The Worker only renders the `/room/[code]` redirect logic on the server;
-  the game itself is 100% client-side, so Worker CPU usage is negligible.
-- `nodejs_compat` is required by the adapter. `global_fetch_strictly_public`
-  is a recommended security flag.
-- To enable the Next.js ISR cache later, uncomment the `r2_buckets` block in
-  `wrangler.jsonc` and create the bucket with `npx wrangler r2 bucket create
-  dropzone-cache`. Not needed for DROPZONE.
-- Supabase's realtime endpoint is `wss://…supabase.co/realtime/v1`; no
-  Cloudflare configuration is needed for it because the browser connects
-  to Supabase directly, not through the Worker.
+Worker → **Settings → Domains & Routes → Add custom domain**. Share links
+like `https://your-domain.com/room/ABC123`.
 
 ---
 
-## 3. Checklist before sharing the link
+## 2. Optional: Neon match history
 
-- [ ] Open the deployed URL on a phone and a laptop, create a room on one,
-      join by code on the other — both should show **2 / 8** in the lobby.
-- [ ] Start a round; make sure the other player's character moves.
-- [ ] Check the Supabase dashboard → **Realtime → Inspector** if a join
-      fails (usually a wrong key or paused project).
+1. <https://console.neon.tech> → **New project** (any region).
+2. In the SQL editor run the contents of [`neon/schema.sql`](neon/schema.sql).
+3. Copy the **connection string** (Pooled or direct both work; it must end
+   with `?sslmode=require`).
+4. Give it to the Worker as a **secret** (never as a `NEXT_PUBLIC_` var):
+
+   ```bash
+   npx wrangler secret put DATABASE_URL
+   # paste: postgresql://user:pass@ep-xxx.region.aws.neon.tech/neondb?sslmode=require
+   ```
+
+   For Git-connected deploys add it under **Settings → Variables and
+   Secrets** (type *Secret*) instead.
+5. Redeploy. From now on each finished round inserts one row:
+
+   ```sql
+   select played_at, room_code, players, winner_name, survived_ms from results order by played_at desc limit 20;
+   ```
+
+Local preview: create `.dev.vars` (git-ignored) with
+`DATABASE_URL=...` and run `npm run preview`.
+
+---
+
+## 3. Realtime backend selection (reference)
+
+The client picks a transport in this order (`src/lib/realtime.ts`):
+
+1. **Supabase Realtime** — if `NEXT_PUBLIC_SUPABASE_URL` and
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY` are set at build time.
+2. **Worker WebSocket** — `NEXT_PUBLIC_REALTIME_URL` (default `/ws` in
+   production builds; set `off` to disable, or an absolute `wss://…` URL to
+   point a separately hosted frontend at the Worker).
+3. **Local mode** — BroadcastChannel between tabs on the same device
+   (what `npm run dev` uses when nothing is configured).
+
+`NEXT_PUBLIC_*` values are inlined at **build** time, so they must exist in
+the build environment (Cloudflare build variables, or your shell when
+running `npm run deploy`).
+
+---
+
+## 4. Checklist before sharing the link
+
+- [ ] Open the deployed URL on a phone and a laptop; create a room on one,
+      join by code on the other — both should show **2 / 8**.
+- [ ] Start a round and confirm the other character moves.
+- [ ] If joining fails: Worker → **Logs** (Observability is enabled in
+      `wrangler.jsonc`) shows Durable Object errors; a `400` on `/ws` means
+      a malformed room code.
+- [ ] (Neon) `select count(*) from results;` increases after a finished round.

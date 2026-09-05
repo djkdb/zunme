@@ -1,14 +1,19 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "dropzone",
-  "main": ".open-next/worker.js",
+  // Custom entry: /ws → RoomObject (Durable Object), everything else → Next.js (OpenNext build).
+  "main": "worker/index.ts",
   "compatibility_date": "2025-09-01",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
+  "durable_objects": {
+    "bindings": [{ "name": "ROOMS", "class_name": "RoomObject" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["RoomObject"] }],
   "observability": { "enabled": true }
-  // Optional: uncomment to enable the Next.js ISR/data cache on R2.
-  // "r2_buckets": [{ "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "dropzone-cache" }]
+  // Secrets (set with `npx wrangler secret put <NAME>`):
+  //   DATABASE_URL — optional Neon connection string for recording results.
 }

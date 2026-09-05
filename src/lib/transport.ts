@@ -117,6 +117,125 @@ export class SupabaseTransport implements Transport {
 }
 
 /**
+ * WebSocket transport to the RoomObject Durable Object shipped in `worker/`
+ * (or any server speaking the same tiny protocol). Reconnects with backoff
+ * and re-joins with the last presence.
+ */
+export class WorkerTransport implements Transport {
+  readonly offline = false;
+  private ws: WebSocket | null = null;
+  private url: string;
+  private roomCode = "";
+  private presence: PlayerPresence | null = null;
+  private handlers = new Map<string, Set<MessageHandler>>();
+  private presenceHandler: ((players: PlayerPresence[]) => void) | null = null;
+  private closedByUs = false;
+  private attempts = 0;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor(url: string) {
+    this.url = url;
+  }
+
+  connect(roomCode: string, presence: PlayerPresence): Promise<void> {
+    this.roomCode = roomCode;
+    this.presence = presence;
+    this.closedByUs = false;
+    return this.open(true);
+  }
+
+  private open(initial: boolean): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const ws = new WebSocket(`${this.url}?room=${encodeURIComponent(this.roomCode)}`);
+      this.ws = ws;
+      let settled = false;
+      const settle = (err?: Error) => {
+        if (settled) return;
+        settled = true;
+        if (err) reject(err);
+        else resolve();
+      };
+      const timer = setTimeout(() => settle(new Error("Connection timed out")), 10000);
+
+      ws.onopen = () => {
+        this.attempts = 0;
+        if (this.presence) ws.send(JSON.stringify({ t: "join", presence: this.presence }));
+        clearTimeout(timer);
+        settle();
+      };
+      ws.onmessage = (ev: MessageEvent<string>) => {
+        let msg: { t: string; players?: unknown; event?: string; payload?: unknown };
+        try {
+          msg = JSON.parse(ev.data);
+        } catch {
+          return;
+        }
+        if (msg.t === "presence" && Array.isArray(msg.players)) {
+          this.presenceHandler?.(msg.players.filter(isPresence));
+        } else if (msg.t === "bc" && typeof msg.event === "string") {
+          this.handlers.get(msg.event)?.forEach((h) => h(msg.payload));
+        } else if (msg.t === "full") {
+          this.closedByUs = true;
+          clearTimeout(timer);
+          settle(new Error("Room is full (8 / 8)"));
+        }
+      };
+      ws.onerror = () => {
+        clearTimeout(timer);
+        if (initial) settle(new Error("Could not reach the game server"));
+      };
+      ws.onclose = () => {
+        clearTimeout(timer);
+        if (this.ws === ws) this.ws = null;
+        if (this.closedByUs) return;
+        if (!settled) settle(new Error("Connection closed"));
+        this.scheduleReconnect();
+      };
+    });
+  }
+
+  private scheduleReconnect() {
+    if (this.reconnectTimer || this.closedByUs || this.attempts >= 6) return;
+    const delay = Math.min(8000, 500 * 2 ** this.attempts++);
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.open(false).catch(() => this.scheduleReconnect());
+    }, delay);
+  }
+
+  disconnect() {
+    this.closedByUs = true;
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
+    this.ws?.close(1000, "leave");
+    this.ws = null;
+    this.presenceHandler?.([]);
+  }
+
+  updatePresence(presence: PlayerPresence) {
+    this.presence = presence;
+    this.raw({ t: "presence", presence });
+  }
+
+  onPresence(handler: (players: PlayerPresence[]) => void) {
+    this.presenceHandler = handler;
+  }
+
+  on(event: string, handler: MessageHandler) {
+    if (!this.handlers.has(event)) this.handlers.set(event, new Set());
+    this.handlers.get(event)!.add(handler);
+  }
+
+  send(event: string, payload: unknown) {
+    this.raw({ t: "bc", event, payload });
+  }
+
+  private raw(msg: unknown) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(msg));
+  }
+}
+
+/**
  * Offline transport used when Supabase is not configured. Peers on the same
  * device (other tabs/windows) talk over a BroadcastChannel, so the whole
  * multiplayer path can be exercised locally; with a single tab it is simply
