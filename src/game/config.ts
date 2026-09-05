@@ -45,6 +45,14 @@ export const GAME_MODES = {
     duration: 75_000,
     suddenDeath: 0,
   },
+  GOGUN: {
+    name: "GOGUN RUN",
+    tagline: "ROOFTOP WIRE ACTION",
+    description: "Auto-run over the rooftops. Tap to jump, tap in the air to hook a wire and swing. Grab coins, don't fall.",
+    icon: "🐱",
+    duration: 120_000,
+    suddenDeath: 0,
+  },
 } as const;
 export const DEFAULT_MODE = "SUMO" as const;
 /** RACE: once someone finishes, everyone else has this long to cross the line. */

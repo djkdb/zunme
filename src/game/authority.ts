@@ -42,6 +42,10 @@ export function isEliminationMode(mode: GameMode): boolean {
   return mode !== "RACE";
 }
 
+export function hasFinishLine(mode: GameMode): boolean {
+  return mode === "RACE" || mode === "GOGUN";
+}
+
 export class GameAuthority {
   state: GameState;
   private changed = false;
@@ -125,7 +129,7 @@ export class GameAuthority {
 
   private finishLine(playerId: string, now: number) {
     const s = this.state;
-    if (s.status !== "PLAYING" || s.mode !== "RACE") return;
+    if (s.status !== "PLAYING" || !hasFinishLine(s.mode)) return;
     if (!s.alive.includes(playerId) || s.finishOrder.includes(playerId)) return;
     const finishOrder = [...s.finishOrder, playerId];
     const patch: Partial<GameState> = { finishOrder, progress: { ...s.progress, [playerId]: 999 } };
@@ -140,6 +144,12 @@ export class GameAuthority {
     const total = s.participants.length;
     if (s.mode === "RACE") {
       if (s.finishOrder.length > 0 && s.finishOrder.length >= s.alive.length) this.finish(s.finishOrder[0], now);
+      return;
+    }
+    if (s.mode === "GOGUN") {
+      // Over when everyone has either finished or fallen.
+      const running = s.alive.filter((id) => !s.finishOrder.includes(id));
+      if (running.length === 0) this.finish(s.finishOrder[0] ?? null, now);
       return;
     }
     if (total >= 2 && s.alive.length <= 1) {
@@ -168,7 +178,7 @@ export class GameAuthority {
     }
     if (this.state.status === "PLAYING" && now >= roundEndAt(this.state)) {
       const st = this.state;
-      if (st.mode === "RACE") this.finish(st.finishOrder[0] ?? null, now);
+      if (hasFinishLine(st.mode)) this.finish(st.finishOrder[0] ?? null, now);
       else this.finish(st.alive.length === 1 ? st.alive[0] : null, now);
     }
     if (this.state.status === "LOBBY" && this.state.participants.length > 0) {
@@ -191,7 +201,7 @@ export class GameAuthority {
 /** Ranking best → worst for the result screen. */
 export function computeRanking(state: GameState): string[] {
   const ranking: string[] = [];
-  if (state.mode === "RACE") {
+  if (hasFinishLine(state.mode)) {
     for (const id of state.finishOrder) ranking.push(id);
     const rest = state.participants
       .filter((id) => !ranking.includes(id))

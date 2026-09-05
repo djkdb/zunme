@@ -62,6 +62,7 @@ export function CameraController({ menu = false }: { menu?: boolean }) {
 
     const gameMode = state.mode;
     const race = gameMode === "RACE";
+    const run = gameMode === "GOGUN";
     let mode: Mode = "lobby";
     if (menu) mode = "lobby";
     else if (focus.current.until > now && focus.current.playerId) mode = "focus";
@@ -80,20 +81,20 @@ export function CameraController({ menu = false }: { menu?: boolean }) {
         if (id === localId || !state.alive.includes(id)) return;
         far = Math.max(far, Math.hypot(pos.x - p.x, pos.z - p.z));
       });
-      const targetZoom = race ? 1 : THREE.MathUtils.clamp(0.95 + far / 26, CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX);
+      const targetZoom = race || run ? 1 : THREE.MathUtils.clamp(0.95 + far / 26, CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX);
       zoom.current += (targetZoom - zoom.current) * step * 0.6;
-      const offY = race ? 8 : CAMERA_OFFSET.y;
-      const offZ = race ? 11 : CAMERA_OFFSET.z;
-      const ahead = race ? CAMERA_LOOK_AHEAD * 2.2 : CAMERA_LOOK_AHEAD;
+      const offY = run ? 5.5 : race ? 8 : CAMERA_OFFSET.y;
+      const offZ = run ? 10 : race ? 11 : CAMERA_OFFSET.z;
+      const ahead = race || run ? CAMERA_LOOK_AHEAD * 2.2 : CAMERA_LOOK_AHEAD;
       desired.current.set(
-        target.current.x * (race ? 0.6 : 1) + CAMERA_OFFSET.x * zoom.current,
+        target.current.x * (race || run ? 0.6 : 1) + CAMERA_OFFSET.x * zoom.current,
         Math.max(target.current.y, -1) + offY * zoom.current,
         target.current.z + offZ * zoom.current,
       );
       lookAt.current.set(
         target.current.x + localPose.velocity.x * 0.08 * ahead,
         target.current.y + 1.0,
-        target.current.z + localPose.velocity.z * 0.08 * ahead - (race ? 2.5 : 0),
+        target.current.z + localPose.velocity.z * 0.08 * ahead - (race ? 2.5 : run ? 4 : 0),
       );
     } else if (mode === "focus") {
       const p = focus.current.playerId ? livePoses.get(focus.current.playerId) : null;
@@ -132,8 +133,8 @@ export function CameraController({ menu = false }: { menu?: boolean }) {
     } else {
       // lobby / menu: slow wide orbit around the map
       orbit.current += dt * (menu ? 0.08 : 0.12);
-      const r = menu ? 30 : race ? 34 : 26;
-      const cz = race ? -22 : 0;
+      const r = menu ? 30 : race ? 34 : run ? 30 : 26;
+      const cz = race ? -22 : run ? -18 : 0;
       desired.current.set(Math.cos(orbit.current) * r, menu ? 11 : race ? 18 : 14, cz + Math.sin(orbit.current) * r);
       lookAt.current.set(0, menu ? 1.5 : 0.5, cz);
     }

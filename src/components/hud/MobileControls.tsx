@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { pressDash, setJoystick, setJumpButton } from "@/game/input";
+import { useGameStore } from "@/store/gameStore";
 
 const STICK_RADIUS = 60;
 
@@ -14,6 +15,7 @@ export function MobileControls() {
   const pointerId = useRef<number | null>(null);
   const origin = useRef({ x: 0, y: 0 });
   const [stick, setStick] = useState<{ x: number; y: number; dx: number; dy: number } | null>(null);
+  const run = useGameStore((s) => s.state.mode === "GOGUN");
 
   const onDown = (e: ReactPointerEvent<HTMLDivElement>) => {
     if (pointerId.current !== null) return;
@@ -86,6 +88,7 @@ export function MobileControls() {
           </div>
         )}
       </div>
+      {!run && (
       <button
         className="pointer-events-auto absolute bottom-10 right-36 flex h-[72px] w-[72px] items-center justify-center rounded-full border-4 border-white/60 bg-[#3d8bff] text-[13px] font-black tracking-widest text-white shadow-2xl active:scale-90"
         style={{ touchAction: "none", marginBottom: "env(safe-area-inset-bottom)" }}
@@ -97,6 +100,7 @@ export function MobileControls() {
       >
         DASH
       </button>
+      )}
       <button
         className="pointer-events-auto absolute bottom-8 right-6 flex h-24 w-24 items-center justify-center rounded-full border-4 border-white/70 bg-brand text-lg font-black tracking-widest text-white shadow-2xl active:scale-90"
         style={{ touchAction: "none", marginBottom: "env(safe-area-inset-bottom)", marginRight: "env(safe-area-inset-right)" }}

@@ -13,6 +13,7 @@ import { sanitizeCosmetics, type Cosmetics } from "@/game/items";
 import { computeReward, rewardKey } from "@/game/rewards";
 import { useWalletStore } from "@/store/walletStore";
 import { currentLevel, useProgressStore } from "@/store/progressStore";
+import { gogunRuntime } from "@/game/gogun";
 import type { GameMode, GameState, Player, PlayerPresence } from "@/types";
 
 export interface EliminationNotice {
@@ -160,6 +161,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
               survivedMs: outAt > state.startAt ? outAt - state.startAt : roundMs,
               checkpoints: state.mode === "RACE" ? Math.max(0, Math.min(5, (state.progress[localId] ?? -1) + 1)) : 0,
               roundMs,
+              coinPoints: state.mode === "GOGUN" ? gogunRuntime.coinPoints : 0,
+              distance: state.mode === "GOGUN" ? gogunRuntime.distance : 0,
             });
             if (report) get().client?.updatePresence({ level: currentLevel() });
           }

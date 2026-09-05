@@ -88,7 +88,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
           </div>
 
           <div className="mt-4 text-xs font-bold tracking-widest text-white/70 short:mt-2">GAME MODE {!isHost && <span className="text-white/40">(host picks)</span>}</div>
-          <div className="mt-2 grid grid-cols-3 gap-2">
+          <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {(Object.keys(GAME_MODES) as GameMode[]).map((m) => {
               const meta = GAME_MODES[m];
               const active = m === mode;

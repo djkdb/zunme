@@ -51,7 +51,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
   const ranking = computeRanking(state);
   const winner = state.winnerId;
   const survived = formatClock(state.endAt - state.startAt);
-  const race = state.mode === "RACE";
+  const race = state.mode === "RACE" || state.mode === "GOGUN";
   const meta = GAME_MODES[state.mode];
   const eliminations = state.eliminationOrder.length;
   const dnf = race ? state.participants.length - state.finishOrder.length : 0;

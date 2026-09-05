@@ -64,7 +64,7 @@ export function MainMenu() {
 
       <div className="relative z-10 flex h-full w-full flex-col items-center justify-center px-5 safe-pad">
         <div className="anim-rise flex flex-col items-center text-center">
-          <div className="chip mb-4 px-3 py-1 text-[11px] font-bold tracking-[0.3em] text-white/80">8 PLAYERS · 3 GAME MODES</div>
+          <div className="chip mb-4 px-3 py-1 text-[11px] font-bold tracking-[0.3em] text-white/80">8 PLAYERS · 4 GAME MODES</div>
           <h1 className="display gradient-shadow text-[64px] sm:text-[96px] md:text-[120px]" aria-label="DROPZONE">
             {"DROPZONE".split("").map((ch, i) => (
               <span key={i} className="title-letter text-gradient" style={{ animationDelay: `${i * 0.06}s` }}>
@@ -119,7 +119,7 @@ export function MainMenu() {
         )}
 
         <div className="anim-fade delay-4 mt-6 flex flex-col items-center gap-1 text-center text-[12px] font-semibold text-white/75 hud-text">
-          <p>🥊 Sumo island · 🏁 Obstacle race · 🔥 Vanishing floors</p>
+          <p>🥊 Sumo island · 🏁 Obstacle race · 🔥 Vanishing floors · 🐱 Rooftop wire run</p>
           <p className="text-white/55">{mobile ? "Joystick to move · JUMP · DASH to shove" : "WASD move · SPACE jump · SHIFT dash into people"}</p>
           {offline && <p className="mt-2 rounded-full bg-[#ffd32a]/90 px-3 py-1 text-[11px] font-black text-[#12142b]">LOCAL MODE — same-device tabs only. Add Supabase keys for online play</p>}
         </div>

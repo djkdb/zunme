@@ -1,7 +1,7 @@
 import type { PlayerColorName } from "@/game/config";
 import type { Cosmetics } from "@/game/items";
 
-export type GameMode = "SUMO" | "RACE" | "MELTDOWN";
+export type GameMode = "SUMO" | "RACE" | "MELTDOWN" | "GOGUN";
 
 export type RoomStatus =
   | "LOBBY"

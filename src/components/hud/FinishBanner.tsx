@@ -9,7 +9,7 @@ export function FinishBanner() {
   const localId = useGameStore((s) => s.localId);
   const state = useGameStore((s) => s.state);
 
-  if (!notice || state.mode !== "RACE" || (state.status !== "PLAYING" && state.status !== "FINISHED")) return null;
+  if (!notice || (state.mode !== "RACE" && state.mode !== "GOGUN") || (state.status !== "PLAYING" && state.status !== "FINISHED")) return null;
   const isYou = notice.playerId === localId;
   const place = state.finishOrder.indexOf(notice.playerId) + 1;
   return (

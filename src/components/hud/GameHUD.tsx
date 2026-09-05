@@ -6,6 +6,7 @@ import { GAME_MODES } from "@/game/config";
 import { RACE_CHECKPOINTS } from "@/game/race";
 import { useHostClock } from "@/hooks/useHostClock";
 import { useDashCooldown } from "@/hooks/useDashCooldown";
+import { GOGUN_PROGRESS_STEP, gogunRuntime } from "@/game/gogun";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { selectPlayers, useGameStore } from "@/store/gameStore";
 
@@ -25,16 +26,18 @@ export function GameHUD() {
   const { dashLeft, dashPct } = useDashCooldown();
 
   const race = state.mode === "RACE";
+  const run = state.mode === "GOGUN";
+  const finishLine = race || run;
   const meta = GAME_MODES[state.mode];
   const participants = state.participants.length ? state.participants : players.map((p) => p.id);
   const survivors = state.alive.length;
   const suddenDeath = isSuddenDeath(state, now);
   const remaining = state.status === "COUNTDOWN" ? meta.duration : roundEndAt(state) - now;
   const timeLabel = Math.max(0, Math.ceil(remaining / 1000));
-  const hurry = race && state.finishOrder.length > 0;
-  const final2 = !race && state.status === "PLAYING" && survivors === 2 && participants.length > 2;
+  const hurry = finishLine && state.finishOrder.length > 0;
+  const final2 = !finishLine && state.status === "PLAYING" && survivors === 2 && participants.length > 2;
   const isSpectating = !state.alive.includes(localId) && state.status === "PLAYING";
-  const localFinished = race && state.finishOrder.includes(localId);
+  const localFinished = finishLine && state.finishOrder.includes(localId);
   const localCp = (state.progress[localId] ?? -1) + 1;
   const roster = participants.map((id) => players.find((p) => p.id === id)).filter((p): p is NonNullable<typeof p> => Boolean(p));
 
@@ -46,9 +49,18 @@ export function GameHUD() {
           {meta.icon} {meta.name} · R{state.round}
         </div>
         <div className="chip anim-pop px-4 py-2 text-center text-white">
-          <div className="text-[10px] font-bold tracking-[0.3em] text-white/60">{race ? "FINISHED" : "SURVIVORS"}</div>
+          <div className="text-[10px] font-bold tracking-[0.3em] text-white/60">{run ? "DISTANCE" : race ? "FINISHED" : "SURVIVORS"}</div>
           <div className="display text-2xl sm:text-3xl">
-            {race ? state.finishOrder.length : survivors} <span className="text-white/50">/ {participants.length}</span>
+            {run ? (
+              <>
+                {Math.floor(gogunRuntime.distance)}
+                <span className="text-white/50"> m · 🪙 {gogunRuntime.coins}</span>
+              </>
+            ) : (
+              <>
+                {race ? state.finishOrder.length : survivors} <span className="text-white/50">/ {participants.length}</span>
+              </>
+            )}
           </div>
         </div>
         <div className="flex items-start gap-2">
@@ -68,11 +80,13 @@ export function GameHUD() {
           const alive = state.alive.includes(p.id);
           const finished = state.finishOrder.includes(p.id);
           const dim = race ? false : !alive;
+          const prog = state.progress[p.id] ?? -1;
           return (
             <li key={p.id} className={`chip flex items-center gap-2 px-3 py-1 text-xs font-bold transition-opacity ${dim ? "text-white/40 line-through" : "text-white"}`}>
               {dim ? <span className="text-[10px] text-white/50">✕</span> : <span className="h-2.5 w-2.5 rounded-full" style={{ background: p.colorHex }} />}
               <span className="max-w-[110px] truncate">{p.nickname}</span>
-              {race && (finished ? <span className="text-brand-2">🏁</span> : <span className="text-white/50">CP{(state.progress[p.id] ?? -1) + 1}</span>)}
+              {race && (finished ? <span className="text-brand-2">🏁</span> : <span className="text-white/50">CP{prog + 1}</span>)}
+              {run && (finished ? <span className="text-brand-2">🏁</span> : <span className="text-white/50">{Math.max(0, prog) * GOGUN_PROGRESS_STEP}m</span>)}
             </li>
           );
         })}
@@ -98,7 +112,12 @@ export function GameHUD() {
           <div className="anim-slam display rounded-2xl bg-brand px-6 py-2 text-2xl text-white shadow-2xl hud-text">SUDDEN DEATH</div>
         </div>
       )}
-      {!mobile && !isSpectating && !localFinished && state.status === "PLAYING" && (
+      {run && state.status === "PLAYING" && !isSpectating && !localFinished && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
+          <div className="chip px-3 py-1.5 text-[11px] font-black tracking-widest text-white/85">{mobile ? "TAP JUMP · TAP AGAIN IN AIR = WIRE" : "SPACE JUMP · SPACE IN AIR = WIRE"}</div>
+        </div>
+      )}
+      {!mobile && !run && !isSpectating && !localFinished && state.status === "PLAYING" && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
           <div className={`chip flex items-center gap-2 px-3 py-1.5 text-[11px] font-black tracking-widest ${dashLeft > 0 ? "text-white/50" : "text-white"}`}>
             <span className="relative inline-block h-3 w-16 overflow-hidden rounded-full bg-white/10">

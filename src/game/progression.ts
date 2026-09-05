@@ -18,6 +18,10 @@ export interface RoundSummary {
   /** RACE: checkpoints passed */
   checkpoints: number;
   roundMs: number;
+  /** GOGUN: coin points collected */
+  coinPoints?: number;
+  /** GOGUN: metres run */
+  distance?: number;
 }
 
 export interface Stats {
@@ -93,6 +97,10 @@ export function roundPoints(s: RoundSummary, streak: number): PointLine[] {
   if (s.mode === "RACE") {
     if (s.finished) lines.push({ label: "Finished the course", points: 30 });
     if (s.checkpoints > 0) lines.push({ label: `${s.checkpoints} checkpoint${s.checkpoints > 1 ? "s" : ""}`, points: s.checkpoints * 8 });
+  } else if (s.mode === "GOGUN") {
+    if (s.finished) lines.push({ label: "Reached the goal", points: 40 });
+    if (s.distance && s.distance > 0) lines.push({ label: `${Math.floor(s.distance)} m run`, points: Math.min(40, Math.floor(s.distance / 10)) });
+    if (s.coinPoints && s.coinPoints > 0) lines.push({ label: "Coins", points: Math.min(60, s.coinPoints) });
   } else {
     const survival = Math.min(30, Math.floor(s.survivedMs / 5000) * 2);
     if (survival > 0) lines.push({ label: `Survived ${Math.floor(s.survivedMs / 1000)}s`, points: survival });
@@ -128,6 +136,7 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "wins_25", name: "Island King", description: "Win 25 rounds.", emoji: "👑", reward: 600, check: (s) => s.wins >= 25 },
   { id: "all_modes", name: "Triple Threat", description: "Win in all three modes.", emoji: "🎯", reward: 300, check: (s) => s.sumoWins > 0 && s.raceWins > 0 && s.meltdownWins > 0 },
   { id: "finisher", name: "Finisher", description: "Complete SKY DASH.", emoji: "🏁", reward: 80, check: (s) => s.racesFinished >= 1 },
+  { id: "ninja", name: "Rooftop Ninja", description: "Reach the goal in GOGUN RUN.", emoji: "🐱", reward: 150, check: (_, last) => last.mode === "GOGUN" && last.finished },
   { id: "speedster", name: "Speedster", description: "Finish SKY DASH in under 100 s.", emoji: "⚡", reward: 250, check: (s) => s.bestRaceMs > 0 && s.bestRaceMs < 100_000 },
   { id: "survivor", name: "Survivor", description: "Stay alive 60 s in a single round.", emoji: "🛡️", reward: 120, check: (s) => s.longestSurvivalMs >= 60_000 },
   { id: "party", name: "Party Time", description: "Play a round with 6+ players.", emoji: "🎉", reward: 150, check: (_, last) => last.participants >= 6 },
@@ -151,6 +160,7 @@ export const MISSION_POOL: MissionDef[] = [
   { id: "win_1", name: "Win a round", target: 1, reward: 120, emoji: "🏆", progress: (l) => (l.won ? 1 : 0) },
   { id: "top3_2", name: "Finish top 3 twice", target: 2, reward: 100, emoji: "🥉", progress: (l) => (l.rank <= 3 ? 1 : 0) },
   { id: "race_finish", name: "Finish SKY DASH", target: 1, reward: 110, emoji: "🏁", progress: (l) => (l.mode === "RACE" && l.finished ? 1 : 0) },
+  { id: "gogun_300", name: "Run 300 m in GOGUN RUN", target: 300, reward: 120, emoji: "🐱", progress: (l) => (l.mode === "GOGUN" ? Math.floor(l.distance ?? 0) : 0) },
   { id: "survive_45", name: "Survive 45 s in a round", target: 1, reward: 90, emoji: "🛡️", progress: (l) => (l.mode !== "RACE" && l.survivedMs >= 45_000 ? 1 : 0) },
   { id: "meltdown_2", name: "Play MELTDOWN twice", target: 2, reward: 90, emoji: "🔥", progress: (l) => (l.mode === "MELTDOWN" ? 1 : 0) },
   { id: "sumo_win", name: "Win DROPZONE", target: 1, reward: 130, emoji: "🥊", progress: (l) => (l.mode === "SUMO" && l.won ? 1 : 0) },

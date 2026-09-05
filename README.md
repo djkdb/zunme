@@ -1,13 +1,14 @@
 # DROPZONE — Last One Standing
 
 A mobile-first 3D multiplayer party game in the browser. Up to 8 friends,
-three Fall Guys-style modes, one 6-letter room code, no accounts:
+four party modes, one 6-letter room code, no accounts:
 
 | Mode | Goal |
 | --- | --- |
 | 🥊 **DROPZONE** | Sumo island: shove everyone off, dodge the spinner, the sweeper and collapsing tiles. Last one standing wins. |
 | 🏁 **SKY DASH** | A 280 m, 12-section obstacle race: spinner alley, stepping stones, a door-dash wall (two of four doors are fake), conveyor belts that push you toward the gaps, pendulum hammers, a crumbling bridge, a jump-pad gap, sweepers with side pistons, a crosswind fan bridge and a triple-spinner finale. Five checkpoints; falling respawns you at the last one. First across the line wins. |
 | 🔥 **MELTDOWN** | Three shrinking floors of tiles that vanish right after you step on them. Keep moving. Last survivor wins. |
+| 🐱 **GOGUN RUN** | A 3D take on the 2007 Hangame classic *고군분투*: auto-run over night-city rooftops, tap to jump the gaps, tap again in the air to hook a wire onto a lantern anchor and swing across the wide ones, grab silver and gold coins. Fall = out; first to the goal wins (solo = classic single-player). |
 
 Every player is a variation of the ZUN character (navy "ZUN" cap, hoodie in
 the player colour, sneakers) dressed up from the **ZUN Shop**.
@@ -88,6 +89,10 @@ vulnerable while airborne. Jumps have coyote time and input buffering.
 - MELTDOWN: 75 s. Tiles vanish 0.45 s after being stepped on, shrinking to
   0.2 s over the first 40 s (synced to all players); floors 2 and 3 are
   smaller, then it's the lava.
+- GOGUN RUN: 120 s. The seeded course (~420 m, 30+ rooftops) gets faster
+  and wider-gapped as you go; wire-only gaps have a glowing anchor above
+  them. Runners are ghosts to each other. Ranking = goal order, then
+  distance. Coins and distance add points.
 - The result screen shows the winner, survival time, ranking, elimination
   order and a share button (Web Share API with clipboard fallback).
 
@@ -97,7 +102,8 @@ vulnerable while airborne. Jumps have coyote time and input buffering.
 src/
   app/                  routes (/ and /room/[code])
   components/
-    game/               Three.js scene: Arena, RaceCourse + RaceObstacles
+    game/               Three.js scene: Arena, RaceCourse + RaceObstacles,
+                        RooftopCourse (GOGUN),
                         (doors, belts, hammers, crumble, jump pad, fans,
                         pistons), MeltdownArena, Obstacles (Spinner/Sweeper),
                         Character (ZUN chibi),
@@ -112,6 +118,7 @@ src/
     arena.ts            sumo island layout + seeded collapse schedules
     race.ts             SKY DASH course data (platforms, obstacles, checkpoints)
     meltdown.ts         MELTDOWN floor layout
+    gogun.ts            GOGUN RUN course generator + runtime (wire, coins)
     sync.ts             peer gameplay events (tile vanish) + race runtime
     items.ts            cosmetic catalogue (hats, face, back, trails)
     rewards.ts          placement lookup + claim key

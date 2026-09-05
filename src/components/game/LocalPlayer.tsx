@@ -40,6 +40,7 @@ import {
 } from "@/game/config";
 import { burst, shake } from "@/game/effects";
 import { consumeDash, consumeJump, input, lastJumpPressAt } from "@/game/input";
+import { GOGUN_CRASH_MS, GOGUN_JUMP_CUT, GOGUN_WIRE_MAX_MS, GOGUN_WIRE_RELEASE_BOOST, gogunRuntime } from "@/game/gogun";
 import { livePoses, localPose } from "@/game/remote";
 import { sound } from "@/game/audio";
 import { raceRuntime } from "@/game/sync";
@@ -61,6 +62,20 @@ export interface PlayerRules {
   wind?: () => [number, number];
   /** returns a queued vertical launch velocity once, 0 otherwise */
   consumeLaunch?: () => number;
+  /** GOGUN RUN: auto-run + wire controller replaces normal movement */
+  autoRun?: AutoRunRules;
+}
+
+export interface AutoRunRules {
+  /** forward speed for a distance along the course */
+  speedAt: (distance: number) => number;
+  jumpForce: number;
+  laneHalf: number;
+  startZ: number;
+  /** find an anchor ahead to hook; null if none in range */
+  findAnchor: (x: number, y: number, z: number) => { index: number; x: number; y: number; z: number } | null;
+  /** called every step so the scene can collect coins / progress */
+  onStep: (x: number, y: number, z: number, grounded: boolean) => void;
 }
 
 interface Props {
@@ -99,6 +114,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
   const jumpBufferedAt = useRef(0);
   const jumpCut = useRef(false);
   const dashDir = useRef({ x: 0, z: 1 });
+  const blockedSince = useRef(0);
 
   // Dev-only hook so e2e tests / the console can move the local player.
   useEffect(() => {
@@ -123,6 +139,8 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
         lastRound.current = s.state.round;
         fellReported.current = false;
         raceRuntime.reset();
+        gogunRuntime.reset();
+        blockedSince.current = 0;
         localPose.dashUntil = 0;
         localPose.dashReadyAt = 0;
         localPose.stunUntil = 0;
@@ -165,6 +183,114 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
     const stunned = now < localPose.stunUntil;
     const dashing = now < localPose.dashUntil;
     const canControl = active && !stunned;
+
+    // ── GOGUN RUN: auto-run, jump, wire swing ──
+    const auto = rulesRef.current.autoRun;
+    if (auto) {
+      const wire = gogunRuntime.wire;
+      let vx = v.x;
+      let vy = v.y;
+      let vz = v.z;
+      const distance = Math.max(0, auto.startZ - t.z);
+      const speed = active ? auto.speedAt(distance) : 0;
+      const jumpPressed = consumeJump();
+      consumeDash();
+
+      if (wire.active) {
+        // Rope constraint: keep within rope length, kill outward radial velocity, add gravity.
+        const dx = t.x - wire.x;
+        const dy = t.y - wire.y;
+        const dz = t.z - wire.z;
+        const dist = Math.hypot(dx, dy, dz);
+        const nx = dx / dist;
+        const ny = dy / dist;
+        const nz = dz / dist;
+        const radial = vx * nx + vy * ny + vz * nz;
+        if (dist >= wire.length && radial > 0) {
+          vx -= radial * nx;
+          vy -= radial * ny;
+          vz -= radial * nz;
+          const over = dist - wire.length;
+          rb.setTranslation({ x: t.x - nx * over, y: t.y - ny * over, z: t.z - nz * over }, true);
+        }
+        // pump forward a little so swings carry
+        vz -= 4 * dt;
+        const passed = t.z < wire.z - 0.5; // swung past the anchor
+        const timeout = now - wire.since > GOGUN_WIRE_MAX_MS;
+        if (jumpPressed || passed || timeout || grounded.current) {
+          wire.active = false;
+          vx *= GOGUN_WIRE_RELEASE_BOOST;
+          vz *= GOGUN_WIRE_RELEASE_BOOST;
+          vy = Math.max(vy, 2.5) + 2.5;
+          sound.play("jump", { volume: 0.5 });
+          burst({ position: { x: t.x, y: t.y, z: t.z }, color: ["#ffffff", "#ffd32a"], count: 8, speed: 2, life: 0.4, size: 0.1 });
+        }
+      } else {
+        // steer sideways, auto-run forward
+        const steer = canControl ? input.moveX : 0;
+        const targetX = THREE.MathUtils.clamp(t.x + steer * 3, -auto.laneHalf, auto.laneHalf);
+        vx = THREE.MathUtils.clamp((targetX - t.x) * 4, -6, 6);
+        vz = active ? -speed : 0;
+        if (jumpPressed && canControl) {
+          if (grounded.current || now - lastGroundedAt.current < COYOTE_TIME_MS) {
+            vy = auto.jumpForce;
+            grounded.current = false;
+            lastGroundedAt.current = 0;
+            jumpCut.current = false;
+            sound.play("jump", { volume: 0.6 });
+            burst({ position: { x: t.x, y: t.y - PLAYER_HEIGHT / 2, z: t.z }, color: "#ffffff", count: 5, speed: 1.6, life: 0.35, size: 0.1 });
+          } else {
+            const a = auto.findAnchor(t.x, t.y, t.z);
+            if (a) {
+              wire.active = true;
+              wire.anchor = a.index;
+              wire.x = a.x;
+              wire.y = a.y;
+              wire.z = a.z;
+              wire.length = Math.hypot(t.x - a.x, t.y - a.y, t.z - a.z);
+              wire.since = now;
+              sound.play("dash", { volume: 0.5 });
+              shake(0.08);
+            }
+          }
+        } else if (!grounded.current && vy > 2 && !input.jumpHeld && !jumpCut.current) {
+          vy *= GOGUN_JUMP_CUT;
+          jumpCut.current = true;
+        }
+        if (grounded.current) jumpCut.current = false;
+        // Ran into a wall: the original punishes this with a fall.
+        // (grounded or pressed against a wall mid-air — either way you are not moving forward)
+        const blocked = active && speed > 1 && v.z > -speed * 0.35 && !jumpPressed && now - lastGroundedAt.current < 1500;
+        if (blocked) {
+          if (!blockedSince.current) blockedSince.current = now;
+          else if (now - blockedSince.current > GOGUN_CRASH_MS && !fellReported.current) {
+            fellReported.current = true;
+            localPose.stunUntil = now + 600;
+            anim.stunUntil = localPose.stunUntil;
+            shake(0.5);
+            sound.play("elimination");
+            burst({ position: { x: t.x, y: t.y, z: t.z }, color: ["#ffffff", "#ff5a3c"], count: 16, speed: 3, life: 0.6, size: 0.14 });
+            // fling backwards off the roof
+            vz = 4;
+            vy = 3;
+            useGameStore.getState().reportFall();
+          }
+        } else {
+          blockedSince.current = 0;
+        }
+      }
+      rb.setLinvel({ x: vx, y: vy, z: vz }, true);
+      anim.yaw = Math.PI; // always face -z
+      anim.dashUntil = wire.active ? now + 50 : 0;
+      auto.onStep(t.x, t.y - PLAYER_HEIGHT / 2, t.z, grounded.current);
+      const r0 = rulesRef.current;
+      if (t.y < r0.fallY && active && !fellReported.current) {
+        fellReported.current = true;
+        wire.active = false;
+        useGameStore.getState().reportFall();
+      }
+      return;
+    }
 
     let mx = canControl ? input.moveX : 0;
     let mz = canControl ? -input.moveY : 0;
