@@ -142,7 +142,7 @@ export function RoomView({ roomCode }: { roomCode: string }) {
       )}
       {connected && status === "FINISHED" && !viewingLobby && <ResultScreen roomCode={roomCode} />}
 
-      {mobile && portrait && <LandscapeHint />}
+      {mobile && portrait && <LandscapeHint blocking={inRound && isParticipant && localAlive} />}
     </div>
   );
 }

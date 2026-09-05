@@ -4,7 +4,6 @@ import { MuteButton } from "@/components/hud/MuteButton";
 import { GAME_DURATION, SUDDEN_DEATH_DURATION } from "@/game/config";
 import { useHostClock } from "@/hooks/useHostClock";
 import { selectPlayers, useGameStore } from "@/store/gameStore";
-import { useShallow } from "zustand/react/shallow";
 
 export function formatClock(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000));
@@ -14,7 +13,7 @@ export function formatClock(ms: number): string {
 }
 
 export function GameHUD() {
-  const players = useGameStore(useShallow(selectPlayers));
+  const players = useGameStore(selectPlayers);
   const state = useGameStore((s) => s.state);
   const localId = useGameStore((s) => s.localId);
   const now = useHostClock(200);

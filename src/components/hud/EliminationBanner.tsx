@@ -9,7 +9,7 @@ export function EliminationBanner() {
   const localId = useGameStore((s) => s.localId);
   const status = useGameStore((s) => s.state.status);
 
-  if (!notice || status !== "PLAYING") return null;
+  if (!notice || (status !== "PLAYING" && status !== "FINISHED")) return null;
   const isYou = notice.playerId === localId;
   return (
     <div key={seq} className="anim-banner pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center">

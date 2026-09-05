@@ -1,9 +1,8 @@
 "use client";
 
 import { useFrame } from "@react-three/fiber";
-import { useRapier } from "@react-three/rapier";
-import type { Collider, RigidBody as RapierRigidBody } from "@dimforge/rapier3d-compat";
-import { useEffect, useMemo, useRef } from "react";
+import { CuboidCollider, RigidBody, type RapierCollider } from "@react-three/rapier";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { ARENA_HEIGHT, ARENA_RADIUS, COLLAPSIBLE_MIN_RADIUS, TILE_SIZE } from "@/game/config";
 import { TILES, buildTileSchedule, getTileState, type TileState } from "@/game/arena";
@@ -12,6 +11,7 @@ import { useGameStore } from "@/store/gameStore";
 import { burst } from "@/game/effects";
 
 const TILE_THICKNESS = 0.7;
+const TILE_HALF = TILE_SIZE * 0.5 * 0.98;
 const COLOR_A = new THREE.Color("#f4f1ea");
 const COLOR_B = new THREE.Color("#e6e1d6");
 const COLOR_EDGE_A = new THREE.Color("#ffd4a8");
@@ -42,32 +42,18 @@ function baseColor(index: number, collapsible: boolean): THREE.Color {
  */
 export function Arena() {
   const meshRef = useRef<THREE.InstancedMesh>(null);
-  const { world, rapier } = useRapier();
   const seed = useGameStore((s) => s.state.seed);
   const schedule = useMemo(() => buildTileSchedule(seed), [seed]);
-  const colliders = useRef<Collider[]>([]);
-  const bodyRef = useRef<RapierRigidBody | null>(null);
+  const colliders = useRef<(RapierCollider | null)[]>(TILES.map(() => null));
   const phases = useRef<TileState[]>(TILES.map(() => ({ phase: "NORMAL", progress: 0, permanent: false })));
   const scratch = useRef<TileState>({ phase: "NORMAL", progress: 0, permanent: false });
   const yOffsets = useRef<Float32Array>(new Float32Array(TILES.length));
 
-  // Static colliders, created once imperatively (cheaper than 80+ React rigid bodies).
-  useEffect(() => {
-    const body = world.createRigidBody(rapier.RigidBodyDesc.fixed());
-    bodyRef.current = body;
-    const half = (TILE_SIZE * 0.5) * 0.98;
-    colliders.current = TILES.map((tile) =>
-      world.createCollider(
-        rapier.ColliderDesc.cuboid(half, TILE_THICKNESS / 2, half).setTranslation(tile.x, -TILE_THICKNESS / 2, tile.z).setFriction(0.9),
-        body,
-      ),
-    );
-    return () => {
-      colliders.current = [];
-      bodyRef.current = null;
-      world.removeRigidBody(body);
-    };
-  }, [world, rapier]);
+  const bindCollider = useCallback((index: number) => (c: RapierCollider | null) => {
+    colliders.current[index] = c;
+    // Keep a freshly (re)mounted collider in sync with the tile's current phase.
+    if (c) c.setEnabled(phases.current[index].phase !== "COLLAPSED");
+  }, []);
 
   // Initial instance colors + matrices.
   useEffect(() => {
@@ -164,8 +150,20 @@ export function Arena() {
 
   return (
     <group>
+      {/* One static body, one box collider per tile; collapsible ones get toggled from the frame loop. */}
+      <RigidBody type="fixed" colliders={false} userData={{ type: "ground" }}>
+        {TILES.map((tile) => (
+          <CuboidCollider
+            key={tile.index}
+            ref={bindCollider(tile.index)}
+            args={[TILE_HALF, TILE_THICKNESS / 2, TILE_HALF]}
+            position={[tile.x, -TILE_THICKNESS / 2, tile.z]}
+            friction={0.9}
+          />
+        ))}
+      </RigidBody>
       <instancedMesh ref={meshRef} args={[undefined, undefined, TILES.length]} castShadow receiveShadow frustumCulled={false}>
-        <boxGeometry args={[TILE_SIZE * 0.96, TILE_THICKNESS, TILE_SIZE * 0.96]} />
+        <boxGeometry args={[TILE_SIZE * 0.975, TILE_THICKNESS, TILE_SIZE * 0.975]} />
         <meshStandardMaterial roughness={0.85} metalness={0} />
       </instancedMesh>
 
@@ -178,9 +176,14 @@ export function Arena() {
         <coneGeometry args={[2.2, 2.2, 8]} />
         <meshStandardMaterial color="#6f533f" roughness={1} flatShading />
       </mesh>
-      {/* grassy ledge under the tiles */}
-      <mesh position={[0, -TILE_THICKNESS - 0.25, 0]} receiveShadow>
-        <cylinderGeometry args={[COLLAPSIBLE_MIN_RADIUS + 0.2, COLLAPSIBLE_MIN_RADIUS - 0.4, 0.5, 24, 1]} />
+      {/* dark bedrock right under the core tiles so the seams between tiles read as grout, not sky */}
+      <mesh position={[0, -TILE_THICKNESS - 0.08, 0]}>
+        <cylinderGeometry args={[COLLAPSIBLE_MIN_RADIUS - 0.6, COLLAPSIBLE_MIN_RADIUS - 0.6, 0.16, 24, 1]} />
+        <meshStandardMaterial color="#4a3a30" roughness={1} />
+      </mesh>
+      {/* grass skirt around the rock, below the overhang */}
+      <mesh position={[0, -TILE_THICKNESS - 0.55, 0]} receiveShadow>
+        <cylinderGeometry args={[COLLAPSIBLE_MIN_RADIUS - 0.3, COLLAPSIBLE_MIN_RADIUS - 0.6, 0.5, 24, 1]} />
         <meshStandardMaterial color="#6fcf7a" roughness={0.9} flatShading />
       </mesh>
 

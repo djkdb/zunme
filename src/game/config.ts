@@ -88,7 +88,10 @@ export const PLAYER_COLORS = [
 
 export type PlayerColorName = (typeof PLAYER_COLORS)[number]["name"];
 
-// ── Sound assets (drop real files at these paths; synth fallback otherwise) ──
+// ── Sound assets ─────────────────────────────────────────────────────
+// Drop real files at these paths and flip USE_SOUND_FILES to true; until
+// then short synthesized cues are used so every action still has feedback.
+export const USE_SOUND_FILES = false;
 export const SOUND_PATHS = {
   click: "/sounds/click.mp3",
   countdown: "/sounds/countdown.mp3",

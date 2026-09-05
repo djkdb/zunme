@@ -199,7 +199,7 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
         </mesh>
       </group>
       {showLabel && (
-        <Html position={[0, 1.95, 0]} center distanceFactor={14} zIndexRange={[20, 0]} style={{ pointerEvents: "none" }}>
+        <Html position={[0, 1.95, 0]} center distanceFactor={14} zIndexRange={[1, 0]} style={{ pointerEvents: "none" }}>
           <div
             className={`whitespace-nowrap rounded-full px-2.5 py-0.5 text-[13px] font-bold tracking-wide shadow-lg backdrop-blur-sm ${
               isLocal ? "bg-white/90 text-slate-900" : "bg-slate-900/70 text-white"

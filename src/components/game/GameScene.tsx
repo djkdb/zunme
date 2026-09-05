@@ -13,7 +13,6 @@ import { RemotePlayer } from "@/components/game/RemotePlayer";
 import { spawnPosition } from "@/game/arena";
 import { SPAWN_RADIUS } from "@/game/config";
 import { selectPlayers, useGameStore } from "@/store/gameStore";
-import { useShallow } from "zustand/react/shallow";
 
 /**
  * Everything inside the Canvas. Which players get a body:
@@ -22,7 +21,7 @@ import { useShallow } from "zustand/react/shallow";
  *  - FINISHED: survivors (the winner takes the spotlight)
  */
 export function GameScene({ mobile }: { mobile: boolean }) {
-  const players = useGameStore(useShallow(selectPlayers));
+  const players = useGameStore(selectPlayers);
   const localId = useGameStore((s) => s.localId);
   const status = useGameStore((s) => s.state.status);
   const participants = useGameStore((s) => s.state.participants);
@@ -37,6 +36,8 @@ export function GameScene({ mobile }: { mobile: boolean }) {
       .filter((p) => alive.includes(p.id));
   }, [players, status, participants, alive]);
 
+  // Nametags only while the arena is the focus; panels cover the scene otherwise.
+  const showLabels = status === "COUNTDOWN" || status === "PLAYING";
   const spawnOrder = status === "LOBBY" ? players.map((p) => p.id) : participants.length ? participants : players.map((p) => p.id);
 
   return (
@@ -50,9 +51,9 @@ export function GameScene({ mobile }: { mobile: boolean }) {
         const idx = Math.max(0, spawnOrder.indexOf(p.id));
         const spawn = spawnPosition(idx, spawnOrder.length, SPAWN_RADIUS);
         return p.id === localId ? (
-          <LocalPlayer key={`${p.id}-local`} id={p.id} nickname={p.nickname} colorHex={p.colorHex} spawn={spawn} />
+          <LocalPlayer key={`${p.id}-local`} id={p.id} nickname={p.nickname} colorHex={p.colorHex} spawn={spawn} showLabel={showLabels} />
         ) : (
-          <RemotePlayer key={p.id} id={p.id} nickname={p.nickname} colorHex={p.colorHex} spawn={spawn} />
+          <RemotePlayer key={p.id} id={p.id} nickname={p.nickname} colorHex={p.colorHex} spawn={spawn} showLabel={showLabels} />
         );
       })}
       <Particles max={mobile ? 350 : 600} />

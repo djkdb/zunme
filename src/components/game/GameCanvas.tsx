@@ -20,7 +20,7 @@ interface Props {
 export function GameCanvas({ children, mobile, ambient = false }: Props) {
   return (
     <Canvas
-      shadows={{ type: THREE.PCFSoftShadowMap }}
+      shadows={{ type: THREE.PCFShadowMap }}
       dpr={mobile ? [1, 1.5] : [1, 2]}
       camera={{ fov: CAMERA_FOV, near: 0.1, far: 900, position: [0, 14, 26] }}
       gl={{

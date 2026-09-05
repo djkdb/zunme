@@ -116,31 +116,112 @@ export class SupabaseTransport implements Transport {
   }
 }
 
-/** Solo/offline transport used when Supabase is not configured. */
+/**
+ * Offline transport used when Supabase is not configured. Peers on the same
+ * device (other tabs/windows) talk over a BroadcastChannel, so the whole
+ * multiplayer path can be exercised locally; with a single tab it is simply
+ * solo play. Presence is emulated with heartbeats + expiry.
+ */
 export class LocalTransport implements Transport {
   readonly offline = true;
   private presence: PlayerPresence | null = null;
   private presenceHandler: ((players: PlayerPresence[]) => void) | null = null;
+  private handlers = new Map<string, Set<MessageHandler>>();
+  private channel: BroadcastChannel | null = null;
+  private peers = new Map<string, { presence: PlayerPresence; lastSeen: number }>();
+  private timer: ReturnType<typeof setInterval> | null = null;
+  private static readonly HEARTBEAT = 1000;
+  private static readonly EXPIRY = 4000;
 
-  async connect(_roomCode: string, presence: PlayerPresence) {
+  async connect(roomCode: string, presence: PlayerPresence) {
     this.presence = presence;
-    this.presenceHandler?.([presence]);
+    if (typeof BroadcastChannel !== "undefined") {
+      this.channel = new BroadcastChannel(`dropzone:${roomCode}`);
+      this.channel.onmessage = (ev: MessageEvent<{ kind: string; from: string; event?: string; payload?: unknown; presence?: PlayerPresence }>) => {
+        const msg = ev.data;
+        if (!msg || msg.from === this.presence?.id) return;
+        if (msg.kind === "hello" || msg.kind === "presence") {
+          if (isPresence(msg.presence)) {
+            this.peers.set(msg.from, { presence: msg.presence, lastSeen: Date.now() });
+            if (msg.kind === "hello") this.announce("presence");
+            this.emitPresence();
+          }
+        } else if (msg.kind === "leave") {
+          this.peers.delete(msg.from);
+          this.emitPresence();
+        } else if (msg.kind === "broadcast" && msg.event) {
+          this.handlers.get(msg.event)?.forEach((h) => h(msg.payload));
+        }
+      };
+      this.announce("hello");
+      this.timer = setInterval(() => {
+        this.announce("presence");
+        const now = Date.now();
+        let changed = false;
+        this.peers.forEach((p, id) => {
+          if (now - p.lastSeen > LocalTransport.EXPIRY) {
+            this.peers.delete(id);
+            changed = true;
+          }
+        });
+        if (changed) this.emitPresence();
+      }, LocalTransport.HEARTBEAT);
+      window.addEventListener("pagehide", this.onPageHide);
+    }
+    this.emitPresence();
   }
+
+  private onPageHide = () => {
+    this.post({ kind: "leave" });
+  };
+
+  private post(msg: Record<string, unknown>) {
+    if (!this.channel || !this.presence) return;
+    try {
+      this.channel.postMessage({ ...msg, from: this.presence.id });
+    } catch {
+      /* channel closed */
+    }
+  }
+
+  private announce(kind: "hello" | "presence") {
+    this.post({ kind, presence: this.presence });
+  }
+
+  private emitPresence() {
+    if (!this.presence) return;
+    const list = [this.presence, ...Array.from(this.peers.values()).map((p) => p.presence)];
+    this.presenceHandler?.(list);
+  }
+
   disconnect() {
+    this.post({ kind: "leave" });
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+    if (typeof window !== "undefined") window.removeEventListener("pagehide", this.onPageHide);
+    this.channel?.close();
+    this.channel = null;
+    this.peers.clear();
     this.presence = null;
   }
+
   updatePresence(presence: PlayerPresence) {
     this.presence = presence;
-    this.presenceHandler?.([presence]);
+    this.announce("presence");
+    this.emitPresence();
   }
+
   onPresence(handler: (players: PlayerPresence[]) => void) {
     this.presenceHandler = handler;
-    if (this.presence) handler([this.presence]);
+    this.emitPresence();
   }
-  on() {
-    /* no remote peers */
+
+  on(event: string, handler: MessageHandler) {
+    if (!this.handlers.has(event)) this.handlers.set(event, new Set());
+    this.handlers.get(event)!.add(handler);
   }
-  send() {
-    /* no remote peers */
+
+  send(event: string, payload: unknown) {
+    this.post({ kind: "broadcast", event, payload });
   }
 }

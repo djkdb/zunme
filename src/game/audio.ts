@@ -4,7 +4,7 @@
  * so the game always has audible feedback. Audio is unlocked on the first
  * user gesture to satisfy browser autoplay policies.
  */
-import { SOUND_PATHS, type SoundName } from "@/game/config";
+import { SOUND_PATHS, USE_SOUND_FILES, type SoundName } from "@/game/config";
 
 type Synth = (ctx: AudioContext, dest: AudioNode, when: number) => void;
 
@@ -106,7 +106,7 @@ class SoundManager {
   }
 
   private async preload() {
-    if (this.loading || !this.ctx) return;
+    if (this.loading || !this.ctx || !USE_SOUND_FILES) return;
     this.loading = true;
     const ctx = this.ctx;
     await Promise.all(

@@ -108,3 +108,8 @@ export const localPose = {
   jumpedAt: 0,
   lastImpactAt: 0,
 };
+
+// Dev-only inspection hook (positions are not React state, so expose them for e2e tests / console debugging).
+if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
+  (window as unknown as { __dropzone?: unknown }).__dropzone = { localPose, livePoses, remoteBuffers };
+}

@@ -203,7 +203,7 @@ export class RoomClient {
 
   /** Called from the physics loop; throttled to NET_TICK_RATE internally. */
   sendSnapshot(build: (t: number) => Omit<PlayerSnapshot, "id" | "t">) {
-    if (this.transport.offline) return;
+    if (this.players.length < 2) return; // nobody to tell
     const nowLocal = performance.now();
     if (nowLocal - this.lastSnapshotSent < 1000 / NET_TICK_RATE) return;
     this.lastSnapshotSent = nowLocal;

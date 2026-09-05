@@ -7,26 +7,31 @@ import { computeRanking } from "@/game/authority";
 import { sound } from "@/game/audio";
 import { roomShareUrl } from "@/lib/room";
 import { selectIsHost, selectPlayers, useGameStore } from "@/store/gameStore";
-import { useShallow } from "zustand/react/shallow";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
 export function ResultScreen({ roomCode }: { roomCode: string }) {
   const router = useRouter();
-  const players = useGameStore(useShallow(selectPlayers));
+  const players = useGameStore(selectPlayers);
   const state = useGameStore((s) => s.state);
   const isHost = useGameStore(selectIsHost);
   const localId = useGameStore((s) => s.localId);
   const playAgain = useGameStore((s) => s.playAgain);
   const returnToLobby = useGameStore((s) => s.returnToLobby);
   const leave = useGameStore((s) => s.leave);
-  const [showPanel, setShowPanel] = useState(false);
+  const [phase, setPhase] = useState<"hold" | "splash" | "panel">("hold");
   const [shared, setShared] = useState(false);
 
+  // Let the final elimination land (slow-mo + banner) before the WINNER splash, then the panel.
   useEffect(() => {
-    const t = setTimeout(() => setShowPanel(true), 1800);
-    return () => clearTimeout(t);
+    const a = setTimeout(() => setPhase("splash"), 1600);
+    const b = setTimeout(() => setPhase("panel"), 4200);
+    return () => {
+      clearTimeout(a);
+      clearTimeout(b);
+    };
   }, []);
+  const showPanel = phase === "panel";
 
   const name = (id: string) => players.find((p) => p.id === id)?.nickname ?? "???";
   const color = (id: string) => players.find((p) => p.id === id)?.colorHex ?? "#ffffff";
@@ -62,7 +67,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
   return (
     <div className="pointer-events-none absolute inset-0 z-20 flex flex-col safe-pad">
       {/* Winner splash */}
-      {!showPanel && (
+      {phase === "splash" && (
         <div className="flex flex-1 flex-col items-center justify-center">
           <div className="anim-slam display text-6xl text-brand-2 hud-text sm:text-8xl">{winner ? "WINNER" : "DRAW"}</div>
           {winner && (
@@ -74,8 +79,8 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
       )}
 
       {showPanel && (
-        <div className="flex flex-1 items-center justify-center overflow-y-auto px-3 py-3">
-          <div className="panel anim-rise pointer-events-auto w-full max-w-md p-5 sm:p-6">
+        <div className="flex min-h-0 flex-1 overflow-y-auto px-3 py-3 short:px-2 short:py-2">
+          <div className="panel anim-rise pointer-events-auto m-auto w-full max-w-md p-5 sm:p-6 short:max-w-2xl short:p-4">
             <div className="text-center">
               <div className="text-[11px] font-black tracking-[0.4em] text-white/60">DROPZONE</div>
               <div className="display mt-1 text-2xl text-brand-2">{winner ? "🏆 WINNER" : "💀 NO SURVIVORS"}</div>
@@ -109,7 +114,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
               </div>
             )}
 
-            <ol className="max-h-40 space-y-1 overflow-y-auto pr-1">
+            <ol className="max-h-40 space-y-1 overflow-y-auto pr-1 short:grid short:max-h-24 short:grid-cols-2 short:gap-1 short:space-y-0">
               {ranking.map((id, i) => (
                 <li key={id} className={`flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-bold ${i === 0 ? "bg-brand-2/20 text-white" : "bg-white/5 text-white/85"}`}>
                   <span className="w-6 text-center">{MEDALS[i] ?? `${i + 1}.`}</span>

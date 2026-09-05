@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Short viewports (landscape phones): compact panels */
+@custom-variant short (@media (max-height: 520px));
+
 @theme inline {
   --font-sans: var(--font-display), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --color-brand: #ff5a3c;

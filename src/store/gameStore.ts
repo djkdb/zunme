@@ -30,6 +30,8 @@ interface GameStore {
   presences: PlayerPresence[];
   hostId: string | null;
   state: GameState;
+  /** Derived from presences + hostId + state; recomputed on write so selectors stay referentially stable. */
+  players: Player[];
   /** Local overlay: user pressed "return to lobby" while the room is still FINISHED. */
   viewingLobby: boolean;
   lastElimination: EliminationNotice | null;
@@ -60,6 +62,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   presences: [],
   hostId: null,
   state: createInitialState(identity.id),
+  players: [],
   viewingLobby: false,
   lastElimination: null,
   eliminationSeq: 0,
@@ -93,7 +96,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
             }
           }
         }
-        set({ presences: players, hostId });
+        set({ presences: players, hostId, players: toPlayers(players, hostId, get().state) });
       },
       onState: (state) => {
         const prev = get().state;
@@ -114,6 +117,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
           };
           patch.eliminationSeq = get().eliminationSeq + 1;
         }
+        patch.players = toPlayers(get().presences, get().hostId, state);
         set(patch);
       },
       onEvent: () => {
@@ -124,7 +128,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
     try {
       await client.connect();
-      set({ client, connected: true, connecting: false, offline: client.offline, state: client.currentState });
+      const state = client.currentState;
+      set({ client, connected: true, connecting: false, offline: client.offline, state, players: toPlayers(get().presences, get().hostId, state) });
     } catch (e) {
       client.disconnect();
       set({ connecting: false, connected: false, error: e instanceof Error ? e.message : "Failed to connect" });
@@ -141,6 +146,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       presences: [],
       hostId: null,
       state: createInitialState(get().localId),
+      players: [],
       viewingLobby: false,
       lastElimination: null,
     });
@@ -188,7 +194,7 @@ export function toPlayers(presences: PlayerPresence[], hostId: string | null, st
   }));
 }
 
-export const selectPlayers = (s: GameStore) => toPlayers(s.presences, s.hostId, s.state);
+export const selectPlayers = (s: GameStore) => s.players;
 export const selectIsHost = (s: GameStore) => s.hostId === s.localId;
 export const selectLocalAlive = (s: GameStore) => s.state.alive.includes(s.localId);
 export const selectIsParticipant = (s: GameStore) => s.state.participants.includes(s.localId);

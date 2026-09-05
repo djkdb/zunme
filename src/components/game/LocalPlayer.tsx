@@ -39,6 +39,7 @@ interface Props {
   nickname: string;
   colorHex: string;
   spawn: [number, number, number];
+  showLabel: boolean;
 }
 
 interface BodyUserData {
@@ -49,7 +50,7 @@ interface BodyUserData {
 const tmpVel = new THREE.Vector3();
 const tmpDir = new THREE.Vector3();
 
-export function LocalPlayer({ id, nickname, colorHex, spawn }: Props) {
+export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel }: Props) {
   const body = useRef<RapierRigidBody>(null);
   const animRef = useRef<CharacterAnim>(createAnim());
   const { world, rapier } = useRapier();
@@ -229,7 +230,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn }: Props) {
     >
       <CapsuleCollider args={[halfHeight, PLAYER_RADIUS]} friction={0.2} restitution={0.15} />
       <group position={[0, -PLAYER_HEIGHT / 2, 0]}>
-        <Character colorHex={colorHex} nickname={nickname} animRef={animRef} isLocal />
+        <Character colorHex={colorHex} nickname={nickname} animRef={animRef} isLocal showLabel={showLabel} />
       </group>
     </RigidBody>
   );
