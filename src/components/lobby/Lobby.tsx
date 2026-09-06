@@ -8,6 +8,7 @@ import { SERIES_OPTIONS } from "@/game/series";
 import { MODIFIERS, MODIFIER_POOL } from "@/game/modifiers";
 import { MuteButton } from "@/components/hud/MuteButton";
 import { QualityButton } from "@/components/hud/QualityButton";
+import { RoomQr } from "@/components/lobby/RoomQr";
 import { ShopButton } from "@/components/shop/ShopButton";
 import { GAME_MODES, MAX_PLAYERS, MIN_PLAYERS_TO_START } from "@/game/config";
 import type { GameMode } from "@/types";
@@ -42,6 +43,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
   }, [round, setReady]);
   const notices = useGameStore((s) => s.roomNotices);
   const [copied, setCopied] = useState(false);
+  const [showQr, setShowQr] = useState(false);
   // toasts expire on their own: a coarse clock re-renders while any are alive
   const [now, setNow] = useState(0);
   useEffect(() => {
@@ -145,7 +147,26 @@ export function Lobby({ roomCode }: { roomCode: string }) {
               <button className="btn btn-accent min-h-12 px-5 text-sm" onClick={share}>
                 공유
               </button>
+              <button
+                className={`btn min-h-12 px-4 text-sm ${showQr ? "btn-primary" : "btn-ghost"}`}
+                onClick={() => {
+                  sound.play("click");
+                  setShowQr((v) => !v);
+                }}
+                aria-label="초대 QR"
+              >
+                QR
+              </button>
             </div>
+            {showQr && (
+              <div className="anim-pop mt-3 flex items-center justify-center gap-3">
+                <RoomQr url={roomShareUrl(roomCode)} size={124} />
+                <div className="text-left text-[11px] font-bold leading-snug text-white/70">
+                  옆 사람은 카메라로<br />QR을 찍으면 바로 참가.<br />
+                  <span className="text-white/45">{roomShareUrl(roomCode).replace(/^https?:\/\//, "")}</span>
+                </div>
+              </div>
+            )}
             {offline && <p className="mt-3 text-[11px] font-bold text-brand-2">로컬 모드 — 같은 기기의 다른 탭만 참가할 수 있어요.</p>}
           </div>
 

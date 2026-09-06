@@ -72,7 +72,9 @@ instead by setting its env vars (see [`supabase/README.md`](supabase/README.md))
 
 See [`DEPLOY.md`](DEPLOY.md): `npm run preview` runs the Worker + Durable
 Object locally, `npm run deploy` ships it. Optional Neon match history via
-`neon/schema.sql` + a `DATABASE_URL` secret.
+`neon/schema.sql` + a `DATABASE_URL` secret. Set `NEXT_PUBLIC_SITE_URL` so
+link previews (OG card, room invites) point at your domain; the lobby has a
+QR + share sheet and the result screen exports a shareable result-card PNG.
 
 ## Controls
 

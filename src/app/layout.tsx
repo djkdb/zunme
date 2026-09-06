@@ -3,6 +3,7 @@ import { Rubik } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { AudioUnlocker } from "@/components/hud/AudioUnlocker";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
 
 const display = Rubik({
   variable: "--font-display",
@@ -12,13 +13,27 @@ const display = Rubik({
 });
 
 export const metadata: Metadata = {
-  title: "ZUUUN — 친구랑 8인 파티 게임",
-  description: "ZUN 캐릭터로 즐기는 15가지 파티 모드. 밀치기, 레이스, 감염, 폭탄 돌리기까지. 브라우저에서 바로 플레이.",
-  openGraph: {
-    title: "ZUUUN — 친구랑 8인 파티 게임",
-    description: "ZUN 캐릭터로 즐기는 15가지 파티 모드.",
-    type: "website",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [{ url: "/icon-192.png", sizes: "192x192", type: "image/png" }, { url: "/icon-512.png", sizes: "512x512", type: "image/png" }],
+    apple: [{ url: "/icon-180.png", sizes: "180x180", type: "image/png" }],
   },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: SITE_NAME },
+  openGraph: {
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "ko_KR",
+    url: "/",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "ZUUUN — 친구랑 8인 파티 게임" }],
+  },
+  twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION, images: ["/og.png"] },
+  robots: { index: true, follow: true },
 };
 
 export const viewport: Viewport = {

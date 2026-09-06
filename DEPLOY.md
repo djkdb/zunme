@@ -106,7 +106,25 @@ running `npm run deploy`).
 
 ---
 
-## 4. Checklist before sharing the link
+## 4. Share loop (what makes the link spread)
+
+Set **`NEXT_PUBLIC_SITE_URL`** to the public origin (e.g.
+`https://zuuun.example.com`) as a build-time variable so absolute links in the
+metadata point at your domain. Everything below then works out of the box:
+
+| Surface | What people see |
+| --- | --- |
+| `/` | OG card (`public/og.png`, 1200×630) + Twitter `summary_large_image`, so a pasted link unfurls in KakaoTalk / Discord / iMessage. |
+| `/room/CODE` | "ZUUUN 방 CODE에 초대받았어요" title + description, `noindex`. Invite links look like invites, not like the homepage. |
+| Lobby | 코드 복사 · 공유 (native share sheet) · **QR** (people in the same room scan instead of typing). |
+| Result screen | 📤 text share (rank / KO / time / top moment + invite link) and 🖼 a 1080×1080 **result card PNG** shared as a file (falls back to a download). |
+| Home | 📤 친구에게 ZUUUN 알리기 shares the site itself. |
+| PWA | `manifest.webmanifest` + icons: "홈 화면에 추가" installs it fullscreen in landscape. |
+
+To refresh the OG image or icons, edit the HTML in your own tooling and
+re-render at 1200×630 / 512² / 192² / 180² into `public/`.
+
+## 5. Checklist before sharing the link
 
 - [ ] Open the deployed URL on a phone and a laptop; create a room on one,
       join by code on the other — both should show **2 / 8**.
@@ -115,3 +133,5 @@ running `npm run deploy`).
       `wrangler.jsonc`) shows Durable Object errors; a `400` on `/ws` means
       a malformed room code.
 - [ ] (Neon) `select count(*) from results;` increases after a finished round.
+- [ ] Paste the URL into a chat app: the ZUUUN card should unfurl (needs `NEXT_PUBLIC_SITE_URL`).
+- [ ] Paste a room link: it should unfurl as an invite ("방 CODE에 초대받았어요").

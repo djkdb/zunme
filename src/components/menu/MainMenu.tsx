@@ -29,6 +29,27 @@ export function MainMenu() {
   const [joining, setJoining] = useState(false);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sharedGame, setSharedGame] = useState(false);
+  const shareGame = async () => {
+    sound.play("click");
+    const url = window.location.origin;
+    const text = "ZUUUN — 설치 없이 브라우저에서 친구랑 8인 파티 게임. 밀치기·레이스·감염·폭탄 돌리기!";
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "ZUUUN", text, url });
+        return;
+      } catch {
+        /* cancelled */
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      setSharedGame(true);
+      setTimeout(() => setSharedGame(false), 1500);
+    } catch {
+      /* ignore */
+    }
+  };
 
   // Arriving at the menu always means leaving any previous room.
   useEffect(() => {
@@ -184,6 +205,9 @@ export function MainMenu() {
             </p>
           )}
           {offline && <p className="rounded-full bg-[#ffd32a]/90 px-3 py-1 text-[11px] font-black text-[#12142b]">로컬 모드 — 같은 기기의 탭끼리만 플레이할 수 있어요</p>}
+          <button className="pointer-events-auto mt-1 rounded-full bg-white/10 px-3 py-1 text-[11px] font-black tracking-widest text-white/80 active:scale-95" onClick={shareGame}>
+            {sharedGame ? "링크 복사됨 ✓" : "📤 친구에게 ZUUUN 알리기"}
+          </button>
         </div>
       </div>
     </div>

@@ -15,6 +15,7 @@ import { ShopButton } from "@/components/shop/ShopButton";
 import { rewardKey } from "@/game/rewards";
 import { hostNow } from "@/game/clock";
 import { modifierLabel } from "@/game/modifiers";
+import { shareResultCard } from "@/lib/resultCard";
 import { isSeries, roundResultLabel, seriesActive, seriesStandings } from "@/game/series";
 import { roundMoments } from "@/game/moments";
 import type { GameState } from "@/types";
@@ -152,6 +153,30 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
     return Math.max(0, ((out && out > state.startAt ? out : state.endAt) - state.startAt) / 1000);
   };
   const mySurvival = lasted(localId);
+
+  const [cardState, setCardState] = useState<"idle" | "busy" | "done">("idle");
+  const shareCard = async () => {
+    sound.play("click");
+    setCardState("busy");
+    const url = roomShareUrl(roomCode);
+    const headline = champion ? "👑 시리즈 챔피언" : teamWon ? `⚔️ ${teamLabel(state.mode)}` : winner ? `${bossMode ? "👑" : "🏆"} ${winnerLabel}` : noWinnerLabel;
+    const order = champion ? seriesStandings(state, Array.from(new Set([...state.participants, ...players.map((p) => p.id)]))) : ranking;
+    const res = await shareResultCard(
+      {
+        headline,
+        modeLabel: `${meta.icon} ${meta.name}${state.modifier !== "NONE" ? ` · 🎲 ${modifierLabel(state.modifier)}` : ""}`,
+        winner: champion ? { name: name(champion), color: color(champion) } : winner ? { name: name(winner), color: color(winner) } : null,
+        rows: order.map((id) => ({ name: name(id), color: color(id), me: id === localId, detail: champion ? `${state.series[id] ?? 0}점` : scoreMode ? scoreOf(id) : `${lasted(id).toFixed(0)}s · 💥${state.knockouts[id] ?? 0}` })),
+        moments,
+        footer: `같이 하기 → ${url.replace(/^https?:\/\//, "")}`,
+        seriesLine: inSeries ? (champion ? `FINAL RESULT · BEST OF ${state.seriesTotal}` : `PARTY SERIES · ROUND ${state.seriesRound} / ${state.seriesTotal}`) : undefined,
+      },
+      `ZUUUN ${headline}`,
+      url,
+    );
+    setCardState(res === "failed" ? "idle" : "done");
+    setTimeout(() => setCardState("idle"), 1800);
+  };
 
   const share = async () => {
     sound.play("click");
@@ -389,6 +414,9 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
               <div className="flex gap-2">
                 <button className="btn btn-accent min-h-12 flex-1 text-sm" onClick={share}>
                   {shared ? "복사됨 ✓" : "📤 결과 공유"}
+                </button>
+                <button className="btn btn-secondary min-h-12 px-3 text-sm" onClick={shareCard} title="결과 카드 이미지">
+                  {cardState === "busy" ? "…" : cardState === "done" ? "저장됨 ✓" : "🖼"}
                 </button>
                 <button className="btn btn-ghost min-h-12 flex-1 text-sm" onClick={() => { sound.play("click"); returnToLobby(); }}>
                   로비
