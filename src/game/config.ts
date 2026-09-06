@@ -3,7 +3,7 @@
  * gameplay feel can be adjusted without touching component code.
  */
 
-export const GAME_NAME = "DROPZONE";
+export const GAME_NAME = "ZUUUN";
 
 // ── Room ─────────────────────────────────────────────────────────────
 export const MAX_PLAYERS = 8;

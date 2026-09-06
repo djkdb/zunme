@@ -12,11 +12,11 @@ const display = Rubik({
 });
 
 export const metadata: Metadata = {
-  title: "드롭존 — 최후의 1인",
-  description: "떠 있는 섬에서 친구들을 밀어 떨어뜨리세요. 8인 파티 게임, 15개 모드. 브라우저에서 바로 플레이.",
+  title: "ZUUUN — 친구랑 8인 파티 게임",
+  description: "ZUN 캐릭터로 즐기는 15가지 파티 모드. 밀치기, 레이스, 감염, 폭탄 돌리기까지. 브라우저에서 바로 플레이.",
   openGraph: {
-    title: "드롭존 — 최후의 1인",
-    description: "8명, 떠 있는 섬 하나. 마지막까지 남는 사람이 승리.",
+    title: "ZUUUN — 친구랑 8인 파티 게임",
+    description: "ZUN 캐릭터로 즐기는 15가지 파티 모드.",
     type: "website",
   },
 };

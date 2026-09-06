@@ -95,7 +95,7 @@ export function RoomView({ roomCode }: { roomCode: string }) {
       {needsName && (
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#12142b]/60 px-4 backdrop-blur-sm">
           <div className="panel anim-pop w-full max-w-sm p-6 text-center">
-            <div className="display text-3xl text-white">DROPZONE</div>
+            <div className="display text-3xl text-white">ZUUUN</div>
             <p className="mt-1 text-xs font-bold tracking-widest text-white/60">방 {roomCode} 참가 중</p>
             <input
               value={draftName}

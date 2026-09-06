@@ -1,4 +1,4 @@
-# DROPZONE — Last One Standing
+# ZUUUN — 8-player party game
 
 A mobile-first 3D multiplayer party game in the browser. Up to 8 friends,
 five party modes, one 6-letter room code, no accounts:

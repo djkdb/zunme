@@ -74,7 +74,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
     const text = `${headline}\n${stats}\n같이 하기: ${url}`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: "DROPZONE", text, url });
+        await navigator.share({ title: "ZUUUN", text, url });
         return;
       } catch {
         /* cancelled */

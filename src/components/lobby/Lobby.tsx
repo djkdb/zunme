@@ -41,10 +41,10 @@ export function Lobby({ roomCode }: { roomCode: string }) {
   const share = async () => {
     sound.play("click");
     const url = roomShareUrl(roomCode);
-    const text = `드롭존 같이 하자! 방 코드: ${roomCode}`;
+    const text = `ZUUUN 같이 하자! 방 코드: ${roomCode}`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: "DROPZONE", text, url });
+        await navigator.share({ title: "ZUUUN", text, url });
         return;
       } catch {
         /* cancelled */
@@ -77,7 +77,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
       <div className="flex min-h-0 flex-1 overflow-y-auto scroll-y px-3 pb-3 short:px-2 short:pb-2">
         <div className="panel anim-rise pointer-events-auto m-auto w-full max-w-md p-5 sm:p-7 short:max-w-2xl short:p-4">
           <div className="text-center">
-            <div className="display text-3xl text-white sm:text-4xl short:hidden">DROPZONE</div>
+            <div className="display text-3xl text-white sm:text-4xl short:hidden">ZUUUN</div>
             <div className="mt-3 text-[11px] font-bold tracking-[0.35em] text-white/60 short:mt-0">방 코드</div>
             <div className="mt-1 font-mono text-[44px] font-black tracking-[0.3em] text-brand-2 sm:text-[56px] short:text-[36px]">{roomCode}</div>
             <div className="mt-3 flex justify-center gap-2 short:mt-2">

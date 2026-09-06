@@ -1,6 +1,6 @@
-# Deploying DROPZONE — Cloudflare Workers (+ optional Neon)
+# Deploying ZUUUN — Cloudflare Workers (+ optional Neon)
 
-DROPZONE ships with its own realtime server: a **Cloudflare Durable Object**
+ZUUUN ships with its own realtime server: a **Cloudflare Durable Object**
 (`worker/room-object.ts`) that handles presence and message relay for each
 room. It deploys together with the Next.js app in one Worker, so the whole
 game runs on Cloudflare's free plan with **no Supabase required**.
