@@ -411,7 +411,8 @@ export class GameAuthority {
     if (s.status !== "PLAYING" || !hasFinishLine(s.mode)) return;
     if (!s.alive.includes(playerId) || s.finishOrder.includes(playerId)) return;
     const finishOrder = [...s.finishOrder, playerId];
-    const patch: Partial<GameState> = { finishOrder, progress: { ...s.progress, [playerId]: 999 } };
+    // outAt doubles as the finish time for racers (result screen + photo-finish moments)
+    const patch: Partial<GameState> = { finishOrder, progress: { ...s.progress, [playerId]: 999 }, outAt: { ...s.outAt, [playerId]: now } };
     if (finishOrder.length === 1) patch.endAt = Math.min(s.endAt, now + RACE_FINISH_GRACE);
     this.commit(patch);
     this.checkFinish(now);

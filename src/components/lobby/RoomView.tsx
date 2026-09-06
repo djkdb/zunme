@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { GameCanvas } from "@/components/game/GameCanvas";
 import { GameScene } from "@/components/game/GameScene";
 import { Countdown } from "@/components/hud/Countdown";
+import { MomentToasts } from "@/components/hud/MomentToasts";
 import { EliminationBanner } from "@/components/hud/EliminationBanner";
 import { FinishBanner } from "@/components/hud/FinishBanner";
 import { GameHUD } from "@/components/hud/GameHUD";
@@ -154,6 +155,7 @@ export function RoomView({ roomCode }: { roomCode: string }) {
           <FinalCountdown />
           <EliminationBanner />
           <FinishBanner />
+          <MomentToasts />
           {showControls && <MobileControls />}
           {localAlive && <EmoteControls />}
         </>
@@ -163,6 +165,7 @@ export function RoomView({ roomCode }: { roomCode: string }) {
         <>
           <EliminationBanner />
           <FinishBanner />
+          <MomentToasts />
         </>
       )}
       {connected && status === "FINISHED" && !viewingLobby && <ResultScreen roomCode={roomCode} />}

@@ -15,7 +15,8 @@ import { ShopButton } from "@/components/shop/ShopButton";
 import { rewardKey } from "@/game/rewards";
 import { hostNow } from "@/game/clock";
 import { modifierLabel } from "@/game/modifiers";
-import { isSeries, roundResultLabel, seriesActive, seriesMoments, seriesStandings } from "@/game/series";
+import { isSeries, roundResultLabel, seriesActive, seriesStandings } from "@/game/series";
+import { roundMoments } from "@/game/moments";
 import type { GameState } from "@/types";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
@@ -135,7 +136,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
   const scoreOf = (id: string) => (state.mode === "COIN" ? `🪙 ${state.scores[id] ?? 0}` : `${((state.scores[id] ?? 0) / 1000).toFixed(1)}s`);
   const series = state.series;
   const seriesRows = inSeries ? [] : players.filter((p) => (series[p.id] ?? 0) > 0).sort((a, b) => (series[b.id] ?? 0) - (series[a.id] ?? 0));
-  const moments = inSeries ? seriesMoments(state, name) : [];
+  const moments = roundMoments(state, name);
   const lastRound = state.seriesRounds[state.seriesRounds.length - 1];
   const myRoundPts = lastRound?.points[localId] ?? 0;
   const meta = GAME_MODES[state.mode];
@@ -161,8 +162,9 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
       myKo > 0 ? `💥 ${myKo}명 날림` : null,
       scoreMode ? `🎯 ${scoreOf(localId)}` : `⏱ ${mySurvival.toFixed(1)}초`,
     ].filter(Boolean);
+    const momentLine = moments[0] ? `\n${moments[0]}` : "";
     const seriesLine = champion ? `\n👑 시리즈 챔피언: ${name(champion)} (${state.series[champion] ?? 0}점 / ${state.seriesTotal}판)` : inSeries ? `\n🏆 시리즈 ${state.seriesRound}/${state.seriesTotal} · 내 점수 ${series[localId] ?? 0}` : "";
-    const text = `ZUUUN\n\n${headline}\n${meta.icon} ${meta.name}${seriesLine}\n\n${mine.join("\n")}\n\n같이 하기: ${url}`;
+    const text = `ZUUUN\n\n${headline}\n${meta.icon} ${meta.name}${seriesLine}${momentLine}\n\n${mine.join("\n")}\n\n같이 하기: ${url}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: "ZUUUN", text, url });
