@@ -36,6 +36,8 @@ const tmpScale = new THREE.Vector3();
 const tmpEuler = new THREE.Euler();
 const tmpColor = new THREE.Color();
 const HIDDEN = new THREE.Matrix4().makeScale(0, 0, 0);
+const WALL_DATA = { type: "wall" } as const;
+const GROUND_DATA = { type: "ground" } as const;
 
 // ── COLOR PANIC ──────────────────────────────────────────────────────
 const COLOR_THICK = 0.6;
@@ -138,7 +140,7 @@ export function ColorArena() {
 
   return (
     <group>
-      <RigidBody type="fixed" colliders={false} userData={{ type: "ground" }}>
+      <RigidBody type="fixed" colliders={false} userData={GROUND_DATA}>
         {COLOR_TILES.map((t) => (
           <CuboidCollider key={t.index} ref={bindCollider(t.index)} args={[COLOR_HALF, COLOR_THICK / 2, COLOR_HALF]} position={[t.x, -COLOR_THICK / 2, t.z]} friction={0.9} />
         ))}
@@ -206,7 +208,7 @@ function WallBody({ slot, schedule }: { slot: number; schedule: ReturnType<typeo
   });
 
   return (
-    <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[0, 0, 1000]} userData={{ type: "wall" }}>
+    <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[0, 0, 1000]} userData={WALL_DATA}>
       {Array.from({ length: WALL_SLOT_COUNT }, (_, s) => {
         const x = -WALLS_HALF_X + (s + 0.5) * WALL_SLOT_WIDTH;
         return (
@@ -229,7 +231,7 @@ export function WallRush() {
   const stripes = useMemo(() => Array.from({ length: 7 }, (_, i) => -WALLS_HALF_Z + 2 + i * ((WALLS_HALF_Z * 2 - 4) / 6)), []);
   return (
     <group>
-      <RigidBody type="fixed" colliders={false} userData={{ type: "ground" }}>
+      <RigidBody type="fixed" colliders={false} userData={GROUND_DATA}>
         <CuboidCollider args={[WALLS_HALF_X, 0.5, WALLS_HALF_Z]} position={[0, -0.5, 0]} friction={0.9} />
       </RigidBody>
       <mesh position={[0, -0.5, 0]} receiveShadow castShadow>
@@ -269,7 +271,7 @@ export function SpinCycle() {
   });
   return (
     <group>
-      <RigidBody type="fixed" colliders={false} userData={{ type: "ground" }}>
+      <RigidBody type="fixed" colliders={false} userData={GROUND_DATA}>
         <CylinderCollider args={[0.4, SPIN_RADIUS]} position={[0, -0.4, 0]} friction={0.9} />
       </RigidBody>
       <mesh position={[0, -0.4, 0]} receiveShadow castShadow>
@@ -312,7 +314,7 @@ export function HillArena() {
     <group>
       <Arena />
       <Meteors />
-      <RigidBody type="fixed" colliders={false} userData={{ type: "ground" }}>
+      <RigidBody type="fixed" colliders={false} userData={GROUND_DATA}>
         <CylinderCollider args={[HILL_HEIGHT / 2, HILL_RADIUS]} position={[0, HILL_HEIGHT / 2, 0]} friction={0.9} />
       </RigidBody>
       <mesh position={[0, HILL_HEIGHT / 2, 0]} castShadow receiveShadow>

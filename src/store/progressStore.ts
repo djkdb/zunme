@@ -119,6 +119,7 @@ export const useProgressStore = create<ProgressStore>((set) => ({
       if (stats.bestRaceMs === 0 || summary.survivedMs < stats.bestRaceMs) stats.bestRaceMs = summary.survivedMs;
     }
     if (summary.rank <= 3 && summary.participants >= 2) stats.top3++;
+    stats.knockouts += summary.knockouts ?? 0;
     if (summary.mode !== "RACE") stats.longestSurvivalMs = Math.max(stats.longestSurvivalMs, summary.survivedMs);
     if (summary.participants >= 4) stats.bigRooms++;
     const streak = summary.won ? cur.streak + 1 : 0;

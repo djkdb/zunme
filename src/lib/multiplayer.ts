@@ -21,7 +21,7 @@ function createTransport(): Transport {
   }
 }
 import { GameAuthority, createInitialState } from "@/game/authority";
-import { NET_STATE_HEARTBEAT, NET_TICK_RATE } from "@/game/config";
+import { NET_BURST_RATE, NET_STATE_HEARTBEAT, NET_TICK_RATE } from "@/game/config";
 import { clearSnapshots, pushSnapshot } from "@/game/remote";
 import { electHost, sortPlayers } from "@/lib/room";
 import { getRealtimeBackend, getRealtimeUrl } from "@/lib/realtime";
@@ -240,10 +240,10 @@ export class RoomClient {
   }
 
   /** Called from the physics loop; throttled to NET_TICK_RATE internally. */
-  sendSnapshot(build: (t: number) => Omit<PlayerSnapshot, "id" | "t">) {
+  sendSnapshot(build: (t: number) => Omit<PlayerSnapshot, "id" | "t">, burst = false) {
     if (this.players.length < 2) return; // nobody to tell
     const nowLocal = performance.now();
-    if (nowLocal - this.lastSnapshotSent < 1000 / NET_TICK_RATE) return;
+    if (nowLocal - this.lastSnapshotSent < 1000 / (burst ? NET_BURST_RATE : NET_TICK_RATE)) return;
     this.lastSnapshotSent = nowLocal;
     const t = this.now();
     const snap: PlayerSnapshot = { id: this.localId, t, ...build(t) };

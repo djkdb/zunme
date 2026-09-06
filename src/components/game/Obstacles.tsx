@@ -10,6 +10,9 @@ import { useGameStore } from "@/store/gameStore";
 
 const quat = new THREE.Quaternion();
 const axisY = new THREE.Vector3(0, 1, 0);
+const POLE_DATA = { type: "pole" } as const;
+const SPINNER_DATA = { type: "spinner" } as const;
+const WALL_DATA = { type: "wall" } as const;
 
 /** ms since GO!, or -Infinity outside a round (obstacles then idle). */
 export function currentElapsed(): number {
@@ -55,7 +58,7 @@ export function Spinner({ position = [0, 0, 0], length = SPINNER_LENGTH, height 
   return (
     <group position={position}>
       {showPole && (
-        <RigidBody type="fixed" colliders={false} userData={{ type: "pole" }}>
+        <RigidBody type="fixed" colliders={false} userData={POLE_DATA}>
           <CylinderCollider args={[0.9, 0.45]} position={[0, 0.9, 0]} />
           <mesh castShadow receiveShadow position={[0, 0.9, 0]}>
             <cylinderGeometry args={[0.42, 0.5, 1.8, 10]} />
@@ -67,7 +70,7 @@ export function Spinner({ position = [0, 0, 0], length = SPINNER_LENGTH, height 
           </mesh>
         </RigidBody>
       )}
-      <RigidBody ref={body} type="kinematicPosition" colliders={false} userData={{ type: "spinner" }}>
+      <RigidBody ref={body} type="kinematicPosition" colliders={false} userData={SPINNER_DATA}>
         <CuboidCollider args={[length / 2, 0.2, 0.22]} position={[0, barY, 0]} />
         <mesh castShadow position={[0, barY, 0]}>
           <boxGeometry args={[length, 0.4, 0.44]} />
@@ -120,7 +123,7 @@ export function Sweeper({ z, y = 0, length = WALL_LENGTH, height = 1.05, xAt, co
 
   const slats = Math.max(2, Math.round(length / 1.6));
   return (
-    <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[0, y, z]} rotation={[0, rotated ? Math.PI / 2 : 0, 0]} userData={{ type: "wall" }}>
+    <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[0, y, z]} rotation={[0, rotated ? Math.PI / 2 : 0, 0]} userData={WALL_DATA}>
       <CuboidCollider args={[length / 2, height / 2, 0.35]} position={[0, height / 2, 0]} />
       <mesh castShadow receiveShadow position={[0, height / 2, 0]}>
         <boxGeometry args={[length, height, 0.7]} />

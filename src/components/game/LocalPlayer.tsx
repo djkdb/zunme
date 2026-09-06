@@ -58,6 +58,8 @@ import { livePoses, localPose } from "@/game/remote";
 import { sound } from "@/game/audio";
 import { raceRuntime } from "@/game/sync";
 import { partyRuntime } from "@/game/party";
+import { onGameplayEvent } from "@/game/sync";
+import { NET_BURST_AFTER_MS } from "@/game/config";
 import { useGameStore } from "@/store/gameStore";
 import { isRoundActive } from "@/game/clock";
 
@@ -163,6 +165,17 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       delete w.__dropzone?.teleport;
     };
   }, []);
+
+  // Relayed hits: the attacker saw the contact on their screen; if our own physics
+  // missed it (fast dash between snapshots) apply the same shove here.
+  useEffect(() => {
+    return onGameplayEvent((evt) => {
+      if (evt.k !== "hit" || evt.to !== id) return;
+      const now = performance.now();
+      if (now - localPose.lastImpactAt < 150) return; // we already felt this one locally
+      localPose.pendingImpulse = { x: evt.x * evt.s, y: PUSH_UPWARD * evt.s, z: evt.z * evt.s, stunMs: evt.dash ? DASH_HIT_STUN_MS : HIT_STUN_MS, by: evt.from, heavy: evt.dash };
+    });
+  }, [id]);
 
   // Reset to the spawn point whenever a new round begins.
   useEffect(() => {
@@ -438,7 +451,21 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       localPose.stunUntil = now + pending.stunMs;
       anim.stunUntil = localPose.stunUntil;
       anim.hitAt = now;
-      sound.play("impact", { volume: 0.8, throttleMs: 100 });
+      localPose.lastImpactAt = now;
+      if (pending.by) {
+        localPose.lastHitBy = pending.by;
+        localPose.lastHitAt = now;
+      }
+      burst({ position: { x: t.x, y: t.y, z: t.z }, color: ["#ffffff", "#ffd32a", colorHex], count: pending.heavy ? 20 : 10, speed: pending.heavy ? 5 : 3, life: 0.5, size: 0.15 });
+      if (pending.heavy) {
+        slowMotion(HITSTOP_SCALE, HITSTOP_MS);
+        shake(0.6);
+        haptic(70);
+        sound.play("heavy", { volume: 0.9, throttleMs: 60 });
+      } else {
+        shake(0.3);
+        sound.play("impact", { volume: 0.8, throttleMs: 100 });
+      }
     } else if (pending) {
       localPose.pendingImpulse = null;
     }
@@ -519,12 +546,14 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       }
     }
 
+    const nowSnap = performance.now();
+    const burstRate = nowSnap < localPose.dashUntil + NET_BURST_AFTER_MS || nowSnap - localPose.lastImpactAt < NET_BURST_AFTER_MS;
     useGameStore.getState().client?.sendSnapshot(() => ({
       p: [round(t.x), round(t.y - PLAYER_HEIGHT / 2), round(t.z)],
       r: round(anim.yaw),
       v: [round(v.x), round(v.y), round(v.z)],
       g: grounded.current,
-    }));
+    }), burstRate);
   });
 
   const onCollisionEnter = (payload: CollisionPayload) => {
@@ -569,6 +598,13 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       if (data.id && !dashing) {
         localPose.lastHitBy = data.id;
         localPose.lastHitAt = now;
+      }
+      // Tell the victim: their screen may not have seen our body pass through them.
+      if (data.id && (dashing || relative > 9)) {
+        let theirs = THREE.MathUtils.clamp(PUSH_IMPULSE + relative * PUSH_RELATIVE_FACTOR, PUSH_IMPULSE * 0.6, PUSH_IMPULSE_MAX) * PLAYER_MASS;
+        if (dashing) theirs *= DASH_HIT_MULTIPLIER;
+        if (boss) theirs *= BOSS_HIT_MULTIPLIER;
+        useGameStore.getState().client?.broadcastGameplay({ k: "hit", from: id, to: data.id, x: round(-tmpDir.x), z: round(-tmpDir.z), s: round(theirs), dash: dashing });
       }
       const mid = { x: (me.x + them.x) / 2, y: me.y, z: (me.z + them.z) / 2 };
       const heavy = dashing || otherDashing;

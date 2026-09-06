@@ -91,6 +91,8 @@ export class GameAuthority {
   constructor(state: GameState, hostId: string) {
     this.state = { ...state, hostId, version: state.version + 1 };
     this.changed = true;
+    // Host handover mid-round: derive counters from the inherited state.
+    if (state.mode === "BOMB") this.explosions = state.eliminationOrder.length;
   }
 
   /** Returns and clears the dirty flag. */

@@ -3,7 +3,9 @@
  * MELTDOWN tile vanishing). Idempotent by design: every client applies
  * them on receipt, the sender applies them immediately.
  */
-export type GameplayEvent = { k: "tile"; layer: number; index: number } | { k: "door"; index: number } | { k: "reveal"; index: number };
+export type GameplayEvent = { k: "tile"; layer: number; index: number } | { k: "door"; index: number } | { k: "reveal"; index: number } | { k: "emote"; id: string; e: number }
+  /** attacker-side contact relayed to the victim so the shove lands on every screen */
+  | { k: "hit"; from: string; to: string; x: number; z: number; s: number; dash: boolean };
 
 type Listener = (evt: GameplayEvent) => void;
 const listeners = new Set<Listener>();

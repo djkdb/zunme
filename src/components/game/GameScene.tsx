@@ -17,6 +17,7 @@ import { RooftopCourse, useCourse } from "@/components/game/RooftopCourse";
 import { CoinField, ColorArena, CrownArena, HillArena, ModeMarkers, SpinCycle, WallRush } from "@/components/game/PartyArenas";
 import { TiptoeCourse, tiptoeStep } from "@/components/game/TiptoeCourse";
 import { LavaTower } from "@/components/game/LavaTower";
+import { EmoteBubbles } from "@/components/game/EmoteBubbles";
 import {
   GOGUN_COIN_POINTS,
   GOGUN_COIN_RADIUS,
@@ -376,6 +377,7 @@ export function GameScene({ mobile }: { mobile: boolean }) {
           <RemotePlayer key={`${p.id}-${mode}-${bossId === p.id ? "boss" : "n"}`} id={p.id} nickname={p.nickname} colorHex={p.colorHex} spawn={spawn} showLabel={showLabels} cosmetics={p.cosmetics} ghost={mode === "GOGUN"} boss={mode === "BOSS" && bossId === p.id} />
         );
       })}
+      <EmoteBubbles />
       <Particles max={mobile ? 350 : 600} />
       <CameraController />
       <EffectsDirector />

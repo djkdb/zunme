@@ -65,13 +65,25 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
   const dnf = race ? state.participants.length - state.finishOrder.length : 0;
   const lastToFall = state.eliminationOrder[state.eliminationOrder.length - 1];
   const youWon = winner === localId;
+  const myKo = state.knockouts[localId] ?? 0;
+  const myRank = ranking.indexOf(localId) + 1;
+  /** seconds a player lasted (or the round length for survivors / finishers) */
+  const lasted = (id: string) => {
+    const out = state.outAt[id];
+    return Math.max(0, ((out && out > state.startAt ? out : state.endAt) - state.startAt) / 1000);
+  };
+  const mySurvival = lasted(localId);
 
   const share = async () => {
     sound.play("click");
     const url = roomShareUrl(roomCode);
-    const headline = teamWon ? `⚔️ ${meta.name}: ${teamLabel(state.mode)}!` : winner ? `🏆 ${name(winner)}님이 ${meta.name}에서 승리!` : race ? `⏱ ${meta.name}: 아무도 완주 못 함!` : `💀 ${meta.name}: 생존자 없음!`;
-    const stats = race ? `${state.participants.length}명 · ${survived} · 미완주 ${dnf}` : `${state.participants.length}명 · 생존 ${survived} · 탈락 ${eliminations}`;
-    const text = `${headline}\n${stats}\n같이 하기: ${url}`;
+    const headline = teamWon ? `⚔️ ${teamLabel(state.mode)}` : winner ? `🏆 ${name(winner)} 승리!` : race ? "⏱ 아무도 완주 못 함" : scoreMode ? "🤷 점수 없음" : "💀 생존자 없음";
+    const mine = [
+      `${MEDALS[myRank - 1] ?? "🏅"} ${myRank}위 / ${state.participants.length}명`,
+      myKo > 0 ? `💥 ${myKo}명 날림` : null,
+      scoreMode ? `🎯 ${scoreOf(localId)}` : `⏱ ${mySurvival.toFixed(1)}초`,
+    ].filter(Boolean);
+    const text = `ZUUUN\n\n${headline}\n${meta.icon} ${meta.name}\n\n${mine.join("\n")}\n\n같이 하기: ${url}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: "ZUUUN", text, url });
@@ -183,33 +195,52 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
                 })}
               </div>
             )}
-            <ol className="space-y-1 pr-1 sm:max-h-40 sm:overflow-y-auto sm:scroll-y short:grid short:grid-cols-2 short:gap-1 short:space-y-0">
+            <div className="mb-1 flex items-center justify-between px-3 text-[9px] font-black tracking-widest text-white/40">
+              <span>순위</span>
+              <span className="flex gap-3">
+                <span title="날린 수">💥</span>
+                <span title="떨어진 수">🕳</span>
+                <span>{scoreMode ? "점수" : "시간"}</span>
+                <span title="시리즈 승">🏆</span>
+              </span>
+            </div>
+            <ol className="space-y-1 pr-1 sm:max-h-44 sm:overflow-y-auto sm:scroll-y">
               {ranking.map((id, i) => (
-                <li key={id} className={`flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-bold ${i === 0 ? "bg-brand-2/20 text-white" : "bg-white/5 text-white/85"}`}>
+                <li key={id} className={`anim-rise flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-bold ${i === 0 ? "bg-brand-2/20 text-white" : "bg-white/5 text-white/85"}`} style={{ animationDelay: `${0.12 + i * 0.09}s` }}>
                   <span className="w-6 text-center">{MEDALS[i] ?? `${i + 1}.`}</span>
-                  <span className="h-3 w-3 rounded-full" style={{ background: color(id) }} />
-                  <span className="truncate">{name(id)}</span>
-                  {id === localId && <span className="text-white/50">(나)</span>}
-                  {scoreMode && <span className="ml-auto text-brand-2">{scoreOf(id)}</span>}
-                  {teamWon && state.team.includes(id) && <span className="ml-auto text-brand-2">승</span>}
+                  <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: color(id) }} />
+                  <span className="min-w-0 truncate">{name(id)}</span>
+                  {id === localId && <span className="shrink-0 text-white/50">(나)</span>}
+                  {teamWon && state.team.includes(id) && <span className="shrink-0 text-brand-2">승</span>}
+                  <span className="ml-auto flex shrink-0 gap-3 text-[12px] tabular-nums text-white/75">
+                    <span className={state.knockouts[id] ? "text-brand-2" : ""}>{state.knockouts[id] ?? 0}</span>
+                    <span>{state.falls[id] ?? 0}</span>
+                    <span>{scoreMode ? scoreOf(id) : `${lasted(id).toFixed(0)}s`}</span>
+                    <span>{series[id] ?? 0}</span>
+                  </span>
                 </li>
               ))}
             </ol>
 
             <div className="mt-4 flex flex-col gap-2">
               {isHost ? (
-                <button className="btn btn-primary w-full text-lg" onClick={() => { sound.play("click"); playAgain(); }}>
-                  다시 하기
-                </button>
+                <div className="flex gap-2">
+                  <button className="btn btn-primary min-h-14 flex-[2] text-lg" onClick={() => { sound.play("click"); playAgain(); }}>
+                    <span className="btn-icon">🔁</span> 다시 하기
+                  </button>
+                  <button className="btn btn-secondary min-h-14 flex-1 text-sm" onClick={() => { sound.play("click"); returnToLobby(); }}>
+                    🎮 모드 바꾸기
+                  </button>
+                </div>
               ) : (
                 <div className="anim-pulse rounded-2xl bg-white/10 p-3 text-center text-sm font-bold text-white/80">호스트가 다음 라운드를 시작하길 기다리는 중…</div>
               )}
               <div className="flex gap-2">
                 <button className="btn btn-accent min-h-12 flex-1 text-sm" onClick={share}>
-                  {shared ? "복사됨 ✓" : "결과 공유"}
+                  {shared ? "복사됨 ✓" : "📤 결과 공유"}
                 </button>
                 <button className="btn btn-ghost min-h-12 flex-1 text-sm" onClick={() => { sound.play("click"); returnToLobby(); }}>
-                  {isHost ? "로비로 돌아가기" : "로비"}
+                  로비
                 </button>
               </div>
               <div className="flex items-center justify-between">

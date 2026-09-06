@@ -11,6 +11,8 @@ export interface Cosmetics {
   trail: string;
 }
 
+export type Rarity = "common" | "rare" | "epic" | "legendary";
+
 export interface Item {
   id: string;
   slot: CosmeticSlot;
@@ -21,6 +23,21 @@ export interface Item {
   /** unlocks at this level (see progression.ts) */
   minLevel?: number;
 }
+
+/** Rarity is derived from price so the catalogue stays a flat list (purely cosmetic). */
+export function rarityOf(item: Item): Rarity {
+  if (item.price >= 800) return "legendary";
+  if (item.price >= 500) return "epic";
+  if (item.price >= 300) return "rare";
+  return "common";
+}
+
+export const RARITY_LABELS: Record<Rarity, { name: string; color: string }> = {
+  common: { name: "일반", color: "#9aa3b8" },
+  rare: { name: "레어", color: "#3d8bff" },
+  epic: { name: "에픽", color: "#a55eea" },
+  legendary: { name: "전설", color: "#ffd32a" },
+};
 
 export const SLOT_LABELS: Record<CosmeticSlot, string> = {
   hat: "모자",

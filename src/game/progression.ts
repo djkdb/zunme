@@ -24,6 +24,8 @@ export interface RoundSummary {
   distance?: number;
   /** HILL / CROWN: ms held; COIN: coin points */
   score?: number;
+  /** players this player shoved off */
+  knockouts?: number;
 }
 
 export interface Stats {
@@ -39,6 +41,7 @@ export interface Stats {
   bigRooms: number; // rounds with 4+ players
   streakBest: number;
   pointsLifetime: number;
+  knockouts: number;
 }
 
 export const EMPTY_STATS: Stats = {
@@ -54,6 +57,7 @@ export const EMPTY_STATS: Stats = {
   bigRooms: 0,
   streakBest: 0,
   pointsLifetime: 0,
+  knockouts: 0,
 };
 
 // ── XP / levels ──────────────────────────────────────────────────────
@@ -115,6 +119,7 @@ export function roundPoints(s: RoundSummary, streak: number): PointLine[] {
     const survival = Math.min(30, Math.floor(s.survivedMs / 5000) * 2);
     if (survival > 0) lines.push({ label: `${Math.floor(s.survivedMs / 1000)}초 생존`, points: survival });
   }
+  if (s.knockouts && s.knockouts > 0) lines.push({ label: `💥 ${s.knockouts}명 날림`, points: Math.min(60, s.knockouts * 15) });
   if (s.participants >= 6) lines.push({ label: "풀 방 (6명+)", points: Math.round(base * 0.2) });
   else if (s.participants >= 4) lines.push({ label: "큰 방 (4명+)", points: Math.round(base * 0.1) });
 
@@ -153,6 +158,8 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: "streak_3", name: "무적", description: "3연승.", emoji: "🔥", reward: 300, check: (s) => s.streakBest >= 3 },
   { id: "podium_10", name: "단골 시상대", description: "TOP 3 10회.", emoji: "🥉", reward: 200, check: (s) => s.top3 >= 10 },
   { id: "veteran", name: "베테랑", description: "50라운드 플레이.", emoji: "🎖️", reward: 400, check: (s) => s.rounds >= 50 },
+  { id: "bouncer", name: "문지기", description: "누적 10명 날려 떨어뜨리기.", emoji: "💥", reward: 200, check: (s) => s.knockouts >= 10 },
+  { id: "hat_trick", name: "해트트릭", description: "한 라운드에 3명 날리기.", emoji: "🎩", reward: 250, check: (_, last) => (last.knockouts ?? 0) >= 3 },
 ];
 
 // ── Daily missions ───────────────────────────────────────────────────
@@ -176,6 +183,7 @@ export const MISSION_POOL: MissionDef[] = [
   { id: "sumo_win", name: "드롭존 승리", target: 1, reward: 130, emoji: "🥊", progress: (l) => (l.mode === "SUMO" && l.won ? 1 : 0) },
   { id: "checkpoints_6", name: "체크포인트 6개 통과", target: 6, reward: 100, emoji: "🚩", progress: (l) => (l.mode === "RACE" ? l.checkpoints : 0) },
   { id: "big_room", name: "4명 이상과 플레이", target: 1, reward: 100, emoji: "👥", progress: (l) => (l.participants >= 4 ? 1 : 0) },
+  { id: "ko_3", name: "3명 날려 떨어뜨리기", target: 3, reward: 110, emoji: "💥", progress: (l) => l.knockouts ?? 0 },
 ];
 
 export function todayKey(now = new Date()): string {

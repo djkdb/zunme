@@ -251,7 +251,7 @@ export const DASH_HIT_STUN_MS = 420; // victim of a dash hit
 export const DASH_HIT_MULTIPLIER = 1.35; // extra knockback when the attacker is dashing
 export const HITSTOP_MS = 70; // freeze frame on a dash hit
 export const HITSTOP_SCALE = 0.12;
-export const KNOCKOUT_CREDIT_MS = 3000; // a fall within this after a hit credits the hitter
+export const KNOCKOUT_CREDIT_MS = 5000; // a fall within this after a hit credits the hitter
 
 // ── Dash ─────────────────────────────────────────────────────────────
 export const DASH_SPEED = 19; // m/s during a dash
@@ -295,6 +295,8 @@ export const OBSTACLE_SPEED = 1; // global multiplier, 2 in sudden death
 
 // ── Networking ───────────────────────────────────────────────────────
 export const NET_TICK_RATE = 10; // Hz for transform broadcasts (8 players ≈ 80 msg/s, under Supabase's default 100/s quota)
+export const NET_BURST_RATE = 30; // Hz while dashing / just hit, so fast moves land on every screen
+export const NET_BURST_AFTER_MS = 350;
 export const NET_INTERPOLATION_DELAY = 150; // ms behind for smooth remote motion (≥ 1 tick)
 export const NET_STATE_HEARTBEAT = 1000; // host re-broadcasts state every second
 export const PRESENCE_TIMEOUT = 8000; // ms before a silent player is considered gone

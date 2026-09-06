@@ -87,7 +87,7 @@ export class SupabaseTransport implements Transport {
       const entries = state[key];
       const latest = entries[entries.length - 1];
       if (isPresence(latest)) {
-        players.push({ id: latest.id, nickname: latest.nickname, colorIndex: latest.colorIndex, joinedAt: latest.joinedAt, cosmetics: sanitizeCosmetics(latest.cosmetics), level: sanitizeLevel(latest.level) });
+        players.push({ id: latest.id, nickname: latest.nickname, colorIndex: latest.colorIndex, joinedAt: latest.joinedAt, cosmetics: sanitizeCosmetics(latest.cosmetics), level: sanitizeLevel(latest.level), ready: latest.ready === true });
       }
     }
     this.presenceHandler(players);
@@ -177,7 +177,7 @@ export class WorkerTransport implements Transport {
           return;
         }
         if (msg.t === "presence" && Array.isArray(msg.players)) {
-          this.presenceHandler?.(msg.players.filter(isPresence).map((p) => ({ ...p, cosmetics: sanitizeCosmetics(p.cosmetics), level: sanitizeLevel(p.level) })));
+          this.presenceHandler?.(msg.players.filter(isPresence).map((p) => ({ ...p, cosmetics: sanitizeCosmetics(p.cosmetics), level: sanitizeLevel(p.level), ready: p.ready === true })));
         } else if (msg.t === "bc" && typeof msg.event === "string") {
           this.handlers.get(msg.event)?.forEach((h) => h(msg.payload));
         } else if (msg.t === "full") {

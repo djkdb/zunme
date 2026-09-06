@@ -12,6 +12,7 @@ import { LandscapeHint } from "@/components/hud/LandscapeHint";
 import { MobileControls } from "@/components/hud/MobileControls";
 import { ModeIntro } from "@/components/hud/ModeIntro";
 import { FinalCountdown } from "@/components/hud/FinalCountdown";
+import { EmoteControls } from "@/components/hud/EmoteControls";
 import { ResultScreen } from "@/components/hud/ResultScreen";
 import { ScreenEffects } from "@/components/hud/ScreenEffects";
 import { MusicDirector } from "@/components/hud/MusicDirector";
@@ -148,6 +149,7 @@ export function RoomView({ roomCode }: { roomCode: string }) {
           <EliminationBanner />
           <FinishBanner />
           {showControls && <MobileControls />}
+          {localAlive && <EmoteControls />}
         </>
       )}
       {/* the final fall / finish keeps its splash while the result screen is still holding */}

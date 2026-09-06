@@ -47,11 +47,14 @@ interface GameStore {
   /** host time when the local player fell / finished this round (0 = not yet) */
   localOutAt: number;
   muted: boolean;
+  /** lobby toasts: joins and leaves */
+  roomNotices: { key: number; text: string; at: number }[];
 
   join(roomCode: string, nickname?: string): Promise<void>;
   leave(): void;
   setNickname(nickname: string): void;
   setCosmetics(cosmetics: Cosmetics): void;
+  setReady(ready: boolean): void;
   startGame(): void;
   setMode(mode: GameMode): void;
   setPartyMix(on: boolean): void;
@@ -92,6 +95,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   finishSeq: 0,
   localOutAt: 0,
   muted: false,
+  roomNotices: [],
 
   async join(roomCode, nickname) {
     const existing = get().client;
@@ -123,7 +127,17 @@ export const useGameStore = create<GameStore>((set, get) => ({
             }
           }
         }
-        set({ presences: players, hostId, players: toPlayers(players, hostId, get().state) });
+        // Join / leave toasts (skip the first sync, which is the room we walked into).
+        const before = get().presences;
+        const patch: Partial<GameStore> = { presences: players, hostId, players: toPlayers(players, hostId, get().state) };
+        if (before.length > 0) {
+          const now = performance.now();
+          const notices = get().roomNotices.filter((n) => now - n.at < 3500);
+          for (const p of players) if (!before.some((b) => b.id === p.id) && p.id !== presence.id) notices.push({ key: now + Math.random(), text: `🎉 ${p.nickname} 님이 들어왔어요`, at: now });
+          for (const b of before) if (!players.some((p) => p.id === b.id) && b.id !== presence.id) notices.push({ key: now + Math.random(), text: `👋 ${b.nickname} 님이 나갔어요`, at: now });
+          patch.roomNotices = notices.slice(-4);
+        }
+        set(patch);
       },
       onState: (state) => {
         const prev = get().state;
@@ -132,6 +146,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
           patch.viewingLobby = false;
           patch.lastElimination = null;
         }
+        // Ready checks are per round: clear ours as soon as a round is under way (re-checked on
+        // every state broadcast, so a missed transition heals itself).
+        if (state.status !== "LOBBY" && get().presences.find((p) => p.id === presence.id)?.ready) client.updatePresence({ ready: false });
         if (state.status === "LOBBY") patch.viewingLobby = false;
         if (state.eliminationOrder.length > prev.eliminationOrder.length && state.round === prev.round) {
           const id = state.eliminationOrder[state.eliminationOrder.length - 1];
@@ -173,6 +190,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
               coinPoints: state.mode === "GOGUN" ? gogunRuntime.coinPoints : 0,
               distance: state.mode === "GOGUN" ? gogunRuntime.distance : 0,
               score: state.scores[localId] ?? 0,
+              knockouts: state.knockouts[localId] ?? 0,
             });
             if (report) get().client?.updatePresence({ level: currentLevel() });
           }
@@ -220,6 +238,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setCosmetics(cosmetics) {
     get().client?.updatePresence({ cosmetics: { ...cosmetics } });
+  },
+
+  setReady(ready) {
+    get().client?.updatePresence({ ready });
   },
 
   startGame() {

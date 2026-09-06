@@ -1,7 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { EmoteControls } from "@/components/hud/EmoteControls";
+import { itemById } from "@/game/items";
 import { MuteButton } from "@/components/hud/MuteButton";
 import { ShopButton } from "@/components/shop/ShopButton";
 import { GAME_MODES, MAX_PLAYERS, MIN_PLAYERS_TO_START } from "@/game/config";
@@ -25,7 +27,25 @@ export function Lobby({ roomCode }: { roomCode: string }) {
   const series = useGameStore((s) => s.state.series);
   const seriesRows = players.filter((p) => (series[p.id] ?? 0) > 0).sort((a, b) => (series[b.id] ?? 0) - (series[a.id] ?? 0));
   const leave = useGameStore((s) => s.leave);
+  const setReady = useGameStore((s) => s.setReady);
+  const round = useGameStore((s) => s.state.round);
+  // Ready checks are per round: coming back to the lobby after a round clears ours.
+  useEffect(() => {
+    if (round > 0) setReady(false);
+  }, [round, setReady]);
+  const notices = useGameStore((s) => s.roomNotices);
   const [copied, setCopied] = useState(false);
+  // toasts expire on their own: a coarse clock re-renders while any are alive
+  const [now, setNow] = useState(0);
+  useEffect(() => {
+    if (notices.length === 0) return;
+    const id = setInterval(() => setNow(performance.now()), 700);
+    return () => clearInterval(id);
+  }, [notices]);
+  const liveNotices = now ? notices.filter((n) => now - n.at < 3200) : notices;
+  const me = players.find((p) => p.id === localId);
+  const readyCount = players.filter((p) => p.ready).length;
+  const othersReady = players.filter((p) => !p.isHost).every((p) => p.ready);
 
   const copy = async () => {
     sound.play("click");
@@ -74,6 +94,14 @@ export function Lobby({ roomCode }: { roomCode: string }) {
         </div>
       </div>
 
+      {liveNotices.length > 0 && (
+        <div className="pointer-events-none absolute left-1/2 top-16 z-20 flex -translate-x-1/2 flex-col items-center gap-1">
+          {liveNotices.map((n) => (
+            <div key={n.key} className="anim-pop chip px-3 py-1 text-[12px] font-bold text-white">{n.text}</div>
+          ))}
+        </div>
+      )}
+      <EmoteControls placement="lobby" />
       <div className="flex min-h-0 flex-1 overflow-y-auto scroll-y px-3 pb-3 short:px-2 short:pb-2">
         <div className="panel anim-rise pointer-events-auto m-auto w-full max-w-md p-5 sm:p-7 short:max-w-2xl short:p-4">
           <div className="text-center">
@@ -146,17 +174,25 @@ export function Lobby({ roomCode }: { roomCode: string }) {
             </span>
           </div>
           <ul className="mt-2 grid grid-cols-2 gap-2 pr-1 sm:max-h-32 sm:overflow-y-auto sm:scroll-y short:grid-cols-4">
-            {players.map((p) => (
-              <li key={p.id} className="flex min-w-0 items-center gap-2 rounded-xl bg-white/8 px-3 py-2">
-                <span className="h-3.5 w-3.5 shrink-0 rounded-full" style={{ background: p.colorHex, boxShadow: `0 0 10px ${p.colorHex}` }} />
-                <span className="min-w-0 truncate text-sm font-bold text-white">
-                  {p.nickname}
-                  {p.id === localId && <span className="text-white/50"> (나)</span>}
-                </span>
-                <span className="shrink-0 rounded-full bg-white/10 px-1.5 text-[9px] font-black text-brand-2">LV{p.level ?? 1}</span>
-                {p.isHost && <span className="ml-auto shrink-0 whitespace-nowrap text-[10px] font-black text-brand-2">호스트</span>}
-              </li>
-            ))}
+            {players.map((p) => {
+              const gear = (["hat", "face", "back", "trail"] as const)
+                .map((slot) => itemById(p.cosmetics[slot]))
+                .filter((it) => it && it.price > 0)
+                .map((it) => it!.emoji)
+                .join("");
+              return (
+                <li key={p.id} className={`anim-pop flex min-w-0 items-center gap-2 rounded-xl px-3 py-2 ${p.ready ? "bg-[#2ed573]/15 ring-1 ring-[#2ed573]/60" : "bg-white/8"}`}>
+                  <span className="h-3.5 w-3.5 shrink-0 rounded-full" style={{ background: p.colorHex, boxShadow: `0 0 10px ${p.colorHex}` }} />
+                  <span className="min-w-0 truncate text-sm font-bold text-white">
+                    {p.nickname}
+                    {p.id === localId && <span className="text-white/50"> (나)</span>}
+                  </span>
+                  {gear && <span className="shrink-0 text-[12px]" title="장착 아이템">{gear}</span>}
+                  <span className="shrink-0 rounded-full bg-white/10 px-1.5 text-[9px] font-black text-brand-2">LV{p.level ?? 1}</span>
+                  {p.isHost ? <span className="ml-auto shrink-0 whitespace-nowrap text-[10px] font-black text-brand-2">호스트</span> : p.ready ? <span className="ml-auto shrink-0 whitespace-nowrap text-[10px] font-black text-[#2ed573]">준비 ✓</span> : null}
+                </li>
+              );
+            })}
             {Array.from({ length: Math.max(0, Math.min(MAX_PLAYERS, 2) - players.length) }).map((_, i) => (
               <li key={`empty-${i}`} className="flex items-center gap-2 rounded-xl border border-dashed border-white/15 px-3 py-2 text-sm font-semibold text-white/30">
                 대기 중…
@@ -168,11 +204,14 @@ export function Lobby({ roomCode }: { roomCode: string }) {
             {roundInProgress ? (
               <div className="rounded-2xl bg-white/10 p-3 text-center text-sm font-bold text-white/80">라운드 진행 중 — 다음 라운드에 참가해요.</div>
             ) : isHost ? (
-              <button className="btn btn-primary w-full text-xl" disabled={!canStart} onClick={() => { sound.play("click"); startGame(); }}>
-                게임 시작
+              <button className={`btn btn-primary w-full text-xl ${players.length > 1 && othersReady ? "anim-pulse" : ""}`} disabled={!canStart} onClick={() => { sound.play("click"); startGame(); }}>
+                <span className="btn-icon">▶</span> 게임 시작
+                {players.length > 1 && <span className="text-sm font-bold text-white/80">준비 {readyCount}/{players.length - 1}</span>}
               </button>
             ) : (
-              <div className="anim-pulse rounded-2xl bg-white/10 p-3 text-center text-sm font-bold text-white/80">호스트가 시작하길 기다리는 중…</div>
+              <button className={`btn w-full text-lg ${me?.ready ? "btn-ghost" : "btn-accent"}`} onClick={() => { sound.play("click"); setReady(!me?.ready); }}>
+                {me?.ready ? "✓ 준비 완료 — 취소" : "준비 완료!"}
+              </button>
             )}
             {isHost && GAME_MODES[mode].minPlayers > players.length && !roundInProgress && (
               <p className="mt-2 text-center text-[11px] font-semibold text-brand-2">{GAME_MODES[mode].name}은(는) {GAME_MODES[mode].minPlayers}명 이상이 필요해요 — 혼자 시작하면 둘러보기만 가능합니다.</p>

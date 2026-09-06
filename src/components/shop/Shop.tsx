@@ -7,7 +7,7 @@ import { BadgesPanel, LevelBar, MissionsPanel } from "@/components/shop/Progress
 import { levelFromXp } from "@/game/progression";
 import { useProgressStore } from "@/store/progressStore";
 import { sound } from "@/game/audio";
-import { ITEMS, SLOT_LABELS, itemById, type CosmeticSlot } from "@/game/items";
+import { ITEMS, RARITY_LABELS, SLOT_LABELS, itemById, rarityOf, type CosmeticSlot } from "@/game/items";
 import { useGameStore } from "@/store/gameStore";
 import { useWalletStore } from "@/store/walletStore";
 
@@ -140,8 +140,14 @@ export function Shop({ onClose }: { onClose: () => void }) {
                 const isEquipped = equipped[item.slot] === item.id;
                 const locked = Boolean(item.minLevel && level < item.minLevel);
                 const affordable = points >= item.price && !locked;
+                const rarity = RARITY_LABELS[rarityOf(item)];
                 return (
-                  <div key={item.id} className={`flex flex-col rounded-2xl border-2 p-2.5 ${isEquipped ? "border-brand-2 bg-brand-2/10" : "border-white/10 bg-white/5"}`}>
+                  <div key={item.id} className={`relative flex flex-col rounded-2xl border-2 p-2.5 ${isEquipped ? "border-brand-2 bg-brand-2/10" : "border-white/10 bg-white/5"}`}>
+                    {item.price > 0 && (
+                      <span className="absolute right-2 top-2 rounded-full px-1.5 text-[8px] font-black tracking-widest" style={{ background: `${rarity.color}33`, color: rarity.color }}>
+                        {rarity.name}
+                      </span>
+                    )}
                     <div className="flex items-center gap-2">
                       <div className="text-2xl">{item.emoji}</div>
                       <div className="min-w-0">

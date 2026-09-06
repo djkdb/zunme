@@ -112,8 +112,8 @@ export const localPose = {
   dashReadyAt: 0,
   dashUntil: 0,
   stunUntil: 0,
-  /** impulse queued by hazards (meteors); consumed by the controller */
-  pendingImpulse: null as { x: number; y: number; z: number; stunMs: number } | null,
+  /** impulse queued by hazards (meteors) or relayed hits; consumed by the controller */
+  pendingImpulse: null as { x: number; y: number; z: number; stunMs: number; by?: string; heavy?: boolean } | null,
   /** who shoved us last (knock-out credit) */
   lastHitBy: null as string | null,
   lastHitAt: 0,
