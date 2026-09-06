@@ -8,6 +8,12 @@ import { spinnerAngle, wallPosition } from "@/game/arena";
 import { elapsedSinceStart } from "@/game/clock";
 import { useGameStore } from "@/store/gameStore";
 
+/** The current round's main length (sudden death starts after it). */
+function mainMs(): number {
+  const s = useGameStore.getState().state;
+  return Math.max(10_000, s.endAt - s.startAt);
+}
+
 const quat = new THREE.Quaternion();
 const axisY = new THREE.Vector3(0, 1, 0);
 const POLE_DATA = { type: "pole" } as const;
@@ -149,9 +155,9 @@ export function Sweeper({ z, y = 0, length = WALL_LENGTH, height = 1.05, xAt, co
 export function Obstacles() {
   return (
     <>
-      <Spinner angleAt={spinnerAngle} />
-      <Sweeper z={WALL_Z} xAt={(e) => (e > 0 ? wallPosition(e) : 0)} />
-      <Sweeper z={-WALL_Z} xAt={(e) => (e > 0 ? -wallPosition(e + 1800) : 0)} color="#a55eea" />
+      <Spinner angleAt={(e) => spinnerAngle(e, mainMs())} />
+      <Sweeper z={WALL_Z} xAt={(e) => (e > 0 ? wallPosition(e, mainMs()) : 0)} />
+      <Sweeper z={-WALL_Z} xAt={(e) => (e > 0 ? -wallPosition(e + 1800, mainMs()) : 0)} color="#a55eea" />
     </>
   );
 }

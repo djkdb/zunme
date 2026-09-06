@@ -63,6 +63,7 @@ interface GameStore {
   startGame(): void;
   setMode(mode: GameMode): void;
   setPartyMix(on: boolean): void;
+  setModifiers(on: boolean): void;
   setSeriesTotal(total: number): void;
   playAgain(): void;
   reportFinish(): void;
@@ -288,6 +289,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setMode(mode) {
     get().client?.setMode(mode);
+  },
+
+  setModifiers(on) {
+    get().client?.setModifiers(on);
   },
 
   setPartyMix(on) {

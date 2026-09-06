@@ -37,11 +37,12 @@ import {
   WALLS_SPEED_START,
 } from "@/game/config";
 import { createRng } from "@/game/random";
+import { bombFuseScale, coinWaveScale, lavaSpeedScale } from "@/game/balance";
 
 // ── HOT POTATO ───────────────────────────────────────────────────────
 /** Fuse length for the n-th bomb of the round (0-based). */
-export function bombFuse(explosions: number): number {
-  return Math.max(BOMB_FUSE_MIN, BOMB_FUSE_START - explosions * BOMB_FUSE_STEP);
+export function bombFuse(explosions: number, players = 4): number {
+  return Math.round(Math.max(BOMB_FUSE_MIN, BOMB_FUSE_START - explosions * BOMB_FUSE_STEP) * bombFuseScale(players));
 }
 
 // ── COLOR PANIC ──────────────────────────────────────────────────────
@@ -244,10 +245,10 @@ export const TOWER_PLATFORM_LIST: TowerPlatform[] = (() => {
 })();
 export const TOWER_TOP_Y = TOWER_PLATFORMS * TOWER_STEP_Y;
 
-export function lavaYAt(elapsed: number): number {
+export function lavaYAt(elapsed: number, players = 4): number {
   if (!Number.isFinite(elapsed)) return TOWER_LAVA_START_Y - 4;
   const t = Math.max(0, elapsed - TOWER_LAVA_DELAY) / 1000;
-  return TOWER_LAVA_START_Y + t * TOWER_LAVA_SPEED;
+  return TOWER_LAVA_START_Y + t * TOWER_LAVA_SPEED * lavaSpeedScale(players);
 }
 
 export function towerSpawn(index: number, count: number): [number, number, number] {
@@ -294,9 +295,10 @@ export interface CoinDef {
   gold: boolean;
 }
 
-export function buildCoinWaves(seed: number): CoinDef[] {
+export function buildCoinWaves(seed: number, players = 4): CoinDef[] {
   const rng = createRng(seed ^ 0xc01d);
   const coins: CoinDef[] = [];
+  const perWave = Math.max(4, Math.round(COIN_WAVE_SIZE * coinWaveScale(players)));
   for (let w = 0; w < COIN_WAVES; w++) {
     const at = 1500 + w * COIN_WAVE_INTERVAL;
     // waves cluster around a random spot so players fight over piles
@@ -304,7 +306,7 @@ export function buildCoinWaves(seed: number): CoinDef[] {
     const cr = rng() * 5;
     const cx = Math.cos(ca) * cr;
     const cz = Math.sin(ca) * cr;
-    for (let i = 0; i < COIN_WAVE_SIZE; i++) {
+    for (let i = 0; i < perWave; i++) {
       const a = rng() * Math.PI * 2;
       const r = Math.sqrt(rng()) * 5.2;
       const x = Math.max(-9.5, Math.min(9.5, cx + Math.cos(a) * r));

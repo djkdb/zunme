@@ -12,8 +12,8 @@ export const SERIES_POINTS = [3, 2, 1];
 export const SERIES_OPTIONS = [1, 3, 5, 7] as const;
 export const NEXT_GAME_DELAY_MS = 9_000;
 
-type Genre = "brawl" | "race" | "survival" | "collect";
-const GENRE: Record<GameMode, Genre> = {
+export type Genre = "brawl" | "race" | "survival" | "collect";
+export const MODE_GENRE: Record<GameMode, Genre> = {
   SUMO: "brawl",
   BOSS: "brawl",
   TAG: "brawl",
@@ -53,7 +53,7 @@ export function planSeriesModes(seed: number, total: number, playerCount: number
   const used = new Set<GameMode>(plan);
   while (plan.length < total) {
     const prev = plan[plan.length - 1];
-    let pool = playable.filter((m) => !used.has(m) && GENRE[m] !== GENRE[prev]);
+    let pool = playable.filter((m) => !used.has(m) && MODE_GENRE[m] !== MODE_GENRE[prev]);
     if (pool.length === 0) pool = playable.filter((m) => !used.has(m));
     if (pool.length === 0) {
       used.clear();

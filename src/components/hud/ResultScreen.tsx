@@ -14,6 +14,7 @@ import { levelFromXp } from "@/game/progression";
 import { ShopButton } from "@/components/shop/ShopButton";
 import { rewardKey } from "@/game/rewards";
 import { hostNow } from "@/game/clock";
+import { modifierLabel } from "@/game/modifiers";
 import { isSeries, roundResultLabel, seriesActive, seriesMoments, seriesStandings } from "@/game/series";
 import type { GameState } from "@/types";
 
@@ -214,7 +215,10 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
                   {champion ? `🏁 FINAL RESULT · BEST OF ${state.seriesTotal}` : `PARTY SERIES · ROUND ${state.seriesRound} / ${state.seriesTotal}`}
                 </div>
               )}
-              <div className="text-[11px] font-black tracking-[0.4em] text-white/60">{meta.icon} {meta.name}</div>
+              <div className="text-[11px] font-black tracking-[0.4em] text-white/60">
+                {meta.icon} {meta.name}
+                {state.modifier !== "NONE" && <span className="ml-2 tracking-normal text-brand-2">🎲 {modifierLabel(state.modifier)}</span>}
+              </div>
               <div className="display mt-1 text-2xl text-brand-2">{teamWon ? `⚔️ ${teamLabel(state.mode)}` : winner ? `${bossMode ? "👑" : "🏆"} ${winnerLabel}` : state.mode === "GOGUN" ? "💀 전멸" : race ? "⏱ 완주자 없음" : scoreMode ? "🤷 점수 없음" : "💀 생존자 없음"}</div>
               {winner && (
                 <div className="display mt-1 text-4xl sm:text-5xl" style={{ color: color(winner) }}>

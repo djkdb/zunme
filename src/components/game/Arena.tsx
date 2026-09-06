@@ -50,7 +50,8 @@ function baseColor(index: number, collapsible: boolean): THREE.Color {
 export function Arena() {
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const seed = useGameStore((s) => s.state.seed);
-  const schedule = useMemo(() => buildTileSchedule(seed), [seed]);
+  const mainMs = useGameStore((s) => Math.max(10_000, s.state.endAt - s.state.startAt));
+  const schedule = useMemo(() => buildTileSchedule(seed, mainMs), [seed, mainMs]);
   const colliders = useRef<(RapierCollider | null)[]>(TILES.map(() => null));
   const phases = useRef<TileState[]>(TILES.map(() => ({ phase: "NORMAL", progress: 0, permanent: false })));
   const scratch = useRef<TileState>({ phase: "NORMAL", progress: 0, permanent: false });

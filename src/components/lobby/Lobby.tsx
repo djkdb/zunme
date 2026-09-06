@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { EmoteControls } from "@/components/hud/EmoteControls";
 import { itemById } from "@/game/items";
 import { SERIES_OPTIONS } from "@/game/series";
+import { MODIFIERS, MODIFIER_POOL } from "@/game/modifiers";
 import { MuteButton } from "@/components/hud/MuteButton";
 import { ShopButton } from "@/components/shop/ShopButton";
 import { GAME_MODES, MAX_PLAYERS, MIN_PLAYERS_TO_START } from "@/game/config";
@@ -26,6 +27,8 @@ export function Lobby({ roomCode }: { roomCode: string }) {
   const partyMix = useGameStore((s) => s.state.partyMix);
   const setPartyMix = useGameStore((s) => s.setPartyMix);
   const seriesTotal = useGameStore((s) => s.state.seriesTotal);
+  const modifiersOn = useGameStore((s) => s.state.modifiersOn);
+  const setModifiers = useGameStore((s) => s.setModifiers);
   const setSeriesTotal = useGameStore((s) => s.setSeriesTotal);
   const series = useGameStore((s) => s.state.series);
   const seriesRows = players.filter((p) => (series[p.id] ?? 0) > 0).sort((a, b) => (series[b.id] ?? 0) - (series[a.id] ?? 0));
@@ -191,6 +194,20 @@ export function Lobby({ roomCode }: { roomCode: string }) {
           <p className="mt-1 text-center text-[10px] font-semibold text-white/50">
             {seriesTotal > 1 ? `${seriesTotal}라운드 · 매 라운드 다른 모드 · 1·2·3위 3/2/1점 · 챔피언 1명` : "한 판씩 · 호스트가 매번 모드를 고릅니다"}
           </p>
+          <button
+            disabled={!isHost || roundInProgress}
+            onClick={() => {
+              sound.play("click");
+              setModifiers(!modifiersOn);
+            }}
+            className={`mt-2 flex w-full items-center justify-between rounded-xl border-2 px-3 py-1.5 text-[11px] font-black tracking-widest ${modifiersOn ? "border-brand-2 bg-brand-2/15 text-brand-2" : "border-white/10 bg-white/5 text-white/70"} ${isHost ? "active:scale-[0.98]" : "cursor-default"}`}
+          >
+            <span>🎲 게임 모디파이어 — 매 라운드 랜덤 변칙</span>
+            <span>{modifiersOn ? "켜짐" : "꺼짐"}</span>
+          </button>
+          {modifiersOn && (
+            <p className="mt-1 text-center text-[10px] font-semibold text-white/50">{MODIFIER_POOL.map((id) => `${MODIFIERS[id].icon} ${MODIFIERS[id].name}`).join(" · ")}</p>
+          )}
           {seriesTotal === 1 && (
             <button
               disabled={!isHost || roundInProgress}

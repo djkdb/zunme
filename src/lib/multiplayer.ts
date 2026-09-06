@@ -194,6 +194,12 @@ export class RoomClient {
     this.broadcastState(true);
   }
 
+  setModifiers(on: boolean) {
+    if (!this.authority) return;
+    this.authority.setModifiers(on);
+    this.broadcastState(true);
+  }
+
   setSeriesTotal(total: number) {
     if (!this.authority) return;
     this.authority.setSeriesTotal(total);

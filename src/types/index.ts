@@ -1,3 +1,4 @@
+import type { ModifierId } from "@/game/modifiers";
 import type { PlayerColorName } from "@/game/config";
 import type { Cosmetics } from "@/game/items";
 
@@ -111,6 +112,10 @@ export interface GameState {
   outAt: Record<string, number>;
   /** rotate modes every round */
   partyMix: boolean;
+  /** roll a random game modifier every round */
+  modifiersOn: boolean;
+  /** the twist applied to the current round ("NONE" for a plain round) */
+  modifier: ModifierId;
   /**
    * Series points per player (1st 3 / 2nd 2 / 3rd 1) in a series, or round wins
    * in single-round play. Reset when returning to the lobby.

@@ -156,7 +156,7 @@ const BASE_RULES: Record<Exclude<GameMode, "GOGUN" | "COIN">, PlayerRules> = {
   TOWER: {
     fallY: -20,
     onFall: "eliminate",
-    fallYAt: () => lavaYAt(elapsedSinceStart()) + 0.55,
+    fallYAt: () => lavaYAt(elapsedSinceStart(), useGameStore.getState().state.participants.length) + 0.55,
     onStep: (x, y, z, grounded) => {
       if (grounded) {
         const idx = Math.round(y / TOWER_STEP_Y);
@@ -319,7 +319,8 @@ export function GameScene({ mobile }: { mobile: boolean }) {
   const seed = useGameStore((s) => s.state.seed);
   const course = useCourse();
   const round = useGameStore((s) => s.state.round);
-  const rules = useMemo(() => (mode === "GOGUN" ? buildGogunRules(course) : mode === "COIN" ? buildCoinRules(buildCoinWaves(seed)) : BASE_RULES[mode]), [mode, course, seed]);
+  const headCount = participants.length;
+  const rules = useMemo(() => (mode === "GOGUN" ? buildGogunRules(course) : mode === "COIN" ? buildCoinRules(buildCoinWaves(seed, headCount)) : BASE_RULES[mode]), [mode, course, seed, headCount]);
   // Per-round runtime reset for the party modes (respawn points, coin pickups, finish flags).
   useEffect(() => {
     partyRuntime.reset();

@@ -23,6 +23,8 @@ import {
   SCORE_FLUSH_MS,
 } from "@/game/config";
 import { bombFuse, coinValueById } from "@/game/modes";
+import { rollModifier, type ModifierId } from "@/game/modifiers";
+import { roundDuration } from "@/game/balance";
 import { NEXT_GAME_DELAY_MS, isSeries, planSeriesModes, pointsForRank, seriesStandings } from "@/game/series";
 import { createRng, randomSeed } from "@/game/random";
 import type { ClientEvent, GameMode, GameState } from "@/types";
@@ -55,6 +57,8 @@ export function createInitialState(hostId: string): GameState {
     falls: {},
     outAt: {},
     partyMix: false,
+    modifiersOn: false,
+    modifier: "NONE",
     series: {},
     seriesTotal: DEFAULT_SERIES_TOTAL,
     seriesSeed: 0,
@@ -130,6 +134,13 @@ export class GameAuthority {
     this.commit({ partyMix: on });
   }
 
+  /** Random game modifier every round (rolled from the round seed at start). */
+  setModifiers(on: boolean) {
+    if (this.state.modifiersOn === on) return;
+    if (this.state.status !== "LOBBY" && this.state.status !== "FINISHED") return;
+    this.commit({ modifiersOn: on });
+  }
+
   /** Rounds per series (1 = single rounds). Only between rounds. */
   setSeriesTotal(total: number) {
     if (this.state.seriesTotal === total || !Number.isInteger(total) || total < 1 || total > 9) return;
@@ -183,7 +194,8 @@ export class GameAuthority {
     const pick = participants[Math.floor(rng() * participants.length)];
     // Boss rotates through the participants by round.
     const bossId = mode === "BOSS" ? participants[this.state.round % participants.length] : null;
-    const duration = GAME_MODES[mode].duration;
+    const modifier: ModifierId = this.state.modifiersOn ? rollModifier(seed, mode) : "NONE";
+    const duration = roundDuration(mode, participants.length, modifier);
     const startAt = now + COUNTDOWN_DURATION;
     this.scoreAcc = {};
     this.lastTickAt = now;
@@ -193,12 +205,13 @@ export class GameAuthority {
       ...seriesPatch,
       status: "COUNTDOWN",
       mode,
+      modifier,
       bossId,
       bossFell: false,
       tagged: mode === "TAG" ? [pick] : [],
       holderId: mode === "BOMB" ? pick : null,
       holderSince: startAt,
-      fuseAt: mode === "BOMB" ? startAt + bombFuse(0) : 0,
+      fuseAt: mode === "BOMB" ? startAt + bombFuse(0, participants.length) : 0,
       scores: {},
       taken: [],
       zone: [],
@@ -245,6 +258,7 @@ export class GameAuthority {
       outAt: {},
       series: {},
       seriesSeed: 0,
+      modifier: "NONE",
       seriesModes: [],
       seriesRound: 0,
       seriesRounds: [],
@@ -350,7 +364,7 @@ export class GameAuthority {
     this.explosions++;
     const rng = createRng((s.seed + this.explosions * 977) >>> 0);
     const next = s.alive[Math.floor(rng() * s.alive.length)];
-    this.commit({ holderId: next, holderSince: now, fuseAt: now + bombFuse(this.explosions) });
+    this.commit({ holderId: next, holderSince: now, fuseAt: now + bombFuse(this.explosions, s.participants.length) });
   }
 
   // ── CROWN RUSH ──────────────────────────────────────────────────────

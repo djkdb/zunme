@@ -74,7 +74,8 @@ export const TILES = buildTiles();
 export type TileSchedule = TileEvent[][];
 
 /** Precompute the collapse timeline for a round. Times are ms since GO!. */
-export function buildTileSchedule(seed: number): TileSchedule {
+/** `mainMs` = the round's main length (sudden death starts after it); defaults to the classic 75 s. */
+export function buildTileSchedule(seed: number, mainMs = GAME_DURATION): TileSchedule {
   const rng = createRng(seed);
   const schedule: TileSchedule = TILES.map(() => []);
   const collapsible = TILES.filter((t) => t.collapsible);
@@ -85,7 +86,7 @@ export function buildTileSchedule(seed: number): TileSchedule {
   for (const tile of active) {
     let t = TILE_FIRST_COLLAPSE_DELAY + rng() * TILE_CYCLE_MAX;
     const events: TileEvent[] = [];
-    while (t < GAME_DURATION) {
+    while (t < mainMs) {
       const warnAt = t;
       const collapseAt = warnAt + TILE_WARNING_DURATION;
       const restoreAt = collapseAt + TILE_COLLAPSE_DURATION;
@@ -99,7 +100,7 @@ export function buildTileSchedule(seed: number): TileSchedule {
   const order = [...collapsible].sort((a, b) => b.radius - a.radius || rng() - 0.5);
   const window = SUDDEN_DEATH_DURATION * 0.75;
   order.forEach((tile, i) => {
-    const warnAt = GAME_DURATION + (i / order.length) * window;
+    const warnAt = mainMs + (i / order.length) * window;
     schedule[tile.index] = schedule[tile.index]
       .filter((e) => e.warnAt < warnAt)
       .map((e) => ({ ...e, restoreAt: Math.min(e.restoreAt, warnAt) }));
@@ -150,19 +151,19 @@ export function getTileState(events: TileEvent[], elapsed: number, out: TileStat
 }
 
 /** Obstacle speed multiplier: 1 during the round, ramping up to 2 in sudden death. */
-export function obstacleSpeedMultiplier(elapsed: number): number {
-  if (elapsed < GAME_DURATION) return 1;
-  return 1 + Math.min(1, (elapsed - GAME_DURATION) / 10000);
+export function obstacleSpeedMultiplier(elapsed: number, mainMs = GAME_DURATION): number {
+  if (elapsed < mainMs) return 1;
+  return 1 + Math.min(1, (elapsed - mainMs) / 10000);
 }
 
 /** Spinner angle in radians for a given elapsed time (ms since GO!). */
-export function spinnerAngle(elapsed: number): number {
+export function spinnerAngle(elapsed: number, mainMs = GAME_DURATION): number {
   const t = Math.max(0, elapsed - SPINNER_START_DELAY) / 1000;
   // Main round: speed ramps linearly from 1× to (1 + SPINNER_RAMP)× → integrate analytically.
-  const T = (GAME_DURATION - SPINNER_START_DELAY) / 1000;
+  const T = Math.max(1, (mainMs - SPINNER_START_DELAY) / 1000);
   const base = Math.min(t, T);
   let angle = SPINNER_SPEED * (base + (SPINNER_RAMP * base * base) / (2 * T));
-  const sd = Math.max(0, elapsed - GAME_DURATION) / 1000;
+  const sd = Math.max(0, elapsed - mainMs) / 1000;
   if (sd > 0) {
     // Sudden death: from (1 + ramp)× up to (2 + ramp)× over 10 s, then hold.
     const s0 = SPINNER_SPEED * (1 + SPINNER_RAMP);
@@ -175,8 +176,8 @@ export function spinnerAngle(elapsed: number): number {
 }
 
 /** Moving wall X position for a given elapsed time. */
-export function wallPosition(elapsed: number): number {
-  const mult = obstacleSpeedMultiplier(elapsed);
+export function wallPosition(elapsed: number, mainMs = GAME_DURATION): number {
+  const mult = obstacleSpeedMultiplier(elapsed, mainMs);
   const t = Math.max(0, elapsed - 1500) * mult;
   const phase = ((t % WALL_PERIOD) / WALL_PERIOD) * Math.PI * 2;
   return Math.sin(phase) * WALL_TRAVEL;
@@ -189,17 +190,17 @@ export interface MeteorStrike {
 }
 
 /** Seeded meteor schedule for the whole round incl. sudden death. */
-export function buildMeteorSchedule(seed: number): MeteorStrike[] {
+export function buildMeteorSchedule(seed: number, mainMs = GAME_DURATION): MeteorStrike[] {
   const rng = createRng(seed ^ 0x2545f491);
   const strikes: MeteorStrike[] = [];
   let t = METEOR_FIRST_AT;
-  const end = GAME_DURATION + _SD;
+  const end = mainMs + _SD;
   while (t < end) {
     const r = 1.5 + rng() * (ARENA_RADIUS - 3);
     const a = rng() * Math.PI * 2;
     strikes.push({ at: t, x: Math.cos(a) * r, z: Math.sin(a) * r });
     // faster towards the end
-    const k = Math.min(1, t / GAME_DURATION);
+    const k = Math.min(1, t / mainMs);
     t += METEOR_INTERVAL_MAX - (METEOR_INTERVAL_MAX - METEOR_INTERVAL_MIN) * k * (0.5 + rng() * 0.5);
   }
   return strikes;

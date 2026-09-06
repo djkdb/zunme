@@ -23,7 +23,8 @@ const FALL_HEIGHT = 26;
  */
 export function Meteors() {
   const seed = useGameStore((s) => s.state.seed);
-  const strikes = useMemo(() => buildMeteorSchedule(seed), [seed]);
+  const mainMs = useGameStore((s) => Math.max(10_000, s.state.endAt - s.state.startAt));
+  const strikes = useMemo(() => buildMeteorSchedule(seed, mainMs), [seed, mainMs]);
   const rings = useRef<(THREE.Mesh | null)[]>(Array(MAX_VISIBLE).fill(null));
   const rocks = useRef<(THREE.Mesh | null)[]>(Array(MAX_VISIBLE).fill(null));
   const hitDone = useRef<Set<number>>(new Set());

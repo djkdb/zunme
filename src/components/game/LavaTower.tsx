@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { currentElapsed } from "@/components/game/Obstacles";
 import { TOWER_STEP_Y } from "@/game/config";
 import { TOWER_PLATFORM_LIST, TOWER_TOP_Y, lavaYAt } from "@/game/modes";
+import { useGameStore } from "@/store/gameStore";
 import { THEMES } from "@/game/theme";
 
 const PLATFORM_COLORS = ["#f4f1ea", "#ffd9a0", "#ffb347"];
@@ -17,7 +18,7 @@ export function LavaTower() {
   const glow = useRef<THREE.Mesh>(null);
   const light = useRef<THREE.PointLight>(null);
   useFrame(() => {
-    const y = lavaYAt(currentElapsed());
+    const y = lavaYAt(currentElapsed(), useGameStore.getState().state.participants.length);
     const now = performance.now();
     if (lava.current) {
       lava.current.position.y = y + Math.sin(now * 0.003) * 0.08;

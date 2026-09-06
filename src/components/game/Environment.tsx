@@ -7,6 +7,7 @@ import { createRng } from "@/game/random";
 import { THEMES, type Theme } from "@/game/theme";
 import { getPhase } from "@/game/phase";
 import { useGameStore } from "@/store/gameStore";
+import { MODIFIERS } from "@/game/modifiers";
 
 const SKY_VERT = /* glsl */ `
   varying vec3 vWorld;
@@ -134,8 +135,9 @@ function ThemedFog({ themeRef }: { themeRef: React.MutableRefObject<Theme> }) {
     const k = Math.min(1, dt * 1.5);
     const t = themeRef.current;
     lerpColor(fog.color, t.fog, k);
-    fog.near = THREE.MathUtils.lerp(fog.near, t.fogNear, k);
-    fog.far = THREE.MathUtils.lerp(fog.far, t.fogFar, k);
+    const f = MODIFIERS[useGameStore.getState().state.modifier].fog;
+    fog.near = THREE.MathUtils.lerp(fog.near, t.fogNear * f, k);
+    fog.far = THREE.MathUtils.lerp(fog.far, t.fogFar * f, k);
   });
   return <fog ref={fogRef} attach="fog" args={[THEMES.SUMO.fog, THEMES.SUMO.fogNear, THEMES.SUMO.fogFar]} />;
 }

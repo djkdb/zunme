@@ -8,6 +8,7 @@ import type { Cosmetics } from "@/game/items";
 import { Character, createAnim, type CharacterAnim } from "@/components/game/Character";
 import { emitTrail } from "@/components/game/LocalPlayer";
 import { BOSS_SCALE, PLAYER_HEIGHT, PLAYER_RADIUS } from "@/game/config";
+import { MODIFIERS } from "@/game/modifiers";
 import { hostNow } from "@/game/clock";
 import { livePoses, remoteBuffers, type InterpolatedPose } from "@/game/remote";
 import { useGameStore } from "@/store/gameStore";
@@ -34,7 +35,8 @@ export function RemotePlayer({ id, nickname, colorHex, spawn, showLabel, cosmeti
   const poseRef = useRef<InterpolatedPose>({ position: { x: spawn[0], y: spawn[1], z: spawn[2] }, yaw: 0, velocity: { x: 0, y: 0, z: 0 }, grounded: true, age: 0 });
   const liveRef = useRef({ x: spawn[0], y: spawn[1], z: spawn[2] });
   const smoothed = useRef(new THREE.Vector3(spawn[0], spawn[1], spawn[2]));
-  const scale = boss ? BOSS_SCALE : 1;
+  const modScale = useGameStore((s) => MODIFIERS[s.state.modifier].scale);
+  const scale = boss ? BOSS_SCALE : modScale;
   const halfHeight = ((PLAYER_HEIGHT - PLAYER_RADIUS * 2) / 2) * scale;
   const wasGrounded = useRef(true);
   const lastTrail = useRef(0);

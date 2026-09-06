@@ -62,6 +62,7 @@ import { onGameplayEvent } from "@/game/sync";
 import { DUMMY_ID, dummyState } from "@/components/game/TrainingDummy";
 import { NET_BURST_AFTER_MS } from "@/game/config";
 import { useGameStore } from "@/store/gameStore";
+import { MODIFIERS } from "@/game/modifiers";
 import { isRoundActive } from "@/game/clock";
 
 /** Mode-specific behaviour injected by the scene. */
@@ -137,7 +138,8 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
   }, [rules]);
   const lastRound = useRef(-1);
   const rayRef = useRef<InstanceType<typeof rapier.Ray> | null>(null);
-  const scale = boss ? BOSS_SCALE : 1;
+  const modScale = useGameStore((s) => MODIFIERS[s.state.modifier].scale);
+  const scale = boss ? BOSS_SCALE : modScale;
   const halfHeight = ((PLAYER_HEIGHT - PLAYER_RADIUS * 2) / 2) * scale;
   const radius = PLAYER_RADIUS * scale;
   const lastTrail = useRef(0);
@@ -375,13 +377,14 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       mz /= len;
     }
 
+    const mod = MODIFIERS[useGameStore.getState().state.modifier];
     // Dash: short burst in the move direction (or facing), with cooldown.
     if (consumeDash() && canControl && !dashing && now >= localPose.dashReadyAt) {
       const dx = len > 0.1 ? mx : Math.sin(anim.yaw);
       const dz = len > 0.1 ? mz : Math.cos(anim.yaw);
       dashDir.current = { x: dx, z: dz };
       localPose.dashUntil = now + DASH_DURATION;
-      localPose.dashReadyAt = now + (boss ? BOSS_DASH_COOLDOWN : DASH_COOLDOWN);
+      localPose.dashReadyAt = now + (boss ? BOSS_DASH_COOLDOWN : DASH_COOLDOWN) * mod.dashCooldown;
       anim.dashUntil = localPose.dashUntil;
       anim.yaw = Math.atan2(dx, dz);
       sound.play("dash", { volume: 0.7 });
@@ -405,19 +408,19 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       vz = v.z * drag;
     } else {
       const control = grounded.current ? 1 : PLAYER_AIR_CONTROL;
-      const moveSpeed = (boss ? BOSS_SPEED : PLAYER_SPEED) * (rulesRef.current.speedScale?.() ?? 1);
+      const moveSpeed = (boss ? BOSS_SPEED : PLAYER_SPEED) * (rulesRef.current.speedScale?.() ?? 1) * mod.speed;
       const targetX = mx * moveSpeed + (surface?.[0] ?? 0) + (wind?.[0] ?? 0);
       const targetZ = mz * moveSpeed + (surface?.[1] ?? 0) + (wind?.[1] ?? 0);
       const carried = Boolean(surface) || Boolean(wind && (wind[0] !== 0 || wind[1] !== 0));
       // Accelerate normally, brake harder when letting go, and turn sharpest when reversing.
       const reversing = len > 0.1 && mx * v.x + mz * v.z < 0;
       const accel = len < 0.1 ? PLAYER_DECEL : reversing ? PLAYER_TURN_ACCEL : PLAYER_ACCEL;
-      const maxDelta = accel * control * dt;
+      const maxDelta = accel * control * dt * mod.accel;
       vx = v.x + THREE.MathUtils.clamp(targetX - v.x, -maxDelta, maxDelta);
       vz = v.z + THREE.MathUtils.clamp(targetZ - v.z, -maxDelta, maxDelta);
       // Extra ground friction when idle so shoves settle quickly.
       if (grounded.current && len < 0.05 && !carried) {
-        const f = Math.pow(PLAYER_IDLE_FRICTION, frames);
+        const f = Math.pow(mod.idleFriction ?? PLAYER_IDLE_FRICTION, frames);
         vx *= f;
         vz *= f;
       }
@@ -429,7 +432,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
     const wantsJump = now - jumpBufferedAt.current < JUMP_BUFFER_MS && jumpBufferedAt.current > 0;
     const canJump = grounded.current || now - lastGroundedAt.current < COYOTE_TIME_MS;
     if (canControl && wantsJump && canJump && vy <= 0.5) {
-      vy = JUMP_FORCE;
+      vy = JUMP_FORCE * mod.jump;
       grounded.current = false;
       lastGroundedAt.current = 0;
       jumpBufferedAt.current = 0;
@@ -586,6 +589,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       // The other body is a remote player moving at dash speed → we are the victim of a dash hit.
       const otherDashing = Math.hypot(otherVel.x, otherVel.z) > DASH_SPEED * 0.72;
       let strength = THREE.MathUtils.clamp(PUSH_IMPULSE + relative * PUSH_RELATIVE_FACTOR, PUSH_IMPULSE * 0.6, PUSH_IMPULSE_MAX) * PLAYER_MASS;
+      strength *= MODIFIERS[useGameStore.getState().state.modifier].knockback;
       if (!grounded.current) strength *= AIR_HIT_MULTIPLIER;
       if (otherDashing && !dashing) strength *= DASH_HIT_MULTIPLIER;
       if (dashing) strength *= DASH_SELF_KNOCKBACK; // attacker barely recoils

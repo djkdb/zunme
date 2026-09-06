@@ -1,6 +1,7 @@
 "use client";
 
 import { GAME_MODES } from "@/game/config";
+import { MODIFIERS } from "@/game/modifiers";
 import { useHostClock } from "@/hooks/useHostClock";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useGameStore } from "@/store/gameStore";
@@ -20,6 +21,7 @@ export function ModeIntro() {
   const visible = state.status === "COUNTDOWN" || (state.status === "PLAYING" && now - state.startAt < 2500);
   if (!visible) return null;
   const hint = CONTROL_HINT[state.mode] ?? DEFAULT_HINT;
+  const mod = MODIFIERS[state.modifier];
   return (
     <div key={state.round} className="pointer-events-none absolute inset-x-0 top-[72px] z-10 flex justify-center px-4 safe-pad short:top-16">
       <div className="anim-rise panel max-w-md px-4 py-2.5 text-center short:max-w-sm short:py-1.5">
@@ -33,6 +35,12 @@ export function ModeIntro() {
           {meta.icon} {meta.name} <span className="text-white/60">· {meta.tagline}</span>
         </div>
         <p className="mt-0.5 text-[12px] font-semibold leading-snug text-white/85 short:text-[11px]">{meta.description}</p>
+        {mod.id !== "NONE" && (
+          <div className="anim-pop mt-1.5 inline-flex items-center gap-1.5 rounded-full border border-brand-2/60 bg-brand-2/15 px-2.5 py-0.5 text-[11px] font-black text-brand-2">
+            <span>🎲 {mod.icon} {mod.name}</span>
+            <span className="font-bold text-white/75">· {mod.desc}</span>
+          </div>
+        )}
         <p className="mt-1 text-[10px] font-bold tracking-widest text-white/50">{mobile ? hint.mobile : hint.desktop}</p>
       </div>
     </div>

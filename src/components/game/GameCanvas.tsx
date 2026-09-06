@@ -5,6 +5,8 @@ import { Physics } from "@react-three/rapier";
 import { Suspense, type ReactNode } from "react";
 import * as THREE from "three";
 import { CAMERA_FOV, GRAVITY } from "@/game/config";
+import { MODIFIERS } from "@/game/modifiers";
+import { useGameStore } from "@/store/gameStore";
 import { PostFX } from "@/components/game/PostFX";
 
 interface Props {
@@ -21,6 +23,7 @@ const MENU_DPR: [number, number] = [1, 1.25];
  * mobile, and a manually stepped Rapier world (see PhysicsStepper).
  */
 export function GameCanvas({ children, mobile, ambient = false }: Props) {
+  const gravityScale = useGameStore((st) => MODIFIERS[st.state.modifier].gravity);
   return (
     <Canvas
       shadows={{ type: THREE.PCFShadowMap }}
@@ -37,7 +40,7 @@ export function GameCanvas({ children, mobile, ambient = false }: Props) {
       frameloop="always"
     >
       <Suspense fallback={null}>
-        <Physics paused gravity={[0, GRAVITY, 0]} timeStep={1 / 60} interpolate={false} updateLoop="follow">
+        <Physics paused gravity={[0, GRAVITY * gravityScale, 0]} timeStep={1 / 60} interpolate={false} updateLoop="follow">
           {children}
         </Physics>
         <PostFX enabled={!mobile} />

@@ -76,7 +76,7 @@ export const GAME_MODES = {
     icon: "🧟",
     duration: 60_000,
     suddenDeath: 0,
-    minPlayers: 2,
+    minPlayers: 3,
   },
   BOMB: {
     name: "폭탄 돌리기",

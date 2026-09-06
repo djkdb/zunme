@@ -340,7 +340,8 @@ export function HillArena() {
 // ── COIN FRENZY ──────────────────────────────────────────────────────
 export function CoinField() {
   const seed = useGameStore((s) => s.state.seed);
-  const coins = useMemo(() => buildCoinWaves(seed), [seed]);
+  const headCount = useGameStore((s) => s.state.participants.length);
+  const coins = useMemo(() => buildCoinWaves(seed, headCount), [seed, headCount]);
   const meshRef = useRef<THREE.InstancedMesh>(null);
   const takenRef = useRef<Set<string>>(new Set());
   const seen = useRef<Set<string>>(new Set());
