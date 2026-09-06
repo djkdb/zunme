@@ -18,6 +18,7 @@ import {
   type PointLine,
   type RoundSummary,
   type Stats,
+  updateModeRecord,
 } from "@/game/progression";
 import { useWalletStore } from "@/store/walletStore";
 
@@ -52,7 +53,7 @@ interface ProgressStore extends Persisted {
   lastReport: RoundReport | null;
   applyRound(key: string, summary: RoundSummary): RoundReport | null;
   /** One-off bonus (series champion etc.), claimed at most once per key. */
-  claimBonus(key: string, label: string, points: number): boolean;
+  claimBonus(key: string, label: string, points: number, kind?: "champion" | "series"): boolean;
   refreshDaily(): void;
 }
 
@@ -70,7 +71,7 @@ function load(): Persisted {
     const p = JSON.parse(raw) as Partial<Persisted>;
     const daily = p.daily && p.daily.day === todayKey() && Array.isArray(p.daily.missions) ? p.daily : freshDaily();
     return {
-      stats: { ...EMPTY_STATS, ...(p.stats ?? {}) },
+      stats: { ...EMPTY_STATS, ...(p.stats ?? {}), byMode: p.stats?.byMode && typeof p.stats.byMode === "object" ? p.stats.byMode : {} },
       xp: Math.max(0, Number(p.xp) || 0),
       streak: Math.max(0, Number(p.streak) || 0),
       achievements: Array.isArray(p.achievements) ? p.achievements : [],
@@ -103,10 +104,14 @@ export const useProgressStore = create<ProgressStore>((set) => ({
     set(cur);
   },
 
-  claimBonus(key, label, points) {
+  claimBonus(key, label, points, kind) {
     const cur = load();
     if (cur.claimed.includes(key) || points <= 0) return false;
     const stats: Stats = { ...cur.stats, pointsLifetime: cur.stats.pointsLifetime + points };
+    if (kind) {
+      stats.seriesPlayed++;
+      if (kind === "champion") stats.championships++;
+    }
     const next: Persisted = { ...cur, stats, xp: cur.xp + points, claimed: [...cur.claimed, key].slice(-50) };
     save(next);
     const wallet = useWalletStore.getState();
@@ -138,6 +143,8 @@ export const useProgressStore = create<ProgressStore>((set) => ({
     stats.knockouts += summary.knockouts ?? 0;
     if (summary.mode !== "RACE") stats.longestSurvivalMs = Math.max(stats.longestSurvivalMs, summary.survivedMs);
     if (summary.participants >= 4) stats.bigRooms++;
+    stats.playMs += Math.max(0, Math.min(summary.roundMs, 10 * 60_000));
+    stats.byMode = { ...stats.byMode, [summary.mode]: updateModeRecord(stats.byMode[summary.mode], summary) };
     const streak = summary.won ? cur.streak + 1 : 0;
     stats.streakBest = Math.max(stats.streakBest, streak);
 

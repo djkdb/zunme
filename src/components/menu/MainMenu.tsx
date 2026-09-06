@@ -74,6 +74,7 @@ export function MainMenu() {
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_35%,rgba(255,211,42,0.18),transparent_55%)]" />
 
       <div className="absolute right-3 top-3 z-20 flex items-center gap-2 safe-pad">
+        <ShopButton tab="records" compact />
         <ShopButton />
         <MuteButton />
       </div>

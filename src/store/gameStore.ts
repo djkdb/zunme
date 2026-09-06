@@ -218,8 +218,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
         // Series decided: champion bonus (claimed once per series seed) and a 🏆 emote on the champion.
         if (state.seriesChampion && state.seriesChampion !== prev.seriesChampion) {
           const localId = get().localId;
-          if (state.seriesChampion === localId) useProgressStore.getState().claimBonus(`series:${state.seriesSeed}`, "🏆 시리즈 챔피언", SERIES_CHAMPION_BONUS);
-          else if (state.participants.includes(localId)) useProgressStore.getState().claimBonus(`series:${state.seriesSeed}`, "🎉 시리즈 완주", SERIES_FINISH_BONUS);
+          if (state.seriesChampion === localId) useProgressStore.getState().claimBonus(`series:${state.seriesSeed}`, "🏆 시리즈 챔피언", SERIES_CHAMPION_BONUS, "champion");
+          else if (state.participants.includes(localId)) useProgressStore.getState().claimBonus(`series:${state.seriesSeed}`, "🎉 시리즈 완주", SERIES_FINISH_BONUS, "series");
           showEmote(state.seriesChampion, 7);
         }
         patch.players = toPlayers(get().presences, get().hostId, state);

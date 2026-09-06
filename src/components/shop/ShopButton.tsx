@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Shop } from "@/components/shop/Shop";
+import { Shop, type ShopTab } from "@/components/shop/Shop";
 import { sound } from "@/game/audio";
 import { useWalletStore } from "@/store/walletStore";
 
 /** Points chip that opens the shop. */
-export function ShopButton({ compact = false }: { compact?: boolean }) {
+export function ShopButton({ compact = false, tab = "shop" }: { compact?: boolean; tab?: ShopTab }) {
   const points = useWalletStore((s) => s.points);
   const [open, setOpen] = useState(false);
   return (
@@ -19,11 +19,20 @@ export function ShopButton({ compact = false }: { compact?: boolean }) {
           setOpen(true);
         }}
       >
-        <span>🛍️</span>
-        {!compact && <span className="tracking-widest">상점</span>}
-        <span className="text-brand-2">⭐ {points}</span>
+        {tab === "records" ? (
+          <>
+            <span>📊</span>
+            {!compact && <span className="tracking-widest">내 기록</span>}
+          </>
+        ) : (
+          <>
+            <span>🛍️</span>
+            {!compact && <span className="tracking-widest">상점</span>}
+            <span className="text-brand-2">⭐ {points}</span>
+          </>
+        )}
       </button>
-      {open && <Shop onClose={() => setOpen(false)} />}
+      {open && <Shop onClose={() => setOpen(false)} initialTab={tab} />}
     </>
   );
 }

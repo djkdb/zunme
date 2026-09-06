@@ -28,6 +28,21 @@ export interface RoundSummary {
   knockouts?: number;
 }
 
+/** Per-mode personal record. */
+export interface ModeRecord {
+  plays: number;
+  wins: number;
+  top3: number;
+  /** race: fastest finish ms; survival/brawl: longest survival ms (0 = none) */
+  bestMs: number;
+  /** score modes (HILL / CROWN / COIN): best score */
+  bestScore: number;
+  /** most knockouts in a single round */
+  bestKnockouts: number;
+}
+
+export const EMPTY_MODE_RECORD: ModeRecord = { plays: 0, wins: 0, top3: 0, bestMs: 0, bestScore: 0, bestKnockouts: 0 };
+
 export interface Stats {
   rounds: number;
   wins: number;
@@ -42,6 +57,13 @@ export interface Stats {
   streakBest: number;
   pointsLifetime: number;
   knockouts: number;
+  /** ms spent in rounds */
+  playMs: number;
+  /** series won / played to the end */
+  championships: number;
+  seriesPlayed: number;
+  /** per-mode records (missing modes = never played) */
+  byMode: Partial<Record<GameMode, ModeRecord>>;
 }
 
 export const EMPTY_STATS: Stats = {
@@ -58,7 +80,26 @@ export const EMPTY_STATS: Stats = {
   streakBest: 0,
   pointsLifetime: 0,
   knockouts: 0,
+  playMs: 0,
+  championships: 0,
+  seriesPlayed: 0,
+  byMode: {},
 };
+
+/** Fold a finished round into the per-mode record. */
+export function updateModeRecord(prev: ModeRecord | undefined, s: RoundSummary): ModeRecord {
+  const r = { ...(prev ?? EMPTY_MODE_RECORD) };
+  const race = s.mode === "RACE" || s.mode === "GOGUN" || s.mode === "TIPTOE" || s.mode === "TOWER";
+  r.plays++;
+  if (s.won) r.wins++;
+  if (s.rank <= 3 && s.participants >= 2) r.top3++;
+  if (race) {
+    if (s.finished && (r.bestMs === 0 || s.survivedMs < r.bestMs)) r.bestMs = s.survivedMs;
+  } else r.bestMs = Math.max(r.bestMs, s.survivedMs);
+  r.bestScore = Math.max(r.bestScore, s.score ?? 0);
+  r.bestKnockouts = Math.max(r.bestKnockouts, s.knockouts ?? 0);
+  return r;
+}
 
 // ── XP / levels ──────────────────────────────────────────────────────
 export const MAX_LEVEL = 50;

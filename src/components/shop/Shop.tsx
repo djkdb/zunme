@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { CharacterPreview } from "@/components/shop/CharacterPreview";
-import { BadgesPanel, LevelBar, MissionsPanel } from "@/components/shop/ProgressPanels";
+import { BadgesPanel, LevelBar, MissionsPanel, RecordsPanel } from "@/components/shop/ProgressPanels";
 import { levelFromXp } from "@/game/progression";
 import { useProgressStore } from "@/store/progressStore";
 import { sound } from "@/game/audio";
@@ -12,10 +12,11 @@ import { useGameStore } from "@/store/gameStore";
 import { useWalletStore } from "@/store/walletStore";
 
 const SLOTS: CosmeticSlot[] = ["hat", "face", "back", "trail"];
-type Tab = "shop" | "missions" | "badges";
+export type ShopTab = "shop" | "missions" | "badges" | "records";
+type Tab = ShopTab;
 
 /** Points shop: buy and equip cosmetics for the ZUN character. */
-export function Shop({ onClose }: { onClose: () => void }) {
+export function Shop({ onClose, initialTab = "shop" }: { onClose: () => void; initialTab?: ShopTab }) {
   const points = useWalletStore((s) => s.points);
   const owned = useWalletStore((s) => s.owned);
   const equipped = useWalletStore((s) => s.equipped);
@@ -24,7 +25,7 @@ export function Shop({ onClose }: { onClose: () => void }) {
   const equip = useWalletStore((s) => s.equip);
   const setCosmetics = useGameStore((s) => s.setCosmetics);
   const [slot, setSlot] = useState<CosmeticSlot>("hat");
-  const [tab, setTab] = useState<Tab>("shop");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [flash, setFlash] = useState<string | null>(null);
   const xp = useProgressStore((s) => s.xp);
   const level = levelFromXp(xp).level;
@@ -82,7 +83,7 @@ export function Shop({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="mt-3 flex gap-1.5">
-          {(["shop", "missions", "badges"] as Tab[]).map((t) => (
+          {(["shop", "missions", "badges", "records"] as Tab[]).map((t) => (
             <button
               key={t}
               className={`rounded-xl px-3 py-1.5 text-[11px] font-black tracking-widest ${tab === t ? "bg-white text-[#12142b]" : "bg-white/10 text-white/80"}`}
@@ -91,7 +92,7 @@ export function Shop({ onClose }: { onClose: () => void }) {
                 setTab(t);
               }}
             >
-              {t === "shop" ? "🛍️ 상점" : t === "missions" ? "🎯 미션" : "🎖️ 배지"}
+              {t === "shop" ? "🛍️ 상점" : t === "missions" ? "🎯 미션" : t === "badges" ? "🎖️ 배지" : "📊 기록"}
             </button>
           ))}
           <div className="ml-auto sm:hidden">
@@ -107,6 +108,11 @@ export function Shop({ onClose }: { onClose: () => void }) {
         {tab === "badges" && (
           <div className="mt-3 flex min-h-0 flex-1 flex-col">
             <BadgesPanel />
+          </div>
+        )}
+        {tab === "records" && (
+          <div className="mt-3 flex min-h-0 flex-1 flex-col">
+            <RecordsPanel />
           </div>
         )}
 
