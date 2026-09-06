@@ -58,7 +58,7 @@ export const GAME_MODES = {
     minPlayers: 2,
   },
   GOGUN: {
-    name: "고군분투",
+    name: "루프탑 러너",
     tagline: "옥상 와이어 액션",
     description: "6스테이지 옥상 달리기, 스테이지마다 빨라집니다. 탭으로 점프, 공중에서 탭하면 와이어를 걸고 스윙. 코인을 모으고 떨어지지 마세요.",
     icon: "🐱",

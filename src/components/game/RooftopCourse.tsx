@@ -144,7 +144,7 @@ function WireLine() {
   );
 }
 
-/** Night-city rooftops for GOGUN RUN. */
+/** Night-city rooftops for ROOFTOP RUNNER. */
 export function RooftopCourse({ course }: { course: Course }) {
   const anchorRefs = useRef<(THREE.Mesh | null)[]>([]);
   useFrame(({ clock }) => {

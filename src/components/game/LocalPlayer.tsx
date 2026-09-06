@@ -69,7 +69,7 @@ export interface PlayerRules {
   wind?: () => [number, number];
   /** returns a queued vertical launch velocity once, 0 otherwise */
   consumeLaunch?: () => number;
-  /** GOGUN RUN: auto-run + wire controller replaces normal movement */
+  /** ROOFTOP RUNNER: auto-run + wire controller replaces normal movement */
   autoRun?: AutoRunRules;
   /** dynamic fall height (rising lava); overrides fallY when present */
   fallYAt?: () => number;
@@ -210,7 +210,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
     const dashing = now < localPose.dashUntil;
     const canControl = active && !stunned;
 
-    // ── GOGUN RUN: auto-run, jump, wire swing ──
+    // ── ROOFTOP RUNNER: auto-run, jump, wire swing ──
     const auto = rulesRef.current.autoRun;
     if (auto) {
       const wire = gogunRuntime.wire;

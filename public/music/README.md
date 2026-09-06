@@ -12,7 +12,7 @@ If you prefer real tracks, drop loops here and set `USE_MUSIC_FILES = true`:
 | `dropzone.mp3` | DROPZONE rounds |
 | `skydash.mp3` | SKY DASH rounds |
 | `meltdown.mp3` | MELTDOWN rounds |
-| `gogun.mp3` | GOGUN RUN rounds |
+| `gogun.mp3` | ROOFTOP RUNNER rounds |
 | `result.mp3` | result screen |
 
 Good sources of royalty-free loops: Pixabay Music (Pixabay licence, no

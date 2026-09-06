@@ -8,7 +8,7 @@ five party modes, one 6-letter room code, no accounts:
 | 🥊 **DROPZONE** | Sumo island: shove everyone off, dodge the spinner, the sweeper and collapsing tiles. Last one standing wins. |
 | 🏁 **SKY DASH** | A 280 m, 12-section obstacle race: spinner alley, stepping stones, a door-dash wall (two of four doors are fake), conveyor belts that push you toward the gaps, pendulum hammers, a crumbling bridge, a jump-pad gap, sweepers with side pistons, a crosswind fan bridge and a triple-spinner finale. Five checkpoints; falling respawns you at the last one. First across the line wins. |
 | 🔥 **MELTDOWN** | Three shrinking floors of tiles that vanish right after you step on them. Keep moving. Last survivor wins. |
-| 🐱 **GOGUN RUN** | A 3D take on the 2007 Hangame classic *고군분투*: auto-run over night-city rooftops, tap to jump the gaps, tap again in the air to hook a wire onto a lantern anchor and swing across the wide ones, grab silver and gold coins. Six stages, faster every stage. Fall = out; first to the goal wins (solo = classic single-player). |
+| 🐱 **ROOFTOP RUNNER** | An original auto-runner over night-city rooftops: tap to jump the gaps, tap again in the air to hook a wire onto a lantern anchor and swing across the wide ones, grab silver and gold coins. Six stages, faster every stage. Fall = out; first to the goal wins (solo = classic single-player). |
 | ⚔️ **1 vs ALL** | One player is the BOSS (1.35× size, heavy, hard-hitting, fast dash) on the sumo island; everyone else hunts them. Boss survives 60 s or clears the hunters → boss wins; boss falls → hunters win. Boss rotates every round. |
 | 🧟 **INFECTION** | One player starts infected; a touch spreads it, falling off turns you too. Survivors win at time-out, patient zero wins if everyone turns. |
 | 💣 **HOT POTATO** | Someone holds a bomb with a shrinking fuse; touch another player to pass it. Explosion = holder out, a new bomb appears. Last one standing wins. |
@@ -103,7 +103,7 @@ scoreboard** counts wins per player until the room returns to the lobby.
 - MELTDOWN: 75 s. Tiles vanish 0.45 s after being stepped on, shrinking to
   0.2 s over the first 40 s (synced to all players); floors 2 and 3 are
   smaller, then it's the lava.
-- GOGUN RUN: 120 s. The seeded course (~420 m, 30+ rooftops) gets faster
+- ROOFTOP RUNNER: 120 s. The seeded course (~420 m, 30+ rooftops) gets faster
   and wider-gapped as you go; wire-only gaps have a glowing anchor above
   them. Runners are ghosts to each other. Ranking = goal order, then
   distance. Coins and distance add points.
@@ -132,7 +132,7 @@ src/
     arena.ts            sumo island layout + seeded collapse schedules
     race.ts             SKY DASH course data (platforms, obstacles, checkpoints)
     meltdown.ts         MELTDOWN floor layout
-    gogun.ts            GOGUN RUN course generator + runtime (wire, coins)
+    gogun.ts            ROOFTOP RUNNER course generator + runtime (wire, coins)
     sync.ts             peer gameplay events (tile vanish) + race runtime
     items.ts            cosmetic catalogue (hats, face, back, trails)
     rewards.ts          placement lookup + claim key

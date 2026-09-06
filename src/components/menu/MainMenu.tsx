@@ -121,7 +121,7 @@ export function MainMenu() {
         )}
 
         <div className="anim-fade delay-4 mt-6 flex flex-col items-center gap-1 text-center text-[12px] font-semibold text-white/75 hud-text">
-          <p>🥊 밀치기 · 🏁 장애물 레이스 · 🎨 컬러 패닉 · 🧟 감염 · 🐱 고군분투 외 10종</p>
+          <p>🥊 밀치기 · 🏁 장애물 레이스 · 🎨 컬러 패닉 · 🧟 감염 · 🐱 루프탑 러너 외 10종</p>
           <p className="text-white/55">{mobile ? "조이스틱 이동 · 점프 · 대시로 밀치기" : "WASD 이동 · SPACE 점프 · SHIFT 대시로 밀치기"}</p>
           {offline && <p className="mt-2 rounded-full bg-[#ffd32a]/90 px-3 py-1 text-[11px] font-black text-[#12142b]">로컬 모드 — 같은 기기의 탭끼리만 플레이할 수 있어요</p>}
         </div>

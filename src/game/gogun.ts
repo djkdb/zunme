@@ -1,7 +1,7 @@
 /**
- * GOGUN RUN — a 3D reinterpretation of the 2007 Hangame classic "고군분투":
- * the ninja cat auto-runs over rooftops, jumps the gaps and hooks a wire
- * onto anchors to swing across the wide ones, collecting coins on the way.
+ * ROOFTOP RUNNER — an original auto-runner: the runner sprints over night-city
+ * rooftops, jumps the gaps and hooks a wire onto anchors to swing across the
+ * wide ones, collecting coins on the way.
  *
  * The course is generated from the round seed, so every client builds the
  * same city. Distance is measured along -z from the start.
