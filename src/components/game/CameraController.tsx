@@ -13,6 +13,8 @@ import {
 } from "@/game/config";
 import { focusEvents, shakeEvents } from "@/game/effects";
 import { livePoses, localPose } from "@/game/remote";
+import { getPhase } from "@/game/phase";
+import { hasFinishLine, isScoreMode } from "@/game/authority";
 import { useGameStore } from "@/store/gameStore";
 
 type Mode = "follow" | "spectate" | "orbit-winner" | "lobby" | "focus";
@@ -37,6 +39,7 @@ export function CameraController({ menu = false }: { menu?: boolean }) {
   const shakeOffset = useMemo(() => new THREE.Vector3(), []);
   const fovKick = useRef(0);
   const prevVy = useRef(0);
+  const tmpCentre = useMemo(() => new THREE.Vector3(), []);
 
   useEffect(() => {
     const offShake = shakeEvents.on((s) => {
@@ -81,7 +84,11 @@ export function CameraController({ menu = false }: { menu?: boolean }) {
         if (id === localId || !state.alive.includes(id)) return;
         far = Math.max(far, Math.hypot(pos.x - p.x, pos.z - p.z));
       });
-      const targetZoom = race || run ? 1 : THREE.MathUtils.clamp(0.95 + far / 26, CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX);
+      // Tighter framing when it is down to the last two, and in the final seconds.
+      const duel = state.alive.length === 2 && state.participants.length > 2 && !hasFinishLine(gameMode) && !isScoreMode(gameMode);
+      const phase = getPhase(state, useGameStore.getState().client?.now() ?? Date.now());
+      const tension = (duel ? 0.92 : 1) * (phase === "FINAL" ? 0.95 : 1);
+      const targetZoom = race || run ? 1 : THREE.MathUtils.clamp((0.95 + far / 26) * tension, CAMERA_ZOOM_MIN, CAMERA_ZOOM_MAX);
       zoom.current += (targetZoom - zoom.current) * step * 0.6;
       const offY = run ? 5.5 : race ? 8 : CAMERA_OFFSET.y;
       const offZ = run ? 10 : race ? 11 : CAMERA_OFFSET.z;
@@ -126,7 +133,7 @@ export function CameraController({ menu = false }: { menu?: boolean }) {
         cx /= n;
         cz /= n;
       }
-      target.current.lerp(new THREE.Vector3(cx, 0, cz), step * 0.5);
+      target.current.lerp(tmpCentre.set(cx, 0, cz), step * 0.5);
       orbit.current += dt * 0.12;
       desired.current.set(target.current.x + Math.sin(orbit.current) * 4, 16, target.current.z + 20);
       lookAt.current.set(target.current.x, 0.5, target.current.z);

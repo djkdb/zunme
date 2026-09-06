@@ -43,6 +43,8 @@ export interface PlayerPresence {
   cosmetics?: Cosmetics;
   /** progression level (cosmetic) */
   level?: number;
+  /** lobby ready check */
+  ready?: boolean;
 }
 
 export interface Player extends PlayerPresence {
@@ -92,6 +94,12 @@ export interface GameState {
   zone: string[];
   /** team winners when there is no single winner (hunters, survivors) */
   team: string[];
+  /** knock-outs credited per player (someone they hit fell within a few seconds) */
+  knockouts: Record<string, number>;
+  /** falls per player (eliminations and respawns alike) */
+  falls: Record<string, number>;
+  /** host time each eliminated player went out (survival time on the result screen) */
+  outAt: Record<string, number>;
   /** rotate modes every round */
   partyMix: boolean;
   /** cumulative wins this session (reset when returning to lobby) */
@@ -125,7 +133,9 @@ export interface Room {
 }
 
 export type ClientEvent =
-  | { type: "fall"; playerId: string; at: number }
+  | { type: "fall"; playerId: string; at: number; by?: string | null }
+  /** a fall in a respawn mode: counted, not eliminated */
+  | { type: "slip"; playerId: string; by?: string | null }
   | { type: "finish"; playerId: string; at: number }
   | { type: "checkpoint"; playerId: string; index: number }
   | { type: "impact"; playerId: string; otherId: string; strength: number }

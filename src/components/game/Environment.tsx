@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { createRng } from "@/game/random";
 import { THEMES, type Theme } from "@/game/theme";
+import { getPhase } from "@/game/phase";
 import { useGameStore } from "@/store/gameStore";
 
 const SKY_VERT = /* glsl */ `
@@ -84,6 +85,15 @@ function useTheme(): { theme: Theme; ref: React.MutableRefObject<Theme> } {
   const ref = useRef(theme);
   useEffect(() => {
     ref.current = theme;
+    // Sudden death / final seconds tint the whole world red-hot; polled so no React re-render is needed.
+    const id = setInterval(() => {
+      const st = useGameStore.getState();
+      const phase = getPhase(st.state, st.client?.now() ?? Date.now());
+      const hot = phase === "SUDDEN" || (phase === "FINAL" && st.state.mode === "SUMO");
+      const danger = phase === "DANGER" && st.state.mode === "SUMO";
+      ref.current = hot ? { ...theme, skyHorizon: "#ff5a4a", skyBottom: "#8a3040", fog: "#b8404a", sun: "#ffb0a0", hemiSky: "#c07080", hemiGround: "#ff6a5c", rim: "#ff3b3b" } : danger ? { ...theme, skyHorizon: "#ff9a7a", fog: "#e0907a" } : theme;
+    }, 400);
+    return () => clearInterval(id);
   }, [theme]);
   return { theme, ref };
 }

@@ -2,6 +2,7 @@
 
 import { MuteButton } from "@/components/hud/MuteButton";
 import { hasFinishLine, isScoreMode, isSuddenDeath, roundEndAt } from "@/game/authority";
+import { getPhase } from "@/game/phase";
 import { GAME_MODES, TIPTOE_ROWS, TOWER_PLATFORMS } from "@/game/config";
 import { COLOR_PALETTE } from "@/game/modes";
 import { colorRuntime, partyRuntime } from "@/game/party";
@@ -111,6 +112,8 @@ export function GameHUD() {
   const remaining = state.status === "COUNTDOWN" ? meta.duration : roundEndAt(state) - now;
   const timeLabel = Math.max(0, Math.ceil(remaining / 1000));
   const hurry = finishLine && state.finishOrder.length > 0;
+  const phase = getPhase(state, now);
+  const tense = phase === "DANGER" || phase === "SUDDEN" || phase === "FINAL";
   const final2 = !finishLine && !scoreMode && !tag && !modeBanner && state.status === "PLAYING" && survivors === 2 && participants.length > 2;
   const isSpectating = !state.alive.includes(localId) && state.status === "PLAYING";
   const localFinished = finishLine && state.finishOrder.includes(localId);
@@ -150,9 +153,9 @@ export function GameHUD() {
           </div>
         </div>
         <div className="flex items-start gap-2">
-          <div className={`chip px-3 py-2 text-center text-white ${suddenDeath || hurry ? "border-brand bg-brand/70" : ""}`}>
-            <div className="text-[10px] font-bold tracking-[0.3em] text-white/70">{suddenDeath ? "서든" : hurry ? "서둘러" : "시간"}</div>
-            <div className={`display text-2xl sm:text-3xl ${!suddenDeath && timeLabel <= 10 ? "text-brand-2" : ""}`}>{timeLabel}</div>
+          <div className={`chip px-3 py-2 text-center text-white ${phase === "FINAL" ? "anim-pulse border-brand bg-brand/80" : suddenDeath || hurry ? "border-brand bg-brand/70" : phase === "DANGER" ? "border-brand-2/60 bg-brand/40" : ""}`}>
+            <div className="text-[10px] font-bold tracking-[0.3em] text-white/70">{phase === "FINAL" ? "FINAL" : suddenDeath ? "서든" : hurry ? "서둘러" : phase === "DANGER" ? "위험" : "시간"}</div>
+            <div className={`display text-2xl sm:text-3xl ${tense && !suddenDeath ? "text-brand-2" : ""}`}>{timeLabel}</div>
           </div>
           <div className="pointer-events-auto hidden sm:block">
             <MuteButton />

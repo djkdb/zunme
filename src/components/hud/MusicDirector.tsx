@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { hasFinishLine, isScoreMode, isSuddenDeath } from "@/game/authority";
+import { hasFinishLine, isScoreMode } from "@/game/authority";
+import { getPhase } from "@/game/phase";
 import type { GameMode } from "@/types";
 import { music, type MusicTrack } from "@/game/music";
 import { useHostClock } from "@/hooks/useHostClock";
@@ -51,8 +52,9 @@ export function MusicDirector({ screen }: { screen: "menu" | "room" }) {
     }
     const hurry = state.finishOrder.length > 0 && hasFinishLine(mode);
     const final2 = state.alive.length === 2 && state.participants.length > 2 && !hasFinishLine(mode) && !isScoreMode(mode);
-    const sudden = isSuddenDeath(state, now);
-    music.setTension(sudden || hurry ? 1.15 : final2 ? 1.08 : 1);
+    const phase = getPhase(state, now);
+    // NORMAL 1.0 → DANGER 1.08 → SUDDEN / HURRY 1.15 → FINAL 1.28
+    music.setTension(phase === "FINAL" ? 1.28 : phase === "SUDDEN" || hurry ? 1.15 : phase === "DANGER" || final2 ? 1.08 : 1);
   }, [status, state, mode, now]);
 
   useEffect(() => () => music.stop(), []);

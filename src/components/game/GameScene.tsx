@@ -179,6 +179,8 @@ const BASE_RULES: Record<Exclude<GameMode, "GOGUN" | "COIN">, PlayerRules> = {
       if (Math.hypot(x, z) < CROWN_PICKUP_RADIUS && y < 1.5 && performance.now() - partyRuntime.lastTagAt > 300) {
         partyRuntime.lastTagAt = performance.now();
         s.reportTag(null);
+        sound.play("checkpoint", { volume: 0.6 });
+        burst({ position: { x, y: y + 1.2, z }, color: ["#ffd32a", "#fff6c2", "#ffffff"], count: 18, speed: 3.5, life: 0.7, size: 0.13, gravity: 3 });
       }
     },
     speedScale: () => {
@@ -203,7 +205,7 @@ function buildCoinRules(coins: CoinDef[]): PlayerRules {
         if (Math.hypot(c.x - x, c.z - z) < COIN_PICKUP_RADIUS && y < 2.5 && !taken.includes(c.id)) {
           partyRuntime.collected.add(c.id);
           store.reportCoin(c.id);
-          sound.play(c.gold ? "go" : "click", { volume: c.gold ? 0.5 : 0.35, throttleMs: 40 });
+          sound.play("coin", { volume: c.gold ? 0.7 : 0.45, throttleMs: 30 });
           burst({ position: { x: c.x, y: 1, z: c.z }, color: c.gold ? ["#ffd32a", "#fff6c2"] : ["#ffffff", "#dfe6f2"], count: c.gold ? 12 : 5, speed: 2, life: 0.4, size: 0.1, gravity: 2 });
         }
       }
@@ -251,7 +253,7 @@ function buildGogunRules(course: Course): PlayerRules {
             gogunRuntime.collected.add(c.index);
             gogunRuntime.coins++;
             gogunRuntime.coinPoints += c.gold ? GOGUN_COIN_POINTS.gold : GOGUN_COIN_POINTS.silver;
-            sound.play(c.gold ? "go" : "click", { volume: c.gold ? 0.5 : 0.35, throttleMs: 40 });
+            sound.play("coin", { volume: c.gold ? 0.7 : 0.45, throttleMs: 30 });
             burst({ position: { x: c.x, y: c.y, z: c.z }, color: c.gold ? ["#ffd32a", "#fff6c2"] : ["#ffffff", "#dfe6f2"], count: c.gold ? 12 : 5, speed: 2, life: 0.4, size: 0.1, gravity: 2 });
           }
         }

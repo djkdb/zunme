@@ -21,10 +21,14 @@ export interface CharacterAnim {
   stunUntil: number;
   /** performance.now() until which the character is dashing (leans) */
   dashUntil: number;
+  /** performance.now() of the last jump take-off (stretch) */
+  jumpedAt: number;
+  /** performance.now() until which the character celebrates (winner dance) */
+  celebrateUntil: number;
 }
 
 export function createAnim(): CharacterAnim {
-  return { yaw: 0, speed: 0, grounded: true, vy: 0, landedAt: 0, hitAt: 0, stunUntil: 0, dashUntil: 0 };
+  return { yaw: 0, speed: 0, grounded: true, vy: 0, landedAt: 0, hitAt: 0, stunUntil: 0, dashUntil: 0, jumpedAt: 0, celebrateUntil: 0 };
 }
 
 interface Props {
@@ -127,7 +131,9 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
     const now = performance.now();
     const stunned = now < anim.stunUntil;
     const dashing = now < anim.dashUntil;
+    const celebrating = now < anim.celebrateUntil;
     if (stunned) spin.current += dt * 14;
+    else if (celebrating) spin.current += dt * 5;
     else spin.current = THREE.MathUtils.lerp(spin.current, Math.round(spin.current / (Math.PI * 2)) * Math.PI * 2, dt * 12);
     g.rotation.y = anim.yaw + spin.current;
 
@@ -137,11 +143,23 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
     const swing = Math.sin(phase.current) * 0.9 * target;
 
     const sinceLand = (now - anim.landedAt) / 1000;
-    const squash = sinceLand < 0.25 ? Math.sin((sinceLand / 0.25) * Math.PI) * 0.18 : 0;
+    const sinceJump = (now - anim.jumpedAt) / 1000;
+    // Landing squashes, take-off stretches (negative squash = taller and thinner).
+    const stretch = sinceJump < 0.22 ? Math.sin((sinceJump / 0.22) * Math.PI) * 0.14 : 0;
+    const squash = (sinceLand < 0.25 ? Math.sin((sinceLand / 0.25) * Math.PI) * 0.18 : 0) - stretch;
     const sinceHit = (now - anim.hitAt) / 1000;
     const flinch = sinceHit < 0.3 ? Math.sin((sinceHit / 0.3) * Math.PI) * 0.35 : 0;
 
-    if (anim.grounded) {
+    if (celebrating) {
+      // winner dance: arms up, pumping
+      const pump = Math.sin(now * 0.012);
+      if (armL.current) armL.current.rotation.x = -2.6 + pump * 0.4;
+      if (armR.current) armR.current.rotation.x = -2.6 - pump * 0.4;
+      if (armL.current) armL.current.rotation.z = 0.6;
+      if (armR.current) armR.current.rotation.z = -0.6;
+      if (legL.current) legL.current.rotation.x = pump * 0.5;
+      if (legR.current) legR.current.rotation.x = -pump * 0.5;
+    } else if (anim.grounded) {
       if (legL.current) legL.current.rotation.x = swing;
       if (legR.current) legR.current.rotation.x = -swing;
       if (armL.current) armL.current.rotation.x = -swing * 0.8;
@@ -159,7 +177,7 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
     }
 
     if (body.current) {
-      const bob = anim.grounded ? Math.abs(Math.sin(phase.current)) * 0.05 * target : 0;
+      const bob = celebrating ? Math.abs(Math.sin(now * 0.012)) * 0.35 : anim.grounded ? Math.abs(Math.sin(phase.current)) * 0.05 * target : 0;
       body.current.position.y = bob - squash * 0.5;
       body.current.scale.set(1 + squash * 0.6, 1 - squash, 1 + squash * 0.6);
       body.current.rotation.x = THREE.MathUtils.lerp(body.current.rotation.x, target * 0.14 - flinch * 0.6 + (dashing ? 0.55 : 0) + (stunned ? -0.5 : 0), dt * (dashing ? 20 : 8));

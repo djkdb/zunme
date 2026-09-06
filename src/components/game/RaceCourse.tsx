@@ -68,7 +68,7 @@ export function racePassCheckpoint(index: number) {
   raceRuntime.lastCheckpoint = index;
   raceRuntime.respawn = cp.respawn;
   useGameStore.getState().reportCheckpoint(index);
-  sound.play("countdown", { volume: 0.5 });
+  sound.play("checkpoint", { volume: 0.6 });
   const p = livePoses.get(useGameStore.getState().localId);
   if (p) burst({ position: { x: p.x, y: p.y + 1, z: p.z }, color: ["#ffd32a", "#ffffff"], count: 12, speed: 3, life: 0.5, size: 0.12 });
 }

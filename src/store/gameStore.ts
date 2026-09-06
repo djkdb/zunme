@@ -6,7 +6,8 @@
  */
 import { create } from "zustand";
 import { createInitialState } from "@/game/authority";
-import { PLAYER_COLORS } from "@/game/config";
+import { KNOCKOUT_CREDIT_MS, PLAYER_COLORS } from "@/game/config";
+import { localPose } from "@/game/remote";
 import { RoomClient } from "@/lib/multiplayer";
 import { loadIdentity, pickFreeColor, saveNickname } from "@/lib/room";
 import { sanitizeCosmetics, type Cosmetics } from "@/game/items";
@@ -59,6 +60,8 @@ interface GameStore {
   reportCheckpoint(index: number): void;
   returnToLobby(): void;
   reportFall(): void;
+  /** fell in a respawn mode (stats only) */
+  reportSlip(): void;
   /** TAG / BOMB / CROWN: touched another player (or the loose crown when null) */
   reportTag(targetId: string | null): void;
   reportCoin(coinId: string): void;
@@ -255,7 +258,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
   reportFall() {
     const { client, localId } = get();
     if (client && !get().localOutAt) set({ localOutAt: client.now() });
-    client?.sendEvent({ type: "fall", playerId: localId, at: Date.now() });
+    client?.sendEvent({ type: "fall", playerId: localId, at: Date.now(), by: recentHitter() });
+  },
+
+  reportSlip() {
+    const { client, localId } = get();
+    client?.sendEvent({ type: "slip", playerId: localId, by: recentHitter() });
   },
 
   reportTag(targetId) {
@@ -282,6 +290,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
     set({ muted });
   },
 }));
+
+/** Whoever shoved us within the credit window — they get the knock-out. */
+function recentHitter(): string | null {
+  return localPose.lastHitBy && performance.now() - localPose.lastHitAt < KNOCKOUT_CREDIT_MS ? localPose.lastHitBy : null;
+}
 
 // ── Selectors ────────────────────────────────────────────────────────
 

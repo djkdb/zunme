@@ -67,6 +67,23 @@ const SYNTH: Record<SoundName, Synth> = {
     tone(880, 0.08, "square", 0.08)(ctx, dest, when);
     tone(880, 0.08, "square", 0.08)(ctx, dest, when + 0.14);
   },
+  land: noise(0.08, 0.16, 500),
+  heavy: (ctx, dest, when) => {
+    noise(0.22, 0.42, 380)(ctx, dest, when);
+    tone(120, 0.24, "square", 0.16, -60)(ctx, dest, when);
+    tone(60, 0.3, "sine", 0.3, -20)(ctx, dest, when);
+  },
+  coin: (ctx, dest, when) => {
+    tone(1318, 0.07, "square", 0.08)(ctx, dest, when);
+    tone(1760, 0.16, "square", 0.08)(ctx, dest, when + 0.07);
+  },
+  checkpoint: chord([784, 988, 1175], 0.28, 0.05),
+  tick: tone(1046, 0.05, "square", 0.1),
+  final: (ctx, dest, when) => {
+    tone(440, 0.12, "square", 0.16)(ctx, dest, when);
+    tone(880, 0.2, "square", 0.12)(ctx, dest, when + 0.05);
+  },
+  emote: tone(660, 0.09, "sine", 0.1, 240),
 };
 
 class SoundManager {

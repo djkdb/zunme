@@ -10,6 +10,7 @@ import { emitTrail } from "@/components/game/LocalPlayer";
 import { BOSS_SCALE, PLAYER_HEIGHT, PLAYER_RADIUS } from "@/game/config";
 import { hostNow } from "@/game/clock";
 import { livePoses, remoteBuffers, type InterpolatedPose } from "@/game/remote";
+import { useGameStore } from "@/store/gameStore";
 
 interface Props {
   id: string;
@@ -73,6 +74,8 @@ export function RemotePlayer({ id, nickname, colorHex, spawn, showLabel, cosmeti
     live.y = t.y - (PLAYER_HEIGHT / 2) * scale;
     live.z = t.z;
     livePoses.set(id, live);
+    const st = useGameStore.getState().state;
+    animRef.current.celebrateUntil = st.status === "FINISHED" && st.winnerId === id ? performance.now() + 200 : 0;
     emitTrail(cosmetics.trail, live, animRef.current.speed, animRef.current.grounded, lastTrail);
   });
 

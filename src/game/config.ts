@@ -230,7 +230,10 @@ export const METEOR_IMPULSE = 11;
 
 // ── Player physics ───────────────────────────────────────────────────
 export const PLAYER_SPEED = 7.5; // m/s target ground speed
-export const PLAYER_ACCEL = 40; // m/s^2 towards target velocity
+export const PLAYER_ACCEL = 42; // m/s^2 towards target velocity
+export const PLAYER_DECEL = 60; // m/s^2 when letting go (stops crisply)
+export const PLAYER_TURN_ACCEL = 75; // m/s^2 when reversing direction (snappy turns)
+export const PLAYER_IDLE_FRICTION = 0.88; // per 1/60 s while idle on the ground
 export const PLAYER_AIR_CONTROL = 0.45;
 export const JUMP_FORCE = 9.2; // initial vertical velocity
 export const GRAVITY = -22;
@@ -244,6 +247,11 @@ export const PUSH_RELATIVE_FACTOR = 0.6; // extra knockback per m/s of closing s
 export const AIR_HIT_MULTIPLIER = 1.3; // airborne victims fly further
 export const HIT_STUN_MS = 250; // no control right after a hard hit
 export const OBSTACLE_STUN_MS = 350;
+export const DASH_HIT_STUN_MS = 420; // victim of a dash hit
+export const DASH_HIT_MULTIPLIER = 1.35; // extra knockback when the attacker is dashing
+export const HITSTOP_MS = 70; // freeze frame on a dash hit
+export const HITSTOP_SCALE = 0.12;
+export const KNOCKOUT_CREDIT_MS = 3000; // a fall within this after a hit credits the hitter
 
 // ── Dash ─────────────────────────────────────────────────────────────
 export const DASH_SPEED = 19; // m/s during a dash
@@ -323,11 +331,18 @@ export const SOUND_PATHS = {
   countdown: "/sounds/countdown.mp3",
   go: "/sounds/go.mp3",
   jump: "/sounds/jump.mp3",
+  land: "/sounds/land.mp3",
   impact: "/sounds/impact.mp3",
+  heavy: "/sounds/heavy.mp3",
   elimination: "/sounds/elimination.mp3",
   win: "/sounds/win.mp3",
   dash: "/sounds/dash.mp3",
   warning: "/sounds/warning.mp3",
+  coin: "/sounds/coin.mp3",
+  checkpoint: "/sounds/checkpoint.mp3",
+  tick: "/sounds/tick.mp3",
+  final: "/sounds/final.mp3",
+  emote: "/sounds/emote.mp3",
 } as const;
 
 export type SoundName = keyof typeof SOUND_PATHS;

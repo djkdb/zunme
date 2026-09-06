@@ -426,6 +426,11 @@ textarea {
   background: radial-gradient(circle at 50% 50%, rgba(255, 60, 60, 0) 45%, rgba(255, 60, 60, 0.45) 100%);
   animation: fade-in 0.1s ease both;
 }
+/* Near the edge: a red rim that breathes faster than the low-time pulse */
+.fx-danger {
+  background: radial-gradient(ellipse at 50% 50%, rgba(255, 60, 60, 0) 58%, rgba(255, 60, 60, 0.45) 100%);
+  animation: lowtime 0.55s ease-in-out infinite;
+}
 .fx-lowtime {
   background: radial-gradient(circle at 50% 50%, rgba(255, 90, 60, 0) 55%, rgba(255, 90, 60, 0.35) 100%);
   animation: lowtime 1s ease-in-out infinite;

@@ -114,6 +114,9 @@ export const localPose = {
   stunUntil: 0,
   /** impulse queued by hazards (meteors); consumed by the controller */
   pendingImpulse: null as { x: number; y: number; z: number; stunMs: number } | null,
+  /** who shoved us last (knock-out credit) */
+  lastHitBy: null as string | null,
+  lastHitAt: 0,
 };
 
 // Dev-only inspection hook (positions are not React state, so expose them for e2e tests / console debugging).

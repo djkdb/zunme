@@ -49,6 +49,9 @@ export function createInitialState(hostId: string): GameState {
     taken: [],
     zone: [],
     team: [],
+    knockouts: {},
+    falls: {},
+    outAt: {},
     partyMix: false,
     series: {},
     winnerId: null,
@@ -151,6 +154,9 @@ export class GameAuthority {
       taken: [],
       zone: [],
       team: [],
+      knockouts: {},
+      falls: {},
+      outAt: {},
       round: this.state.round + 1,
       seed,
       countdownStartAt: now,
@@ -185,6 +191,9 @@ export class GameAuthority {
       taken: [],
       zone: [],
       team: [],
+      knockouts: {},
+      falls: {},
+      outAt: {},
       series: {},
     });
   }
@@ -193,9 +202,13 @@ export class GameAuthority {
     const mode = this.state.mode;
     switch (evt.type) {
       case "fall":
+        this.countFall(evt.playerId, evt.by ?? null);
         if (mode === "TAG") this.infect(evt.playerId, now);
         else if (mode === "CROWN") this.dropCrown(evt.playerId);
         else if (isEliminationMode(mode)) this.eliminate(evt.playerId, now);
+        break;
+      case "slip":
+        this.countFall(evt.playerId, evt.by ?? null);
         break;
       case "checkpoint":
         this.checkpoint(evt.playerId, evt.index);
@@ -224,12 +237,22 @@ export class GameAuthority {
     return this.state.status === "PLAYING";
   }
 
+  /** Stats only: one fall for the victim, one knock-out for whoever shoved them (once per fall). */
+  private countFall(playerId: string, by: string | null) {
+    const s = this.state;
+    if (!this.playing() || !s.participants.includes(playerId)) return;
+    const falls = { ...s.falls, [playerId]: (s.falls[playerId] ?? 0) + 1 };
+    const patch: Partial<GameState> = { falls };
+    if (by && by !== playerId && s.participants.includes(by)) patch.knockouts = { ...s.knockouts, [by]: (s.knockouts[by] ?? 0) + 1 };
+    this.commit(patch);
+  }
+
   private eliminate(playerId: string, now: number) {
     const s = this.state;
     if (s.status !== "PLAYING" && s.status !== "COUNTDOWN") return;
     if (!s.alive.includes(playerId)) return;
     const alive = s.alive.filter((id) => id !== playerId);
-    const patch: Partial<GameState> = { alive, eliminationOrder: [...s.eliminationOrder, playerId] };
+    const patch: Partial<GameState> = { alive, eliminationOrder: [...s.eliminationOrder, playerId], outAt: { ...s.outAt, [playerId]: now } };
     if (s.zone.includes(playerId)) patch.zone = s.zone.filter((id) => id !== playerId);
     this.commit(patch);
     if (s.mode === "BOMB" && s.holderId === playerId) this.rearmBomb(now);
