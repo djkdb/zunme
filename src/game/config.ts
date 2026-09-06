@@ -16,6 +16,9 @@ export const COUNTDOWN_DURATION = 4000; // 3,2,1,GO!
 export const GAME_DURATION = 75_000; // main round
 export const SUDDEN_DEATH_DURATION = 30_000; // arena shrinks until one remains
 export const RESULT_AUTO_LOBBY_DELAY = 12_000;
+export const DEFAULT_SERIES_TOTAL = 5; // Best of 5
+export const SERIES_CHAMPION_BONUS = 150; // points once per series for the champion
+export const SERIES_FINISH_BONUS = 40; // everyone else who played the whole series
 export const ELIMINATION_SLOWMO_DURATION = 700;
 export const ELIMINATION_SLOWMO_SCALE = 0.3;
 

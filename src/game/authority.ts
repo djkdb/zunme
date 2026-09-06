@@ -17,11 +17,13 @@ import {
   COUNTDOWN_DURATION,
   CROWN_STEAL_COOLDOWN,
   DEFAULT_MODE,
+  DEFAULT_SERIES_TOTAL,
   GAME_MODES,
   RACE_FINISH_GRACE,
   SCORE_FLUSH_MS,
 } from "@/game/config";
 import { bombFuse, coinValueById } from "@/game/modes";
+import { NEXT_GAME_DELAY_MS, isSeries, planSeriesModes, pointsForRank, seriesStandings } from "@/game/series";
 import { createRng, randomSeed } from "@/game/random";
 import type { ClientEvent, GameMode, GameState } from "@/types";
 
@@ -54,6 +56,13 @@ export function createInitialState(hostId: string): GameState {
     outAt: {},
     partyMix: false,
     series: {},
+    seriesTotal: DEFAULT_SERIES_TOTAL,
+    seriesSeed: 0,
+    seriesModes: [],
+    seriesRound: 0,
+    seriesRounds: [],
+    seriesChampion: null,
+    nextAt: 0,
     winnerId: null,
     hostId,
     version: 1,
@@ -95,6 +104,9 @@ export class GameAuthority {
     if (state.mode === "BOMB") this.explosions = state.eliminationOrder.length;
   }
 
+  /** Ids present in the room at the last tick (a series champion must be here to be crowned). */
+  private present: string[] = [];
+
   /** Returns and clears the dirty flag. */
   consumeChanged(): boolean {
     const c = this.changed;
@@ -118,11 +130,45 @@ export class GameAuthority {
     this.commit({ partyMix: on });
   }
 
+  /** Rounds per series (1 = single rounds). Only between rounds. */
+  setSeriesTotal(total: number) {
+    if (this.state.seriesTotal === total || !Number.isInteger(total) || total < 1 || total > 9) return;
+    if (this.state.status !== "LOBBY" && this.state.status !== "FINISHED") return;
+    this.commit({ seriesTotal: total });
+  }
+
+  /** A series is running when it has started and nobody has been crowned yet. */
+  private seriesInProgress(): boolean {
+    const s = this.state;
+    return isSeries(s) && s.seriesRound > 0 && s.seriesRound < s.seriesTotal && s.seriesChampion === null;
+  }
+
   startCountdown(participants: string[], now: number) {
     if (participants.length === 0) return;
+    if (this.state.status === "COUNTDOWN" || this.state.status === "PLAYING") return; // idempotent: never double-start
     let mode = this.state.mode;
-    if (this.state.partyMix && this.state.round > 0) {
-      // Next mode in the rotation that the current head-count can play.
+    const seriesPatch: Partial<GameState> = {};
+    if (isSeries(this.state)) {
+      if (this.seriesInProgress()) {
+        // Next planned round. The plan is seeded, so a new host continues the same series.
+        const idx = this.state.seriesRound; // 0-based index of the next round
+        const planned = this.state.seriesModes[idx];
+        mode = planned && GAME_MODES[planned].minPlayers <= participants.length ? planned : planSeriesModes(this.state.seriesSeed + idx, 1, participants.length, planned ?? mode)[0];
+        seriesPatch.seriesRound = idx + 1;
+      } else {
+        // New series (first round, or a rematch after a champion): plan every mode now.
+        const seriesSeed = randomSeed();
+        seriesPatch.seriesSeed = seriesSeed;
+        seriesPatch.seriesModes = planSeriesModes(seriesSeed, this.state.seriesTotal, participants.length, mode);
+        seriesPatch.seriesRound = 1;
+        seriesPatch.seriesRounds = [];
+        seriesPatch.series = {};
+        seriesPatch.seriesChampion = null;
+        mode = seriesPatch.seriesModes[0];
+      }
+      seriesPatch.nextAt = 0;
+    } else if (this.state.partyMix && this.state.round > 0) {
+      // Single rounds with party mix: next mode in the rotation that the current head-count can play.
       const i = MODE_ROTATION.indexOf(mode);
       for (let k = 1; k <= MODE_ROTATION.length; k++) {
         const next = MODE_ROTATION[(i + k) % MODE_ROTATION.length];
@@ -144,6 +190,7 @@ export class GameAuthority {
     this.lastFlushAt = now;
     this.explosions = 0;
     this.commit({
+      ...seriesPatch,
       status: "COUNTDOWN",
       mode,
       bossId,
@@ -197,6 +244,12 @@ export class GameAuthority {
       falls: {},
       outAt: {},
       series: {},
+      seriesSeed: 0,
+      seriesModes: [],
+      seriesRound: 0,
+      seriesRounds: [],
+      seriesChampion: null,
+      nextAt: 0,
     });
   }
 
@@ -388,12 +441,37 @@ export class GameAuthority {
   }
 
   private finish(winnerId: string | null, now: number, team: string[] = []) {
+    if (this.state.status === "FINISHED") return; // idempotent
     this.flushScores();
-    // Series scoreboard: winner +1, or every member of a winning team +1.
-    const series = { ...this.state.series };
-    if (winnerId) series[winnerId] = (series[winnerId] ?? 0) + 1;
-    else for (const id of team) series[id] = (series[id] ?? 0) + 1;
-    this.commit({ status: "FINISHED", winnerId, team, endAt: now, series, zone: [] });
+    this.commit({ status: "FINISHED", winnerId, team, endAt: now, zone: [] });
+    const s = this.state;
+    if (isSeries(s) && s.seriesRound > 0) {
+      // Series: placement points (3 / 2 / 1), one result per round number.
+      if (!s.seriesRounds.some((r) => r.round === s.round)) {
+        const ranking = computeRanking(s);
+        const points: Record<string, number> = {};
+        ranking.forEach((id, i) => {
+          const p = pointsForRank(i + 1);
+          if (p > 0) points[id] = p;
+        });
+        const series = { ...s.series };
+        for (const [id, p] of Object.entries(points)) series[id] = (series[id] ?? 0) + p;
+        const seriesRounds = [...s.seriesRounds, { round: s.round, mode: s.mode, ranking, winnerId, points }];
+        const done = s.seriesRound >= s.seriesTotal;
+        const next = { ...s, series, seriesRounds };
+        // The champion is the best-placed player who is still in the room: someone
+        // who left keeps their points on the board but can't take the crown.
+        const pool = this.present.length > 0 ? this.present : s.participants;
+        const seriesChampion = done ? (seriesStandings(next).find((id) => pool.includes(id)) ?? seriesStandings(next)[0] ?? null) : null;
+        this.commit({ series, seriesRounds, seriesChampion, nextAt: done ? 0 : now + NEXT_GAME_DELAY_MS });
+      }
+    } else {
+      // Single rounds: the scoreboard counts wins (winner +1, or every member of a winning team).
+      const series = { ...s.series };
+      if (winnerId) series[winnerId] = (series[winnerId] ?? 0) + 1;
+      else for (const id of team) series[id] = (series[id] ?? 0) + 1;
+      this.commit({ series });
+    }
   }
 
   /** Winner of a score mode at time-out (null when nobody scored). */
@@ -425,6 +503,7 @@ export class GameAuthority {
    * players who disconnected mid-round.
    */
   tick(now: number, presentIds: string[]) {
+    this.present = presentIds;
     const s = this.state;
     const dt = Math.min(500, Math.max(0, now - this.lastTickAt));
     this.lastTickAt = now;
@@ -467,6 +546,30 @@ export class GameAuthority {
     if (this.state.status === "LOBBY" && this.state.participants.length > 0) {
       this.commit({ participants: [] });
     }
+    // Series: the next round starts itself once the result / NEXT GAME card has been shown.
+    if (this.state.status === "FINISHED" && this.state.nextAt > 0 && now >= this.state.nextAt && this.seriesInProgress()) {
+      const present = presentIds.filter((id) => this.state.participants.includes(id));
+      const roster = present.length > 0 ? presentIds : [];
+      if (roster.length > 0) this.startCountdown(roster, now);
+      else this.commit({ nextAt: 0 });
+    }
+  }
+
+  /**
+   * Host handover: nobody ticked while the old host was gone, so any deadline
+   * that expired in the dead time gets re-armed instead of firing all at once.
+   * A countdown restarts from 3-2-1-GO (a round can't open with everyone already
+   * "late"); a NEXT GAME card that ran out is shown for a short beat again.
+   */
+  resumeAfterHandover(now: number) {
+    const s = this.state;
+    if (s.status === "COUNTDOWN" && now > s.startAt - 1000) {
+      // shift every timestamp forward so GO! is a full countdown away
+      this.rebase(s.startAt - (now + COUNTDOWN_DURATION));
+    } else if (s.status === "FINISHED" && s.nextAt > 0 && s.nextAt < now + 3000) {
+      this.commit({ nextAt: now + 3000 });
+    }
+    this.lastTickAt = now;
   }
 
   /** Convert all host-clock timestamps into a new clock (used on host handover). */
@@ -481,6 +584,7 @@ export class GameAuthority {
       endAt: s.endAt ? s.endAt - offsetMs : 0,
       holderSince: s.holderSince ? s.holderSince - offsetMs : 0,
       fuseAt: s.fuseAt ? s.fuseAt - offsetMs : 0,
+      nextAt: s.nextAt ? s.nextAt - offsetMs : 0,
     });
   }
 }
@@ -493,9 +597,17 @@ export function computeRanking(state: GameState): string[] {
   };
   if (hasFinishLine(state.mode)) {
     for (const id of state.finishOrder) push(id);
+    // Still-running players rank by progress; anyone knocked out (fell for good,
+    // left the room) ranks below them, later exits first.
+    const outIdx = (id: string) => state.eliminationOrder.indexOf(id);
     const rest = state.participants
       .filter((id) => !ranking.includes(id))
-      .sort((a, b) => (state.progress[b] ?? -1) - (state.progress[a] ?? -1));
+      .sort((a, b) => {
+        const ao = outIdx(a), bo = outIdx(b);
+        if ((ao < 0) !== (bo < 0)) return ao < 0 ? -1 : 1;
+        if (ao >= 0 && bo >= 0) return bo - ao;
+        return (state.progress[b] ?? -1) - (state.progress[a] ?? -1);
+      });
     for (const id of rest) push(id);
     return ranking;
   }

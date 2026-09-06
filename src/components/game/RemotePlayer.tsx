@@ -75,7 +75,7 @@ export function RemotePlayer({ id, nickname, colorHex, spawn, showLabel, cosmeti
     live.z = t.z;
     livePoses.set(id, live);
     const st = useGameStore.getState().state;
-    animRef.current.celebrateUntil = st.status === "FINISHED" && st.winnerId === id ? performance.now() + 200 : 0;
+    animRef.current.celebrateUntil = st.status === "FINISHED" && (st.winnerId === id || st.seriesChampion === id) ? performance.now() + 200 : 0;
     emitTrail(cosmetics.trail, live, animRef.current.speed, animRef.current.grounded, lastTrail);
   });
 

@@ -145,6 +145,7 @@ export class RoomClient {
     const authority = new GameAuthority(this.state, this.localId);
     authority.rebase(this.clockOffset);
     this.clockOffset = 0;
+    authority.resumeAfterHandover(this.now());
     this.authority = authority;
     this.broadcastState(true);
   }
@@ -190,6 +191,12 @@ export class RoomClient {
   setPartyMix(on: boolean) {
     if (!this.authority) return;
     this.authority.setPartyMix(on);
+    this.broadcastState(true);
+  }
+
+  setSeriesTotal(total: number) {
+    if (!this.authority) return;
+    this.authority.setSeriesTotal(total);
     this.broadcastState(true);
   }
 

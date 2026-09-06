@@ -55,6 +55,15 @@ export interface Player extends PlayerPresence {
   isHost: boolean;
 }
 
+/** One finished round of a series (appended once per round, keyed by round number). */
+export interface SeriesRoundResult {
+  round: number;
+  mode: GameMode;
+  ranking: string[];
+  winnerId: string | null;
+  points: Record<string, number>;
+}
+
 /** Authoritative room state. Owned by the host, mirrored on every client. */
 export interface GameState {
   status: RoomStatus;
@@ -102,8 +111,23 @@ export interface GameState {
   outAt: Record<string, number>;
   /** rotate modes every round */
   partyMix: boolean;
-  /** cumulative wins this session (reset when returning to lobby) */
+  /**
+   * Series points per player (1st 3 / 2nd 2 / 3rd 1) in a series, or round wins
+   * in single-round play. Reset when returning to the lobby.
+   */
   series: Record<string, number>;
+  /** rounds per series (1 = single rounds) */
+  seriesTotal: number;
+  /** seed the mode plan was drawn from (same plan on every host) */
+  seriesSeed: number;
+  /** planned modes, one per round */
+  seriesModes: GameMode[];
+  /** 1-based round within the series, 0 = no series running */
+  seriesRound: number;
+  seriesRounds: SeriesRoundResult[];
+  seriesChampion: string | null;
+  /** host time the next series round auto-starts (0 = none scheduled) */
+  nextAt: number;
   winnerId: string | null;
   /** Host id when this state was emitted. */
   hostId: string;

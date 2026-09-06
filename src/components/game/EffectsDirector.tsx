@@ -16,6 +16,7 @@ export function EffectsDirector() {
   const lastStatus = useRef(useGameStore.getState().state.status);
   const lastElimSeq = useRef(useGameStore.getState().eliminationSeq);
   const lastFinishSeq = useRef(useGameStore.getState().finishSeq);
+  const lastChampion = useRef<string | null>(null);
   const confettiTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -54,6 +55,26 @@ export function EffectsDirector() {
             clearInterval(confettiTimer.current);
             confettiTimer.current = null;
           }
+        }
+      }
+
+      // Series champion: a longer, bigger confetti shower on the champion.
+      const champion = s.state.seriesChampion;
+      if (champion !== lastChampion.current) {
+        lastChampion.current = champion;
+        if (champion) {
+          sound.play("win");
+          const colors = PLAYER_COLORS.map((c) => c.hex);
+          let shots = 0;
+          if (confettiTimer.current) clearInterval(confettiTimer.current);
+          confettiTimer.current = setInterval(() => {
+            const p = livePoses.get(champion) ?? { x: 0, y: 0, z: 0 };
+            burst({ position: { x: p.x, y: p.y + 3, z: p.z }, color: colors, count: 44, speed: 6, life: 2.6, size: 0.09, gravity: 3, spread: 2 });
+            if (++shots >= 16 && confettiTimer.current) {
+              clearInterval(confettiTimer.current);
+              confettiTimer.current = null;
+            }
+          }, 300);
         }
       }
 

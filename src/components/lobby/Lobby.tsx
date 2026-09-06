@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { EmoteControls } from "@/components/hud/EmoteControls";
 import { itemById } from "@/game/items";
+import { SERIES_OPTIONS } from "@/game/series";
 import { MuteButton } from "@/components/hud/MuteButton";
 import { ShopButton } from "@/components/shop/ShopButton";
 import { GAME_MODES, MAX_PLAYERS, MIN_PLAYERS_TO_START } from "@/game/config";
@@ -24,6 +25,8 @@ export function Lobby({ roomCode }: { roomCode: string }) {
   const setMode = useGameStore((s) => s.setMode);
   const partyMix = useGameStore((s) => s.state.partyMix);
   const setPartyMix = useGameStore((s) => s.setPartyMix);
+  const seriesTotal = useGameStore((s) => s.state.seriesTotal);
+  const setSeriesTotal = useGameStore((s) => s.setSeriesTotal);
   const series = useGameStore((s) => s.state.series);
   const seriesRows = players.filter((p) => (series[p.id] ?? 0) > 0).sort((a, b) => (series[b.id] ?? 0) - (series[a.id] ?? 0));
   const leave = useGameStore((s) => s.leave);
@@ -167,17 +170,40 @@ export function Lobby({ roomCode }: { roomCode: string }) {
             })}
           </div>
           <p className="mt-1.5 text-center text-[11px] font-semibold text-white/70 short:text-[10px]">{GAME_MODES[mode].description}</p>
-          <button
-            disabled={!isHost || roundInProgress}
-            onClick={() => {
-              sound.play("click");
-              setPartyMix(!partyMix);
-            }}
-            className={`mt-2 flex w-full items-center justify-between rounded-xl border-2 px-3 py-1.5 text-[11px] font-black tracking-widest ${partyMix ? "border-brand-2 bg-brand-2/15 text-brand-2" : "border-white/10 bg-white/5 text-white/70"} ${isHost ? "active:scale-[0.98]" : "cursor-default"}`}
-          >
-            <span>🎲 파티 믹스 — 매 라운드 모드 순환</span>
-            <span>{partyMix ? "켜짐" : "꺼짐"}</span>
-          </button>
+          <div className="mt-2 flex items-center justify-between rounded-xl border-2 border-white/10 bg-white/5 px-2 py-1.5">
+            <span className="px-1 text-[11px] font-black tracking-widest text-white/80">🏆 파티 시리즈</span>
+            <div className="flex gap-1">
+              {SERIES_OPTIONS.map((n) => (
+                <button
+                  key={n}
+                  disabled={!isHost || roundInProgress}
+                  onClick={() => {
+                    sound.play("click");
+                    setSeriesTotal(n);
+                  }}
+                  className={`rounded-lg px-2.5 py-1 text-[11px] font-black ${seriesTotal === n ? "bg-brand-2 text-[#12142b]" : "bg-white/10 text-white/70"} ${isHost ? "active:scale-95" : "cursor-default"}`}
+                >
+                  {n === 1 ? "단판" : `${n}판`}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="mt-1 text-center text-[10px] font-semibold text-white/50">
+            {seriesTotal > 1 ? `${seriesTotal}라운드 · 매 라운드 다른 모드 · 1·2·3위 3/2/1점 · 챔피언 1명` : "한 판씩 · 호스트가 매번 모드를 고릅니다"}
+          </p>
+          {seriesTotal === 1 && (
+            <button
+              disabled={!isHost || roundInProgress}
+              onClick={() => {
+                sound.play("click");
+                setPartyMix(!partyMix);
+              }}
+              className={`mt-2 flex w-full items-center justify-between rounded-xl border-2 px-3 py-1.5 text-[11px] font-black tracking-widest ${partyMix ? "border-brand-2 bg-brand-2/15 text-brand-2" : "border-white/10 bg-white/5 text-white/70"} ${isHost ? "active:scale-[0.98]" : "cursor-default"}`}
+            >
+              <span>🎲 파티 믹스 — 매 라운드 모드 순환</span>
+              <span>{partyMix ? "켜짐" : "꺼짐"}</span>
+            </button>
+          )}
           {seriesRows.length > 0 && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-white/80">
               <span className="text-white/50">시리즈</span>
@@ -227,7 +253,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
               <div className="rounded-2xl bg-white/10 p-3 text-center text-sm font-bold text-white/80">라운드 진행 중 — 다음 라운드에 참가해요.</div>
             ) : isHost ? (
               <button className={`btn btn-primary w-full text-xl ${players.length > 1 && othersReady ? "anim-pulse" : ""}`} disabled={!canStart} onClick={() => { sound.play("click"); startGame(); }}>
-                <span className="btn-icon">▶</span> 게임 시작
+                <span className="btn-icon">▶</span> {seriesTotal > 1 ? `시리즈 시작 · ${seriesTotal}판` : "게임 시작"}
                 {players.length > 1 && <span className="text-sm font-bold text-white/80">준비 {readyCount}/{players.length - 1}</span>}
               </button>
             ) : (

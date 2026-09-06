@@ -535,7 +535,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
     // Reliability: if the host never acknowledged our fall / finish (lost event,
     // host handover), re-send it until the shared state reflects it.
     const store = useGameStore.getState();
-    anim.celebrateUntil = store.state.status === "FINISHED" && store.state.winnerId === id ? performance.now() + 200 : 0;
+    anim.celebrateUntil = store.state.status === "FINISHED" && (store.state.winnerId === id || store.state.seriesChampion === id) ? performance.now() + 200 : 0;
     if (store.state.status === "PLAYING") {
       const now = performance.now();
       if (now - lastReportRetry.current > 1500) {

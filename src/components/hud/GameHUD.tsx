@@ -125,7 +125,7 @@ export function GameHUD() {
       {/* top bar */}
       <div className="flex items-start justify-between p-3">
         <div className="chip px-3 py-2 text-xs font-black tracking-widest text-white hud-text sm:text-sm">
-          {meta.icon} {meta.name} · {run ? `스테이지 ${stage}` : `${state.round}라운드`}
+          {meta.icon} {meta.name} · {run ? `스테이지 ${stage}` : state.seriesTotal > 1 && state.seriesRound > 0 ? `시리즈 ${state.seriesRound}/${state.seriesTotal}` : `${state.round}라운드`}
         </div>
         <div className="chip anim-pop px-4 py-2 text-center text-white">
           <div className="text-[10px] font-bold tracking-[0.3em] text-white/60">

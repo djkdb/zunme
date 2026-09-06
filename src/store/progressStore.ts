@@ -51,6 +51,8 @@ export interface RoundReport {
 interface ProgressStore extends Persisted {
   lastReport: RoundReport | null;
   applyRound(key: string, summary: RoundSummary): RoundReport | null;
+  /** One-off bonus (series champion etc.), claimed at most once per key. */
+  claimBonus(key: string, label: string, points: number): boolean;
   refreshDaily(): void;
 }
 
@@ -99,6 +101,20 @@ export const useProgressStore = create<ProgressStore>((set) => ({
   refreshDaily() {
     const cur = load();
     set(cur);
+  },
+
+  claimBonus(key, label, points) {
+    const cur = load();
+    if (cur.claimed.includes(key) || points <= 0) return false;
+    const stats: Stats = { ...cur.stats, pointsLifetime: cur.stats.pointsLifetime + points };
+    const next: Persisted = { ...cur, stats, xp: cur.xp + points, claimed: [...cur.claimed, key].slice(-50) };
+    save(next);
+    const wallet = useWalletStore.getState();
+    const roundReward = wallet.lastReward;
+    wallet.claimReward(key, points, 1);
+    useWalletStore.setState({ lastReward: roundReward }); // the round breakdown stays on screen; the final screen shows the bonus itself
+    set(next);
+    return true;
   },
 
   applyRound(key, summary) {

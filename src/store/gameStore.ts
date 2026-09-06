@@ -6,7 +6,8 @@
  */
 import { create } from "zustand";
 import { createInitialState } from "@/game/authority";
-import { KNOCKOUT_CREDIT_MS, PLAYER_COLORS } from "@/game/config";
+import { KNOCKOUT_CREDIT_MS, PLAYER_COLORS, SERIES_CHAMPION_BONUS, SERIES_FINISH_BONUS } from "@/game/config";
+import { showEmote } from "@/game/emotes";
 import { localPose } from "@/game/remote";
 import { RoomClient } from "@/lib/multiplayer";
 import { loadIdentity, pickFreeColor, saveNickname } from "@/lib/room";
@@ -38,6 +39,8 @@ interface GameStore {
   state: GameState;
   /** Derived from presences + hostId + state; recomputed on write so selectors stay referentially stable. */
   players: Player[];
+  /** Everyone seen in this room (id → last known name/colour), so a series board can still name a player who left. */
+  seen: Record<string, { nickname: string; colorHex: string }>;
   /** Local overlay: user pressed "return to lobby" while the room is still FINISHED. */
   viewingLobby: boolean;
   lastElimination: EliminationNotice | null;
@@ -60,6 +63,7 @@ interface GameStore {
   startGame(): void;
   setMode(mode: GameMode): void;
   setPartyMix(on: boolean): void;
+  setSeriesTotal(total: number): void;
   playAgain(): void;
   reportFinish(): void;
   reportCheckpoint(index: number): void;
@@ -77,6 +81,9 @@ interface GameStore {
 
 const identity = typeof window !== "undefined" ? loadIdentity() : { id: "server", nickname: "Player" };
 
+/** The client currently connecting (see `join`). */
+let pendingJoin: { roomCode: string; client: RoomClient } | null = null;
+
 export const useGameStore = create<GameStore>((set, get) => ({
   client: null,
   roomCode: null,
@@ -90,6 +97,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   hostId: null,
   state: createInitialState(identity.id),
   players: [],
+  seen: {},
   viewingLobby: false,
   lastElimination: null,
   eliminationSeq: 0,
@@ -103,6 +111,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
   async join(roomCode, nickname) {
     const existing = get().client;
     if (existing && existing.roomCode === roomCode) return;
+    // A join is async: a second call for the same room while the first is still connecting
+    // (StrictMode re-running the effect, a double tap) must not open a second client — two
+    // clients with one identity would both become host and fight over the state.
+    if (pendingJoin && pendingJoin.roomCode === roomCode) return;
+    pendingJoin?.client.disconnect();
     existing?.disconnect();
     const name = nickname ?? get().nickname;
     const presence: PlayerPresence = {
@@ -133,6 +146,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
         // Join / leave toasts (skip the first sync, which is the room we walked into).
         const before = get().presences;
         const patch: Partial<GameStore> = { presences: players, hostId, players: toPlayers(players, hostId, get().state) };
+        const seen = { ...get().seen };
+        for (const p of patch.players ?? []) seen[p.id] = { nickname: p.nickname, colorHex: p.colorHex };
+        patch.seen = seen;
         if (before.length > 0) {
           const now = performance.now();
           const notices = get().roomNotices.filter((n) => now - n.at < 3500);
@@ -198,6 +214,13 @@ export const useGameStore = create<GameStore>((set, get) => ({
             if (report) get().client?.updatePresence({ level: currentLevel() });
           }
         }
+        // Series decided: champion bonus (claimed once per series seed) and a 🏆 emote on the champion.
+        if (state.seriesChampion && state.seriesChampion !== prev.seriesChampion) {
+          const localId = get().localId;
+          if (state.seriesChampion === localId) useProgressStore.getState().claimBonus(`series:${state.seriesSeed}`, "🏆 시리즈 챔피언", SERIES_CHAMPION_BONUS);
+          else if (state.participants.includes(localId)) useProgressStore.getState().claimBonus(`series:${state.seriesSeed}`, "🎉 시리즈 완주", SERIES_FINISH_BONUS);
+          showEmote(state.seriesChampion, 7);
+        }
         patch.players = toPlayers(get().presences, get().hostId, state);
         set(patch);
       },
@@ -208,17 +231,27 @@ export const useGameStore = create<GameStore>((set, get) => ({
       onConnection: (ok) => set({ reconnecting: !ok }),
     });
 
+    pendingJoin = { roomCode, client };
     try {
       await client.connect();
+      if (pendingJoin?.client !== client) {
+        // superseded (left the room / joined another while connecting)
+        client.disconnect();
+        return;
+      }
       const state = client.currentState;
       set({ client, connected: true, connecting: false, offline: client.offline, state, players: toPlayers(get().presences, get().hostId, state) });
     } catch (e) {
       client.disconnect();
       set({ connecting: false, connected: false, error: e instanceof Error ? e.message : "Failed to connect" });
+    } finally {
+      if (pendingJoin?.client === client) pendingJoin = null;
     }
   },
 
   leave() {
+    pendingJoin?.client.disconnect();
+    pendingJoin = null;
     get().client?.disconnect();
     set({
       client: null,
@@ -229,6 +262,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       hostId: null,
       state: createInitialState(get().localId),
       players: [],
+      seen: {},
       viewingLobby: false,
       lastElimination: null,
     });
@@ -258,6 +292,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   setPartyMix(on) {
     get().client?.setPartyMix(on);
+  },
+
+  setSeriesTotal(total) {
+    get().client?.setSeriesTotal(total);
   },
 
   reportFinish() {
@@ -343,5 +381,5 @@ export const selectIsParticipant = (s: GameStore) => s.state.participants.includ
 // Dev-only inspection hook for e2e tests / console debugging.
 if (typeof window !== "undefined" && process.env.NODE_ENV !== "production") {
   const w = window as unknown as { __dropzone?: Record<string, unknown> };
-  w.__dropzone = { ...(w.__dropzone ?? {}), store: useGameStore };
+  w.__dropzone = { ...(w.__dropzone ?? {}), store: useGameStore, progress: useProgressStore, wallet: useWalletStore };
 }

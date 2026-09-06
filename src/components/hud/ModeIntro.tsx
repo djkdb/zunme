@@ -23,6 +23,12 @@ export function ModeIntro() {
   return (
     <div key={state.round} className="pointer-events-none absolute inset-x-0 top-[72px] z-10 flex justify-center px-4 safe-pad short:top-16">
       <div className="anim-rise panel max-w-md px-4 py-2.5 text-center short:max-w-sm short:py-1.5">
+        {state.seriesTotal > 1 && state.seriesRound > 0 && (
+          <div className="mb-1 flex items-center justify-center gap-2 text-[10px] font-black tracking-[0.3em] text-white/70">
+            <span className="rounded-full bg-brand-2 px-2 py-0.5 text-[#12142b]">PARTY SERIES</span>
+            <span>{state.seriesRound === 1 ? `BEST OF ${state.seriesTotal} · ${state.seriesTotal}라운드 · 챔피언 1명` : `ROUND ${state.seriesRound} / ${state.seriesTotal}`}</span>
+          </div>
+        )}
         <div className="display text-lg text-brand-2 sm:text-xl">
           {meta.icon} {meta.name} <span className="text-white/60">· {meta.tagline}</span>
         </div>
