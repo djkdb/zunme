@@ -368,6 +368,88 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
               <meshStandardMaterial color="#ffe066" emissive="#ffd32a" emissiveIntensity={0.9} roughness={0.3} />
             </mesh>
           )}
+          {cosmetics.hat === "top_hat" && (
+            <group position={[0, 0.3, -0.02]}>
+              <mesh castShadow position={[0, 0.3, 0]}>
+                <cylinderGeometry args={[0.3, 0.32, 0.55, 14]} />
+                <meshStandardMaterial color="#1b1c2a" roughness={0.5} />
+              </mesh>
+              <mesh position={[0, 0.03, 0]}>
+                <cylinderGeometry args={[0.46, 0.46, 0.05, 18]} />
+                <meshStandardMaterial color="#1b1c2a" roughness={0.5} />
+              </mesh>
+              <mesh position={[0, 0.1, 0]}>
+                <cylinderGeometry args={[0.325, 0.33, 0.08, 14]} />
+                <meshStandardMaterial color="#d63447" roughness={0.6} />
+              </mesh>
+            </group>
+          )}
+          {cosmetics.hat === "hardhat" && (
+            <group position={[0, 0.26, -0.02]}>
+              <mesh castShadow position={[0, 0.08, 0]} scale={[1, 0.72, 1]}>
+                <sphereGeometry args={[0.44, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2]} />
+                <meshStandardMaterial color="#ffd32a" roughness={0.45} />
+              </mesh>
+              <mesh position={[0, 0.06, 0.06]}>
+                <boxGeometry args={[0.9, 0.05, 0.9]} />
+                <meshStandardMaterial color="#ffc400" roughness={0.45} />
+              </mesh>
+              <mesh position={[0, 0.3, 0]}>
+                <boxGeometry args={[0.1, 0.16, 0.7]} />
+                <meshStandardMaterial color="#ffc400" roughness={0.45} />
+              </mesh>
+            </group>
+          )}
+          {cosmetics.hat === "chef" && (
+            <group position={[0, 0.3, -0.02]}>
+              <mesh castShadow position={[0, 0.12, 0]}>
+                <cylinderGeometry args={[0.31, 0.33, 0.28, 14]} />
+                <meshStandardMaterial color="#fffdf7" roughness={0.9} />
+              </mesh>
+              {[[0, 0.44, 0, 0.3], [0.2, 0.36, 0.05, 0.19], [-0.2, 0.36, -0.05, 0.19], [0.02, 0.36, -0.2, 0.18], [-0.04, 0.36, 0.2, 0.18]].map(([x, y, z, r], i) => (
+                <mesh key={i} position={[x, y, z]}>
+                  <sphereGeometry args={[r, 10, 8]} />
+                  <meshStandardMaterial color="#ffffff" roughness={0.9} />
+                </mesh>
+              ))}
+            </group>
+          )}
+          {cosmetics.hat === "pirate" && (
+            <group position={[0, 0.34, -0.02]}>
+              <mesh castShadow position={[0, 0.16, 0]}>
+                <sphereGeometry args={[0.4, 12, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
+                <meshStandardMaterial color="#1b1c2a" roughness={0.8} />
+              </mesh>
+              {[-1, 1].map((s) => (
+                <mesh key={s} castShadow position={[s * 0.32, 0.22, 0]} rotation={[0, 0, s * 0.55]}>
+                  <boxGeometry args={[0.5, 0.36, 0.14]} />
+                  <meshStandardMaterial color="#1b1c2a" roughness={0.8} flatShading />
+                </mesh>
+              ))}
+              <mesh position={[0, 0.2, 0.36]}>
+                <boxGeometry args={[0.7, 0.34, 0.08]} />
+                <meshStandardMaterial color="#1b1c2a" roughness={0.8} />
+              </mesh>
+              <mesh position={[0, 0.22, 0.41]}>
+                <sphereGeometry args={[0.07, 8, 6]} />
+                <meshStandardMaterial color="#ffffff" roughness={0.6} />
+              </mesh>
+            </group>
+          )}
+          {cosmetics.hat === "sprout" && (
+            <group position={[0, 0.34, 0]}>
+              <mesh position={[0, 0.16, 0]}>
+                <cylinderGeometry args={[0.025, 0.03, 0.34, 6]} />
+                <meshStandardMaterial color="#2ed573" roughness={0.8} />
+              </mesh>
+              {[-1, 1].map((s) => (
+                <mesh key={s} position={[s * 0.12, 0.34, 0]} rotation={[0, 0, s * 0.6]} scale={[1, 0.5, 0.35]}>
+                  <sphereGeometry args={[0.13, 8, 6]} />
+                  <meshStandardMaterial color="#5be584" roughness={0.8} />
+                </mesh>
+              ))}
+            </group>
+          )}
           {cosmetics.hat === "crown" && (
             <group position={[0, 0.34, -0.02]}>
               <mesh castShadow position={[0, 0.06, 0]}>
@@ -416,6 +498,48 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
                 <meshStandardMaterial color="#2b2d42" />
               </mesh>
             </group>
+          )}
+          {cosmetics.face === "mask" && (
+            <mesh position={[0, -0.16, 0.345]}>
+              <boxGeometry args={[0.5, 0.26, 0.04]} />
+              <meshStandardMaterial color="#f4f7ff" roughness={0.9} />
+            </mesh>
+          )}
+          {cosmetics.face === "mustache" && (
+            <group position={[0, -0.18, 0.35]}>
+              <mesh>
+                <boxGeometry args={[0.3, 0.07, 0.04]} />
+                <meshStandardMaterial color="#4a2e1c" roughness={0.9} />
+              </mesh>
+              {[-1, 1].map((s) => (
+                <mesh key={s} position={[s * 0.18, 0.03, 0]} rotation={[0, 0, s * 0.6]}>
+                  <boxGeometry args={[0.12, 0.05, 0.04]} />
+                  <meshStandardMaterial color="#4a2e1c" roughness={0.9} />
+                </mesh>
+              ))}
+            </group>
+          )}
+          {cosmetics.face === "glasses_3d" && (
+            <group position={[0, -0.05, 0.345]}>
+              <mesh position={[-0.13, 0, 0]}>
+                <boxGeometry args={[0.2, 0.14, 0.03]} />
+                <meshStandardMaterial color="#ff4757" transparent opacity={0.8} roughness={0.2} />
+              </mesh>
+              <mesh position={[0.13, 0, 0]}>
+                <boxGeometry args={[0.2, 0.14, 0.03]} />
+                <meshStandardMaterial color="#18dcff" transparent opacity={0.8} roughness={0.2} />
+              </mesh>
+              <mesh position={[0, 0.08, 0]}>
+                <boxGeometry args={[0.5, 0.03, 0.03]} />
+                <meshStandardMaterial color="#ffffff" roughness={0.6} />
+              </mesh>
+            </group>
+          )}
+          {cosmetics.face === "star_sticker" && (
+            <mesh position={[0.2, -0.12, 0.35]} rotation={[0, 0, 0.3]}>
+              <octahedronGeometry args={[0.07, 0]} />
+              <meshStandardMaterial color="#ffd32a" emissive="#ffd32a" emissiveIntensity={0.6} roughness={0.4} />
+            </mesh>
           )}
           {cosmetics.face === "headphones" && (
             <group>
@@ -500,6 +624,54 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
                 </mesh>
               ))}
             </group>
+          </group>
+        )}
+        {cosmetics.back === "balloon" && (
+          <group position={[0.18, 0.8, -0.3]}>
+            <mesh position={[0, 0.25, 0]}>
+              <cylinderGeometry args={[0.008, 0.008, 0.5, 4]} />
+              <meshStandardMaterial color="#ffffff" roughness={0.9} />
+            </mesh>
+            <mesh castShadow position={[0, 0.72, 0]} scale={[1, 1.15, 1]}>
+              <sphereGeometry args={[0.22, 12, 10]} />
+              <meshStandardMaterial color="#ff4757" roughness={0.3} />
+            </mesh>
+          </group>
+        )}
+        {cosmetics.back === "guitar" && (
+          <group position={[0.05, 0.5, -0.32]} rotation={[0, 0, 0.55]}>
+            <mesh castShadow>
+              <boxGeometry args={[0.36, 0.46, 0.08]} />
+              <meshStandardMaterial color="#b5651d" roughness={0.6} flatShading />
+            </mesh>
+            <mesh position={[0, 0.02, 0.045]}>
+              <cylinderGeometry args={[0.07, 0.07, 0.02, 10]} />
+              <meshStandardMaterial color="#3b2410" roughness={0.8} />
+            </mesh>
+            <mesh position={[0, 0.5, 0]}>
+              <boxGeometry args={[0.07, 0.56, 0.05]} />
+              <meshStandardMaterial color="#5b3a1a" roughness={0.8} />
+            </mesh>
+            <mesh position={[0, 0.8, 0]}>
+              <boxGeometry args={[0.1, 0.14, 0.05]} />
+              <meshStandardMaterial color="#1b1c2a" roughness={0.8} />
+            </mesh>
+          </group>
+        )}
+        {cosmetics.back === "shield" && (
+          <group position={[0, 0.58, -0.3]}>
+            <mesh castShadow>
+              <boxGeometry args={[0.52, 0.58, 0.06]} />
+              <meshStandardMaterial color="#2b3a7a" roughness={0.4} metalness={0.3} flatShading />
+            </mesh>
+            <mesh position={[0, 0, -0.04]}>
+              <boxGeometry args={[0.42, 0.48, 0.02]} />
+              <meshStandardMaterial color="#3d8bff" roughness={0.4} metalness={0.3} />
+            </mesh>
+            <mesh position={[0, 0, -0.06]} rotation={[0, 0, 0.3]}>
+              <octahedronGeometry args={[0.1, 0]} />
+              <meshStandardMaterial color="#ffd32a" roughness={0.3} metalness={0.4} />
+            </mesh>
           </group>
         )}
         {cosmetics.back === "wings" && (

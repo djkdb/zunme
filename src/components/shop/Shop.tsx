@@ -57,6 +57,19 @@ export function Shop({ onClose, initialTab = "shop" }: { onClose: () => void; in
     equip(id);
     setCosmetics(useWalletStore.getState().equipped);
   };
+  /** Random outfit from what the player owns (every slot at once). */
+  const shuffle = () => {
+    sound.play("emote", { volume: 0.5 });
+    for (const s of SLOTS) {
+      const pool = ITEMS.filter((i) => i.slot === s && owned.includes(i.id));
+      const pick = pool[Math.floor(Math.random() * pool.length)];
+      if (pick) equip(pick.id);
+    }
+    setCosmetics(useWalletStore.getState().equipped);
+    setFlash("랜덤 코디 완료!");
+    setTimeout(() => setFlash(null), 1200);
+  };
+  const ownedCount = ITEMS.filter((i) => owned.includes(i.id)).length;
 
   return createPortal(
     <div className="pointer-events-auto fixed inset-0 z-[60] flex items-center justify-center bg-[#12142b]/70 p-3 backdrop-blur-sm safe-pad" onClick={onClose}>
@@ -139,6 +152,9 @@ export function Shop({ onClose, initialTab = "shop" }: { onClose: () => void; in
                   {SLOT_LABELS[s]}
                 </button>
               ))}
+              <button className="ml-auto rounded-xl bg-white/10 px-2.5 py-1.5 text-[11px] font-black tracking-widest text-white/80 active:scale-95" onClick={shuffle} title="가진 아이템으로 랜덤 코디">
+                🎲 <span className="hidden sm:inline">랜덤 코디</span> <span className="text-white/40">{ownedCount}/{ITEMS.length}</span>
+              </button>
             </div>
             <div className="mt-2 grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-y-auto scroll-y pr-1 sm:grid-cols-3">
               {items.map((item) => {
@@ -150,8 +166,11 @@ export function Shop({ onClose, initialTab = "shop" }: { onClose: () => void; in
                 return (
                   <div key={item.id} className={`relative flex flex-col rounded-2xl border-2 p-2.5 ${isEquipped ? "border-brand-2 bg-brand-2/10" : "border-white/10 bg-white/5"}`}>
                     {item.price > 0 && (
-                      <span className="absolute right-2 top-2 rounded-full px-1.5 text-[8px] font-black tracking-widest" style={{ background: `${rarity.color}33`, color: rarity.color }}>
-                        {rarity.name}
+                      <span className="absolute right-2 top-2 flex gap-1 text-[8px] font-black tracking-widest">
+                        {item.isNew && !isOwned && <span className="rounded-full bg-brand px-1.5 text-white">NEW</span>}
+                        <span className="rounded-full px-1.5" style={{ background: `${rarity.color}33`, color: rarity.color }}>
+                          {rarity.name}
+                        </span>
                       </span>
                     )}
                     <div className="flex items-center gap-2">

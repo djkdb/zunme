@@ -11,7 +11,7 @@ import {
 } from "@react-three/rapier";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
-import { TRAIL_COLORS, type Cosmetics } from "@/game/items";
+import { TRAIL_COLORS, type Cosmetics, trailGravity } from "@/game/items";
 import { Character, createAnim, type CharacterAnim } from "@/components/game/Character";
 import {
   BOSS_DASH_COOLDOWN,
@@ -691,7 +691,7 @@ export function emitTrail(trail: string, p: { x: number; y: number; z: number },
   const now = performance.now();
   if (now - last.current < 70) return;
   last.current = now;
-  burst({ position: { x: p.x, y: p.y + 0.15, z: p.z }, color: colors, count: 2, speed: 1.2, life: 0.55, size: 0.11, gravity: trail === "fire" ? -3 : 1.5, spread: 0.6 });
+  burst({ position: { x: p.x, y: p.y + 0.15, z: p.z }, color: colors, count: 2, speed: 1.2, life: 0.55, size: 0.11, gravity: trailGravity(trail), spread: 0.6 });
 }
 
 function round(n: number): number {
