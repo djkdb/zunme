@@ -45,10 +45,10 @@ export function bombFuse(explosions: number): number {
 
 // ── COLOR PANIC ──────────────────────────────────────────────────────
 export const COLOR_PALETTE = [
-  { name: "RED", hex: "#ff4757", dark: "#c62f3c" },
-  { name: "BLUE", hex: "#3d8bff", dark: "#2a63c4" },
-  { name: "GREEN", hex: "#2ed573", dark: "#1f9e53" },
-  { name: "YELLOW", hex: "#ffd32a", dark: "#c9a300" },
+  { name: "빨강", hex: "#ff4757", dark: "#c62f3c" },
+  { name: "파랑", hex: "#3d8bff", dark: "#2a63c4" },
+  { name: "초록", hex: "#2ed573", dark: "#1f9e53" },
+  { name: "노랑", hex: "#ffd32a", dark: "#c9a300" },
 ] as const;
 
 export interface ColorTile {

@@ -55,8 +55,8 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
   const scoreMode = isScoreMode(state.mode);
   const bossMode = state.mode === "BOSS";
   const teamWon = state.team.length > 0;
-  const winnerLabel = bossMode ? "BOSS WINS" : state.mode === "TAG" ? (state.tagged[0] === winner ? "INFECTION WINS" : "LAST SURVIVOR") : scoreMode ? "TOP SCORE" : state.mode === "BOMB" ? "LAST STANDING" : "WINNER";
-  const noWinnerLabel = state.mode === "GOGUN" ? "WIPEOUT" : race ? "TIME'S UP" : scoreMode ? "NO SCORE" : "DRAW";
+  const winnerLabel = bossMode ? "보스 승리" : state.mode === "TAG" ? (state.tagged[0] === winner ? "감염 승리" : "최후의 생존자") : scoreMode ? "최고 점수" : state.mode === "BOMB" ? "최후의 1인" : "승리";
+  const noWinnerLabel = state.mode === "GOGUN" ? "전멸" : race ? "시간 초과" : scoreMode ? "점수 없음" : "무승부";
   const scoreOf = (id: string) => (state.mode === "COIN" ? `🪙 ${state.scores[id] ?? 0}` : `${((state.scores[id] ?? 0) / 1000).toFixed(1)}s`);
   const series = state.series;
   const seriesRows = players.filter((p) => (series[p.id] ?? 0) > 0).sort((a, b) => (series[b.id] ?? 0) - (series[a.id] ?? 0));
@@ -69,9 +69,9 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
   const share = async () => {
     sound.play("click");
     const url = roomShareUrl(roomCode);
-    const headline = teamWon ? `⚔️ ${teamLabel(state.mode)} in ${meta.name}!` : winner ? `🏆 ${name(winner)} won ${meta.name}!` : race ? `⏱ Nobody finished ${meta.name}!` : `💀 Nobody survived ${meta.name}!`;
-    const stats = race ? `${state.participants.length} players · ${survived} · ${dnf} DNF` : `${state.participants.length} players · survived ${survived} · ${eliminations} eliminations`;
-    const text = `${headline}\n${stats}\nPlay: ${url}`;
+    const headline = teamWon ? `⚔️ ${meta.name}: ${teamLabel(state.mode)}!` : winner ? `🏆 ${name(winner)}님이 ${meta.name}에서 승리!` : race ? `⏱ ${meta.name}: 아무도 완주 못 함!` : `💀 ${meta.name}: 생존자 없음!`;
+    const stats = race ? `${state.participants.length}명 · ${survived} · 미완주 ${dnf}` : `${state.participants.length}명 · 생존 ${survived} · 탈락 ${eliminations}`;
+    const text = `${headline}\n${stats}\n같이 하기: ${url}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: "DROPZONE", text, url });
@@ -108,11 +108,11 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
           <div className="panel anim-rise pointer-events-auto m-auto w-full max-w-md p-5 sm:p-6 short:max-w-2xl short:p-4">
             <div className="text-center">
               <div className="text-[11px] font-black tracking-[0.4em] text-white/60">{meta.icon} {meta.name}</div>
-              <div className="display mt-1 text-2xl text-brand-2">{teamWon ? `⚔️ ${teamLabel(state.mode)}` : winner ? `${bossMode ? "👑" : "🏆"} ${winnerLabel}` : state.mode === "GOGUN" ? "💀 WIPEOUT" : race ? "⏱ NO FINISHERS" : scoreMode ? "🤷 NO SCORE" : "💀 NO SURVIVORS"}</div>
+              <div className="display mt-1 text-2xl text-brand-2">{teamWon ? `⚔️ ${teamLabel(state.mode)}` : winner ? `${bossMode ? "👑" : "🏆"} ${winnerLabel}` : state.mode === "GOGUN" ? "💀 전멸" : race ? "⏱ 완주자 없음" : scoreMode ? "🤷 점수 없음" : "💀 생존자 없음"}</div>
               {winner && (
                 <div className="display mt-1 text-4xl sm:text-5xl" style={{ color: color(winner) }}>
                   {name(winner)}
-                  {youWon && <span className="ml-2 text-lg text-white/70">(you!)</span>}
+                  {youWon && <span className="ml-2 text-lg text-white/70">(나!)</span>}
                 </div>
               )}
             </div>
@@ -120,13 +120,13 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
             {earned > 0 && (
               <div className="anim-pop mt-3">
                 <div className="flex items-center justify-center gap-2">
-                  <div className="rounded-full bg-brand-2 px-4 py-1 text-sm font-black text-[#12142b]">+{earned} PTS</div>
-                  <div className="text-xs font-bold text-white/60">⭐ {points} · LV {level}</div>
+                  <div className="rounded-full bg-brand-2 px-4 py-1 text-sm font-black text-[#12142b]">+{earned} 포인트</div>
+                  <div className="text-xs font-bold text-white/60">⭐ {points} · Lv.{level}</div>
                 </div>
                 {lines.length > 0 && (
                   <ul className="mx-auto mt-2 max-h-24 max-w-xs space-y-0.5 overflow-y-auto text-[11px] font-bold">
                     {lines.map((l, i) => (
-                      <li key={i} className={`flex justify-between ${l.points < 0 ? "text-white/40" : l.label.startsWith("Mission") || l.label.startsWith("Level") || /^[^A-Za-z]/.test(l.label) ? "text-brand-2" : "text-white/75"}`}>
+                      <li key={i} className={`flex justify-between ${l.points < 0 ? "text-white/40" : l.label.startsWith("미션") || l.label.startsWith("레벨") || /^[^\p{L}\p{N}#]/u.test(l.label) ? "text-brand-2" : "text-white/75"}`}>
                         <span className="truncate">{l.label}</span>
                         <span>{l.points >= 0 ? "+" : ""}{l.points}</span>
                       </li>
@@ -138,21 +138,21 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
             <div className="my-4 grid grid-cols-3 gap-2 border-y border-white/15 py-3 text-center">
               <div>
                 <div className="display text-xl text-white">{state.participants.length}</div>
-                <div className="text-[10px] font-bold tracking-widest text-white/55">PLAYERS</div>
+                <div className="text-[10px] font-bold tracking-widest text-white/55">플레이어</div>
               </div>
               <div>
                 <div className="display text-xl text-white">{survived}</div>
-                <div className="text-[10px] font-bold tracking-widest text-white/55">{race ? "ROUND TIME" : "SURVIVED"}</div>
+                <div className="text-[10px] font-bold tracking-widest text-white/55">{race ? "라운드 시간" : "생존 시간"}</div>
               </div>
               <div>
                 <div className="display text-xl text-white">{race ? dnf : scoreMode ? scoreOf(localId) : eliminations}</div>
-                <div className="text-[10px] font-bold tracking-widest text-white/55">{race ? "DNF" : scoreMode ? "YOUR SCORE" : "ELIMINATIONS"}</div>
+                <div className="text-[10px] font-bold tracking-widest text-white/55">{race ? "미완주" : scoreMode ? "내 점수" : "탈락"}</div>
               </div>
             </div>
 
             {seriesRows.length > 0 && (
               <div className="mb-3 flex flex-wrap items-center justify-center gap-1.5 text-[11px] font-bold text-white/80">
-                <span className="text-white/50">SERIES</span>
+                <span className="text-white/50">시리즈</span>
                 {seriesRows.map((p) => (
                   <span key={p.id} className="rounded-full bg-white/10 px-2 py-0.5">
                     {name(p.id)} <span className="text-brand-2">{series[p.id]}</span>
@@ -162,7 +162,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
             )}
             {!race && !scoreMode && lastToFall && (
               <div className="mb-3 flex items-center justify-center gap-2 text-sm font-bold text-white/80">
-                <span>💀 LAST TO FALL</span>
+                <span>💀 마지막 탈락</span>
                 <span style={{ color: color(lastToFall) }}>{name(lastToFall)}</span>
               </div>
             )}
@@ -189,9 +189,9 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
                   <span className="w-6 text-center">{MEDALS[i] ?? `${i + 1}.`}</span>
                   <span className="h-3 w-3 rounded-full" style={{ background: color(id) }} />
                   <span className="truncate">{name(id)}</span>
-                  {id === localId && <span className="text-white/50">(you)</span>}
+                  {id === localId && <span className="text-white/50">(나)</span>}
                   {scoreMode && <span className="ml-auto text-brand-2">{scoreOf(id)}</span>}
-                  {teamWon && state.team.includes(id) && <span className="ml-auto text-brand-2">WIN</span>}
+                  {teamWon && state.team.includes(id) && <span className="ml-auto text-brand-2">승</span>}
                 </li>
               ))}
             </ol>
@@ -199,23 +199,23 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
             <div className="mt-4 flex flex-col gap-2">
               {isHost ? (
                 <button className="btn btn-primary w-full text-lg" onClick={() => { sound.play("click"); playAgain(); }}>
-                  PLAY AGAIN
+                  다시 하기
                 </button>
               ) : (
-                <div className="anim-pulse rounded-2xl bg-white/10 p-3 text-center text-sm font-bold text-white/80">Waiting for host to start the next round…</div>
+                <div className="anim-pulse rounded-2xl bg-white/10 p-3 text-center text-sm font-bold text-white/80">호스트가 다음 라운드를 시작하길 기다리는 중…</div>
               )}
               <div className="flex gap-2">
                 <button className="btn btn-accent min-h-12 flex-1 text-sm" onClick={share}>
-                  {shared ? "COPIED ✓" : "SHARE RESULT"}
+                  {shared ? "복사됨 ✓" : "결과 공유"}
                 </button>
                 <button className="btn btn-ghost min-h-12 flex-1 text-sm" onClick={() => { sound.play("click"); returnToLobby(); }}>
-                  {isHost ? "RETURN TO LOBBY" : "LOBBY"}
+                  {isHost ? "로비로 돌아가기" : "로비"}
                 </button>
               </div>
               <div className="flex items-center justify-between">
                 <ShopButton compact />
                 <button className="text-center text-xs font-bold text-white/50" onClick={() => { leave(); router.push("/"); }}>
-                  Leave room
+                  방 나가기
                 </button>
               </div>
             </div>

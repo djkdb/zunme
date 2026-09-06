@@ -36,7 +36,7 @@ export function Shop({ onClose }: { onClose: () => void }) {
     const item = itemById(id);
     if (item?.minLevel && level < item.minLevel) {
       sound.play("click");
-      setFlash(`Reach level ${item.minLevel} to unlock ${item.name}`);
+      setFlash(`${item.name}은(는) 레벨 ${item.minLevel}에 해금돼요`);
       setTimeout(() => setFlash(null), 1600);
       return;
     }
@@ -44,10 +44,10 @@ export function Shop({ onClose }: { onClose: () => void }) {
       sound.play("win", { volume: 0.5 });
       equip(id);
       setCosmetics(useWalletStore.getState().equipped);
-      setFlash(`Bought ${itemById(id)?.name}!`);
+      setFlash(`${itemById(id)?.name} 구매 완료!`);
     } else {
       sound.play("click");
-      setFlash("Not enough points — play a round!");
+      setFlash("포인트가 부족해요 — 한 판 더!");
     }
     setTimeout(() => setFlash(null), 1600);
   };
@@ -63,8 +63,8 @@ export function Shop({ onClose }: { onClose: () => void }) {
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div>
-              <div className="display text-2xl text-white sm:text-3xl">ZUN SHOP</div>
-              <div className="text-[10px] font-bold tracking-[0.3em] text-white/50">COSMETICS ONLY · NO ADVANTAGES</div>
+              <div className="display text-2xl text-white sm:text-3xl">ZUN 상점</div>
+              <div className="text-[10px] font-bold tracking-[0.3em] text-white/50">치장 전용 · 능력치 변화 없음</div>
             </div>
             <div className="hidden sm:block">
               <LevelBar />
@@ -72,10 +72,10 @@ export function Shop({ onClose }: { onClose: () => void }) {
           </div>
           <div className="flex items-center gap-2">
             <div className="chip px-3 py-1.5 text-right">
-              <div className="text-[9px] font-bold tracking-[0.3em] text-white/50">POINTS</div>
+              <div className="text-[9px] font-bold tracking-[0.3em] text-white/50">포인트</div>
               <div className="display text-xl text-brand-2">⭐ {points}</div>
             </div>
-            <button className="chip flex h-10 w-10 items-center justify-center text-lg text-white" onClick={onClose} aria-label="Close">
+            <button className="chip flex h-10 w-10 items-center justify-center text-lg text-white" onClick={onClose} aria-label="닫기">
               ✕
             </button>
           </div>
@@ -91,7 +91,7 @@ export function Shop({ onClose }: { onClose: () => void }) {
                 setTab(t);
               }}
             >
-              {t === "shop" ? "🛍️ SHOP" : t === "missions" ? "🎯 MISSIONS" : "🎖️ BADGES"}
+              {t === "shop" ? "🛍️ 상점" : t === "missions" ? "🎯 미션" : "🎖️ 배지"}
             </button>
           ))}
           <div className="ml-auto sm:hidden">
@@ -116,7 +116,7 @@ export function Shop({ onClose }: { onClose: () => void }) {
             <div className="relative h-48 w-full">
               <CharacterPreview cosmetics={equipped} colorHex={previewColor} />
             </div>
-            <div className="px-2 pb-2 text-center text-[10px] font-bold tracking-widest text-white/50">LIFETIME {lifetime} PTS</div>
+            <div className="px-2 pb-2 text-center text-[10px] font-bold tracking-widest text-white/50">누적 {lifetime} 포인트</div>
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col">
@@ -151,17 +151,17 @@ export function Shop({ onClose }: { onClose: () => void }) {
                     </div>
                     <div className="mt-2">
                       {isEquipped ? (
-                        <div className="rounded-xl bg-brand-2/20 py-1.5 text-center text-[11px] font-black tracking-widest text-brand-2">EQUIPPED</div>
+                        <div className="rounded-xl bg-brand-2/20 py-1.5 text-center text-[11px] font-black tracking-widest text-brand-2">장착 중</div>
                       ) : isOwned ? (
                         <button className="w-full rounded-xl bg-white py-1.5 text-[11px] font-black tracking-widest text-[#12142b] active:scale-95" onClick={() => onEquip(item.id)}>
-                          EQUIP
+                          장착
                         </button>
                       ) : (
                         <button
                           className={`w-full rounded-xl py-1.5 text-[11px] font-black tracking-widest active:scale-95 ${affordable ? "bg-brand text-white" : "bg-white/10 text-white/40"}`}
                           onClick={() => onBuy(item.id)}
                         >
-                          {locked ? `🔒 LV ${item.minLevel}` : `BUY · ⭐ ${item.price}`}
+                          {locked ? `🔒 Lv.${item.minLevel}` : `구매 · ⭐ ${item.price}`}
                         </button>
                       )}
                     </div>
@@ -173,7 +173,7 @@ export function Shop({ onClose }: { onClose: () => void }) {
         </div>
 
         <div className="mt-2 flex h-5 items-center justify-between text-[11px] font-bold text-white/60">
-          <span>{flash ?? "Points come from placement, survival, checkpoints, streaks, missions and badges. Points = XP."}</span>
+          <span>{flash ?? "포인트는 순위, 생존, 체크포인트, 연승, 미션, 배지로 얻어요. 포인트 = 경험치."}</span>
         </div>
       </div>
     </div>,

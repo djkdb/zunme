@@ -41,7 +41,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
   const share = async () => {
     sound.play("click");
     const url = roomShareUrl(roomCode);
-    const text = `Join my DROPZONE room! Code: ${roomCode}`;
+    const text = `드롭존 같이 하자! 방 코드: ${roomCode}`;
     if (navigator.share) {
       try {
         await navigator.share({ title: "DROPZONE", text, url });
@@ -66,7 +66,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
     <div className="pointer-events-none absolute inset-0 z-10 flex flex-col safe-pad">
       <div className="pointer-events-auto flex items-center justify-between p-3">
         <button className="chip px-4 py-2 text-sm font-extrabold text-white" onClick={() => { sound.play("click"); leave(); router.push("/"); }}>
-          ← LEAVE
+          ← 나가기
         </button>
         <div className="flex items-center gap-2">
           <ShopButton compact />
@@ -78,22 +78,22 @@ export function Lobby({ roomCode }: { roomCode: string }) {
         <div className="panel anim-rise pointer-events-auto m-auto w-full max-w-md p-5 sm:p-7 short:max-w-2xl short:p-4">
           <div className="text-center">
             <div className="display text-3xl text-white sm:text-4xl short:hidden">DROPZONE</div>
-            <div className="mt-3 text-[11px] font-bold tracking-[0.35em] text-white/60 short:mt-0">ROOM CODE</div>
+            <div className="mt-3 text-[11px] font-bold tracking-[0.35em] text-white/60 short:mt-0">방 코드</div>
             <div className="mt-1 font-mono text-[44px] font-black tracking-[0.3em] text-brand-2 sm:text-[56px] short:text-[36px]">{roomCode}</div>
             <div className="mt-3 flex justify-center gap-2 short:mt-2">
               <button className="btn btn-secondary min-h-12 px-5 text-sm" onClick={copy}>
-                {copied ? "COPIED ✓" : "COPY CODE"}
+                {copied ? "복사됨 ✓" : "코드 복사"}
               </button>
               <button className="btn btn-accent min-h-12 px-5 text-sm" onClick={share}>
-                SHARE
+                공유
               </button>
             </div>
-            {offline && <p className="mt-3 text-[11px] font-bold text-brand-2">LOCAL MODE — other tabs on this device can join. Add Supabase keys for online play.</p>}
+            {offline && <p className="mt-3 text-[11px] font-bold text-brand-2">로컬 모드 — 같은 기기의 다른 탭만 참가할 수 있어요.</p>}
           </div>
 
           <div className="mt-4 flex items-center justify-between text-xs font-bold tracking-widest text-white/70 short:mt-2">
-            <span>GAME MODE {!isHost && <span className="text-white/40">(host picks)</span>}</span>
-            <span className="text-white/40">{Object.keys(GAME_MODES).length} MODES</span>
+            <span>게임 모드 {!isHost && <span className="text-white/40">(호스트가 선택)</span>}</span>
+            <span className="text-white/40">{Object.keys(GAME_MODES).length}개 모드</span>
           </div>
           <div className="mt-2 grid max-h-44 grid-cols-3 gap-1.5 overflow-y-auto pr-1 sm:max-h-none sm:grid-cols-5 sm:gap-2">
             {(Object.keys(GAME_MODES) as GameMode[]).map((m) => {
@@ -125,12 +125,12 @@ export function Lobby({ roomCode }: { roomCode: string }) {
             }}
             className={`mt-2 flex w-full items-center justify-between rounded-xl border-2 px-3 py-1.5 text-[11px] font-black tracking-widest ${partyMix ? "border-brand-2 bg-brand-2/15 text-brand-2" : "border-white/10 bg-white/5 text-white/70"} ${isHost ? "active:scale-[0.98]" : "cursor-default"}`}
           >
-            <span>🎲 PARTY MIX — rotate modes every round</span>
-            <span>{partyMix ? "ON" : "OFF"}</span>
+            <span>🎲 파티 믹스 — 매 라운드 모드 순환</span>
+            <span>{partyMix ? "켜짐" : "꺼짐"}</span>
           </button>
           {seriesRows.length > 0 && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px] font-bold text-white/80">
-              <span className="text-white/50">SERIES</span>
+              <span className="text-white/50">시리즈</span>
               {seriesRows.map((p) => (
                 <span key={p.id} className="rounded-full bg-white/10 px-2 py-0.5">
                   {p.nickname} <span className="text-brand-2">{series[p.id]}</span>
@@ -140,7 +140,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
           )}
 
           <div className="mt-4 flex items-center justify-between text-xs font-bold tracking-widest text-white/70 short:mt-2">
-            <span>PLAYERS</span>
+            <span>플레이어</span>
             <span>
               {players.length} / {MAX_PLAYERS}
             </span>
@@ -151,34 +151,34 @@ export function Lobby({ roomCode }: { roomCode: string }) {
                 <span className="h-3.5 w-3.5 shrink-0 rounded-full" style={{ background: p.colorHex, boxShadow: `0 0 10px ${p.colorHex}` }} />
                 <span className="truncate text-sm font-bold text-white">
                   {p.nickname}
-                  {p.id === localId && <span className="text-white/50"> (you)</span>}
+                  {p.id === localId && <span className="text-white/50"> (나)</span>}
                 </span>
                 <span className="rounded-full bg-white/10 px-1.5 text-[9px] font-black text-brand-2">LV{p.level ?? 1}</span>
-                {p.isHost && <span className="ml-auto text-[10px] font-black text-brand-2">HOST</span>}
+                {p.isHost && <span className="ml-auto text-[10px] font-black text-brand-2">호스트</span>}
               </li>
             ))}
             {Array.from({ length: Math.max(0, Math.min(MAX_PLAYERS, 2) - players.length) }).map((_, i) => (
               <li key={`empty-${i}`} className="flex items-center gap-2 rounded-xl border border-dashed border-white/15 px-3 py-2 text-sm font-semibold text-white/30">
-                waiting…
+                대기 중…
               </li>
             ))}
           </ul>
 
           <div className="mt-5 short:mt-3">
             {roundInProgress ? (
-              <div className="rounded-2xl bg-white/10 p-3 text-center text-sm font-bold text-white/80">A round is in progress — you&apos;ll join the next one.</div>
+              <div className="rounded-2xl bg-white/10 p-3 text-center text-sm font-bold text-white/80">라운드 진행 중 — 다음 라운드에 참가해요.</div>
             ) : isHost ? (
               <button className="btn btn-primary w-full text-xl" disabled={!canStart} onClick={() => { sound.play("click"); startGame(); }}>
-                START GAME
+                게임 시작
               </button>
             ) : (
-              <div className="anim-pulse rounded-2xl bg-white/10 p-3 text-center text-sm font-bold text-white/80">Waiting for the host to start…</div>
+              <div className="anim-pulse rounded-2xl bg-white/10 p-3 text-center text-sm font-bold text-white/80">호스트가 시작하길 기다리는 중…</div>
             )}
             {isHost && GAME_MODES[mode].minPlayers > players.length && !roundInProgress && (
-              <p className="mt-2 text-center text-[11px] font-semibold text-brand-2">{GAME_MODES[mode].name} needs at least {GAME_MODES[mode].minPlayers} players — starting solo just lets you look around.</p>
+              <p className="mt-2 text-center text-[11px] font-semibold text-brand-2">{GAME_MODES[mode].name}은(는) {GAME_MODES[mode].minPlayers}명 이상이 필요해요 — 혼자 시작하면 둘러보기만 가능합니다.</p>
             )}
             {isHost && players.length < 2 && !roundInProgress && GAME_MODES[mode].minPlayers <= players.length && (
-              <p className="mt-2 text-center text-[11px] font-semibold text-white/55 short:hidden">Share the code — it&apos;s way more fun with friends. You can start solo to practice.</p>
+              <p className="mt-2 text-center text-[11px] font-semibold text-white/55 short:hidden">코드를 공유하세요 — 친구와 하면 훨씬 재밌어요. 혼자 시작해서 연습할 수도 있어요.</p>
             )}
           </div>
         </div>

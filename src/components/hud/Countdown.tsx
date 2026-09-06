@@ -20,12 +20,12 @@ export function Countdown() {
       let next: string | null;
       if (!active) next = null;
       else if (remaining > 0) next = String(Math.min(3, Math.ceil(remaining / 1000)));
-      else if (remaining > -900) next = "GO!";
+      else if (remaining > -900) next = "시작!";
       else next = null;
       if (next !== lastLabel.current) {
         lastLabel.current = next;
         setLabel(next);
-        if (next && next !== "GO!") sound.play("countdown");
+        if (next && next !== "시작!") sound.play("countdown");
       }
       if (active && (next !== null || remaining > -1000)) raf = requestAnimationFrame(tick);
     };
@@ -34,7 +34,7 @@ export function Countdown() {
   }, [startAt, status]);
 
   if (!label) return null;
-  const isGo = label === "GO!";
+  const isGo = label === "시작!";
   return (
     <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
       <div key={label} className={`display anim-pop ${isGo ? "text-gradient gradient-shadow text-[120px] sm:text-[180px]" : "hud-text text-stroke text-[140px] text-white sm:text-[200px]"}`}>

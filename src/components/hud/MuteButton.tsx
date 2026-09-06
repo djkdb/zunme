@@ -8,7 +8,7 @@ export function MuteButton() {
   const setMuted = useGameStore((s) => s.setMuted);
   return (
     <button
-      aria-label={muted ? "Unmute" : "Mute"}
+      aria-label={muted ? "음소거 해제" : "음소거"}
       className="chip pointer-events-auto flex h-11 w-11 items-center justify-center text-lg text-white"
       onClick={() => {
         sound.unlock();

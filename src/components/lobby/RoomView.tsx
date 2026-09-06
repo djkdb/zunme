@@ -95,7 +95,7 @@ export function RoomView({ roomCode }: { roomCode: string }) {
         <div className="absolute inset-0 z-30 flex items-center justify-center bg-[#12142b]/60 px-4 backdrop-blur-sm">
           <div className="panel anim-pop w-full max-w-sm p-6 text-center">
             <div className="display text-3xl text-white">DROPZONE</div>
-            <p className="mt-1 text-xs font-bold tracking-widest text-white/60">JOINING ROOM {roomCode}</p>
+            <p className="mt-1 text-xs font-bold tracking-widest text-white/60">방 {roomCode} 참가 중</p>
             <input
               value={draftName}
               maxLength={NICKNAME_MAX_LENGTH}
@@ -103,10 +103,10 @@ export function RoomView({ roomCode }: { roomCode: string }) {
               onKeyDown={(e) => e.key === "Enter" && confirmName()}
               autoFocus
               className="mt-5 w-full rounded-2xl border-2 border-white/25 bg-[#12142b]/60 px-4 py-3 text-center text-lg font-extrabold text-white outline-none focus:border-brand-2"
-              placeholder="Your name"
+              placeholder="이름"
             />
             <button className="btn btn-primary mt-3 w-full text-lg" onClick={confirmName}>
-              JOIN
+              참가
             </button>
           </div>
         </div>
@@ -114,21 +114,21 @@ export function RoomView({ roomCode }: { roomCode: string }) {
 
       {!needsName && connecting && (
         <div className="absolute inset-0 z-30 flex items-center justify-center">
-          <div className="panel anim-pulse px-6 py-4 text-sm font-black tracking-widest text-white">CONNECTING…</div>
+          <div className="panel anim-pulse px-6 py-4 text-sm font-black tracking-widest text-white">연결 중…</div>
         </div>
       )}
 
       {error && (
         <div className="absolute inset-0 z-30 flex items-center justify-center px-4">
           <div className="panel anim-pop w-full max-w-sm p-6 text-center">
-            <div className="display text-2xl text-brand">CONNECTION FAILED</div>
+            <div className="display text-2xl text-brand">연결 실패</div>
             <p className="mt-2 text-sm font-semibold text-white/75">{error}</p>
             <div className="mt-4 flex gap-2">
               <button className="btn btn-secondary flex-1 text-sm" onClick={() => void join(roomCode)}>
-                RETRY
+                다시 시도
               </button>
               <button className="btn btn-ghost flex-1 text-sm" onClick={() => router.push("/")}>
-                HOME
+                홈으로
               </button>
             </div>
           </div>

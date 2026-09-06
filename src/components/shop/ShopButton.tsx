@@ -20,7 +20,7 @@ export function ShopButton({ compact = false }: { compact?: boolean }) {
         }}
       >
         <span>🛍️</span>
-        {!compact && <span className="tracking-widest">SHOP</span>}
+        {!compact && <span className="tracking-widest">상점</span>}
         <span className="text-brand-2">⭐ {points}</span>
       </button>
       {open && <Shop onClose={() => setOpen(false)} />}

@@ -512,5 +512,5 @@ export function isSuddenDeath(state: GameState, hostNow: number): boolean {
 
 /** Label for a team win (no single winner). */
 export function teamLabel(mode: GameMode): string {
-  return mode === "BOSS" ? "HUNTERS WIN" : mode === "TAG" ? "SURVIVORS WIN" : "TEAM WIN";
+  return mode === "BOSS" ? "헌터 승리" : mode === "TAG" ? "생존자 승리" : "팀 승리";
 }

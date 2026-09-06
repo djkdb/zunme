@@ -84,7 +84,7 @@ export function MobileControls() {
         )}
         {!stick && (
           <div className="absolute bottom-10 left-8 flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-white/30 text-[10px] font-black tracking-widest text-white/50">
-            MOVE
+            이동
           </div>
         )}
       </div>
@@ -98,7 +98,7 @@ export function MobileControls() {
         }}
         onContextMenu={(e) => e.preventDefault()}
       >
-        DASH
+        대시
       </button>
       )}
       <button
@@ -113,7 +113,7 @@ export function MobileControls() {
         onPointerLeave={() => setJumpButton(false)}
         onContextMenu={(e) => e.preventDefault()}
       >
-        JUMP
+        점프
       </button>
     </div>
   );

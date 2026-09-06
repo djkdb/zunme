@@ -150,7 +150,7 @@ export const useProgressStore = create<ProgressStore>((set) => ({
       const done = progress >= def.target;
       if (done) {
         completed.push(def.id);
-        lines.push({ label: `Mission: ${def.name}`, points: def.reward });
+        lines.push({ label: `미션: ${def.name}`, points: def.reward });
         total += def.reward;
       }
       return { id: m.id, progress, done };
@@ -164,7 +164,7 @@ export const useProgressStore = create<ProgressStore>((set) => ({
     for (let l = before + 1; l <= after; l++) levelUps.push(l);
     if (levelUps.length) {
       const bonus = levelUps.length * LEVEL_UP_BONUS;
-      lines.push({ label: `Level up → ${after}`, points: bonus });
+      lines.push({ label: `레벨 업 → ${after}`, points: bonus });
       total += bonus;
     }
 

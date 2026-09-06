@@ -66,7 +66,7 @@ export function MainMenu() {
 
       <div className="relative z-10 flex h-full w-full flex-col items-center justify-center px-5 safe-pad">
         <div className="anim-rise flex flex-col items-center text-center">
-          <div className="chip mb-4 px-3 py-1 text-[11px] font-bold tracking-[0.3em] text-white/80">8 PLAYERS · 15 GAME MODES · PARTY MIX</div>
+          <div className="chip mb-4 px-3 py-1 text-[11px] font-bold tracking-[0.3em] text-white/80">8인 · 15개 게임 모드 · 파티 믹스</div>
           <h1 className="display gradient-shadow text-[64px] sm:text-[96px] md:text-[120px]" aria-label="DROPZONE">
             {"DROPZONE".split("").map((ch, i) => (
               <span key={i} className="title-letter text-gradient" style={{ animationDelay: `${i * 0.06}s` }}>
@@ -74,18 +74,18 @@ export function MainMenu() {
               </span>
             ))}
           </h1>
-          <p className="shimmer mt-2 text-sm font-extrabold tracking-[0.45em] sm:text-lg">LAST ONE STANDING</p>
+          <p className="shimmer mt-2 text-sm font-extrabold tracking-[0.45em] sm:text-lg">최후의 1인이 되어라</p>
         </div>
 
         <div className="anim-rise delay-2 mt-8 w-full max-w-sm">
-          <label className="mb-1 block text-[11px] font-bold tracking-widest text-white/70">NICKNAME</label>
+          <label className="mb-1 block text-[11px] font-bold tracking-widest text-white/70">닉네임</label>
           <input
             value={nickname}
             maxLength={NICKNAME_MAX_LENGTH}
             onChange={(e) => setLocalNickname(e.target.value)}
             onBlur={commitNickname}
             className="w-full rounded-2xl border-2 border-white/25 bg-[#12142b]/60 px-4 py-3 text-center text-lg font-extrabold text-white outline-none backdrop-blur focus:border-brand-2"
-            placeholder="Your name"
+            placeholder="이름"
             autoComplete="off"
           />
         </div>
@@ -93,10 +93,10 @@ export function MainMenu() {
         {!joining ? (
           <div className="anim-rise delay-3 mt-4 flex w-full max-w-sm flex-col gap-3">
             <button className="btn btn-primary w-full text-xl" onClick={createRoom} disabled={busy}>
-              CREATE ROOM
+              방 만들기
             </button>
             <button className="btn btn-secondary w-full text-xl" onClick={() => { sound.play("click"); setJoining(true); }} disabled={busy}>
-              JOIN ROOM
+              방 참가
             </button>
           </div>
         ) : (
@@ -105,25 +105,25 @@ export function MainMenu() {
               value={code}
               onChange={(e) => setCode(normalizeRoomCode(e.target.value))}
               onKeyDown={(e) => e.key === "Enter" && joinRoom()}
-              placeholder="ROOM CODE"
+              placeholder="방 코드"
               autoFocus
               autoCapitalize="characters"
               autoComplete="off"
               className="w-full rounded-2xl border-2 border-white/25 bg-[#12142b]/60 px-4 py-3 text-center font-mono text-3xl font-black tracking-[0.35em] text-white outline-none backdrop-blur focus:border-brand-2"
             />
             <button className="btn btn-primary w-full text-xl" onClick={joinRoom} disabled={busy || !isValidRoomCode(code)}>
-              JOIN
+              참가
             </button>
             <button className="btn btn-ghost w-full" onClick={() => setJoining(false)} disabled={busy}>
-              BACK
+              뒤로
             </button>
           </div>
         )}
 
         <div className="anim-fade delay-4 mt-6 flex flex-col items-center gap-1 text-center text-[12px] font-semibold text-white/75 hud-text">
-          <p>🥊 Sumo island · 🏁 Obstacle race · 🔥 Vanishing floors · 🐱 Rooftop wire run</p>
-          <p className="text-white/55">{mobile ? "Joystick to move · JUMP · DASH to shove" : "WASD move · SPACE jump · SHIFT dash into people"}</p>
-          {offline && <p className="mt-2 rounded-full bg-[#ffd32a]/90 px-3 py-1 text-[11px] font-black text-[#12142b]">LOCAL MODE — same-device tabs only. Add Supabase keys for online play</p>}
+          <p>🥊 밀치기 · 🏁 장애물 레이스 · 🎨 컬러 패닉 · 🧟 감염 · 🐱 고군분투 외 10종</p>
+          <p className="text-white/55">{mobile ? "조이스틱 이동 · 점프 · 대시로 밀치기" : "WASD 이동 · SPACE 점프 · SHIFT 대시로 밀치기"}</p>
+          {offline && <p className="mt-2 rounded-full bg-[#ffd32a]/90 px-3 py-1 text-[11px] font-black text-[#12142b]">로컬 모드 — 같은 기기의 탭끼리만 플레이할 수 있어요</p>}
         </div>
       </div>
     </div>

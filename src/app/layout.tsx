@@ -12,11 +12,11 @@ const display = Rubik({
 });
 
 export const metadata: Metadata = {
-  title: "DROPZONE — Last One Standing",
-  description: "Shove your friends off a floating island. 8 players, one survivor. Play instantly in your browser.",
+  title: "드롭존 — 최후의 1인",
+  description: "떠 있는 섬에서 친구들을 밀어 떨어뜨리세요. 8인 파티 게임, 15개 모드. 브라우저에서 바로 플레이.",
   openGraph: {
-    title: "DROPZONE — Last One Standing",
-    description: "8 players. One floating island. Last one standing wins.",
+    title: "드롭존 — 최후의 1인",
+    description: "8명, 떠 있는 섬 하나. 마지막까지 남는 사람이 승리.",
     type: "website",
   },
 };
@@ -32,7 +32,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en" className={`${display.variable} h-full antialiased`}>
+    <html lang="ko" className={`${display.variable} h-full antialiased`}>
       <body className="h-full">
         <AudioUnlocker />
         {children}

@@ -122,11 +122,11 @@ export function GameHUD() {
       {/* top bar */}
       <div className="flex items-start justify-between p-3">
         <div className="chip px-3 py-2 text-xs font-black tracking-widest text-white hud-text sm:text-sm">
-          {meta.icon} {meta.name} · {run ? `STAGE ${stage}` : `R${state.round}`}
+          {meta.icon} {meta.name} · {run ? `스테이지 ${stage}` : `${state.round}라운드`}
         </div>
         <div className="chip anim-pop px-4 py-2 text-center text-white">
           <div className="text-[10px] font-bold tracking-[0.3em] text-white/60">
-            {run ? "DISTANCE" : finishLine ? "FINISHED" : bossMode ? "HUNTERS" : tag ? "SURVIVORS" : coin ? "YOUR COINS" : hill ? "HILL TIME" : crown ? "CROWN TIME" : "SURVIVORS"}
+            {run ? "거리" : finishLine ? "완주" : bossMode ? "헌터" : tag ? "생존자" : coin ? "내 코인" : hill ? "언덕 시간" : crown ? "왕관 시간" : "생존자"}
           </div>
           <div className="display text-2xl sm:text-3xl">
             {run ? (
@@ -151,7 +151,7 @@ export function GameHUD() {
         </div>
         <div className="flex items-start gap-2">
           <div className={`chip px-3 py-2 text-center text-white ${suddenDeath || hurry ? "border-brand bg-brand/70" : ""}`}>
-            <div className="text-[10px] font-bold tracking-[0.3em] text-white/70">{suddenDeath ? "SUDDEN" : hurry ? "HURRY" : "TIME"}</div>
+            <div className="text-[10px] font-bold tracking-[0.3em] text-white/70">{suddenDeath ? "서든" : hurry ? "서둘러" : "시간"}</div>
             <div className={`display text-2xl sm:text-3xl ${!suddenDeath && timeLabel <= 10 ? "text-brand-2" : ""}`}>{timeLabel}</div>
           </div>
           <div className="pointer-events-auto hidden sm:block">
@@ -175,7 +175,7 @@ export function GameHUD() {
               <span className="max-w-[110px] truncate">{marker}{p.nickname}</span>
               {race && (finished ? <span className="text-brand-2">🏁</span> : <span className="text-white/50">CP{prog + 1}</span>)}
               {run && (finished ? <span className="text-brand-2">🏁</span> : <span className="text-white/50">{Math.max(0, prog) * GOGUN_PROGRESS_STEP}m</span>)}
-              {tiptoe && (finished ? <span className="text-brand-2">🏁</span> : <span className="text-white/50">ROW {Math.max(0, prog + 1)}/{TIPTOE_ROWS}</span>)}
+              {tiptoe && (finished ? <span className="text-brand-2">🏁</span> : <span className="text-white/50">{Math.max(0, prog + 1)}/{TIPTOE_ROWS}줄</span>)}
               {tower && (finished ? <span className="text-brand-2">🏁</span> : <span className="text-white/50">▲{Math.max(0, prog)}/{TOWER_PLATFORMS}</span>)}
               {coin && <span className="text-brand-2">🪙 {score}</span>}
               {(hill || crown) && <span className="text-brand-2">{(score / 1000).toFixed(1)}s</span>}
@@ -188,36 +188,36 @@ export function GameHUD() {
       {race && !localFinished && state.status === "PLAYING" && (
         <div className="absolute left-1/2 top-24 -translate-x-1/2 sm:hidden">
           <div className="chip px-3 py-1 text-[11px] font-black tracking-widest text-white/85">
-            CHECKPOINT {localCp} / {RACE_CHECKPOINTS.length}
+            체크포인트 {localCp} / {RACE_CHECKPOINTS.length}
           </div>
         </div>
       )}
 
       {bossMode && state.status === "PLAYING" && (
         <div className="absolute left-1/2 top-24 -translate-x-1/2">
-          <div className={`anim-slam display rounded-2xl px-6 py-2 text-2xl shadow-2xl hud-text ${isBoss ? "bg-brand text-white" : "bg-[#12142b]/80 text-brand-2"}`}>{isBoss ? "YOU ARE THE BOSS" : `⚔️ BOSS: ${bossName}`}</div>
+          <div className={`anim-slam display rounded-2xl px-6 py-2 text-2xl shadow-2xl hud-text ${isBoss ? "bg-brand text-white" : "bg-[#12142b]/80 text-brand-2"}`}>{isBoss ? "당신이 보스!" : `⚔️ 보스: ${bossName}`}</div>
         </div>
       )}
       {tag && state.status === "PLAYING" && (
         <div className="absolute left-1/2 top-24 -translate-x-1/2 text-center">
-          <div key={infected ? "z" : "s"} className={`anim-slam display rounded-2xl px-6 py-2 text-2xl shadow-2xl hud-text ${infected ? "bg-[#2ed573] text-[#12142b]" : "bg-[#12142b]/80 text-white"}`}>{infected ? "🧟 YOU'RE INFECTED — TOUCH THEM" : `🏃 RUN! ${state.tagged.length} INFECTED`}</div>
+          <div key={infected ? "z" : "s"} className={`anim-slam display rounded-2xl px-6 py-2 text-2xl shadow-2xl hud-text ${infected ? "bg-[#2ed573] text-[#12142b]" : "bg-[#12142b]/80 text-white"}`}>{infected ? "🧟 감염됨 — 닿아서 퍼뜨려!" : `🏃 도망쳐! 감염자 ${state.tagged.length}명`}</div>
         </div>
       )}
       {bomb && state.status === "PLAYING" && state.holderId && (
         <div className="absolute left-1/2 top-24 -translate-x-1/2">
           <div key={state.holderId} className={`anim-slam display rounded-2xl px-6 py-2 text-2xl shadow-2xl hud-text ${isHolder ? (fuseLeft < 3 ? "anim-pulse bg-brand text-white" : "bg-brand text-white") : "bg-[#12142b]/80 text-brand-2"}`}>
-            {isHolder ? "💣 PASS IT!" : `💣 ${holderName}`} <span className="text-white/80">{fuseLeft.toFixed(1)}s</span>
+            {isHolder ? "💣 넘겨!" : `💣 ${holderName}`} <span className="text-white/80">{fuseLeft.toFixed(1)}s</span>
           </div>
         </div>
       )}
       {crown && state.status === "PLAYING" && (
         <div className="absolute left-1/2 top-24 -translate-x-1/2">
-          <div key={state.holderId ?? "none"} className={`anim-slam display rounded-2xl px-6 py-2 text-2xl shadow-2xl hud-text ${isHolder ? "bg-brand-2 text-[#12142b]" : "bg-[#12142b]/80 text-brand-2"}`}>{isHolder ? "👑 YOU HAVE THE CROWN — RUN" : state.holderId ? `👑 ${holderName}` : "👑 GRAB THE CROWN"}</div>
+          <div key={state.holderId ?? "none"} className={`anim-slam display rounded-2xl px-6 py-2 text-2xl shadow-2xl hud-text ${isHolder ? "bg-brand-2 text-[#12142b]" : "bg-[#12142b]/80 text-brand-2"}`}>{isHolder ? "👑 왕관 획득 — 도망쳐!" : state.holderId ? `👑 ${holderName}` : "👑 왕관을 잡아라"}</div>
         </div>
       )}
       {hill && onHill && (
         <div className="absolute left-1/2 top-24 -translate-x-1/2">
-          <div className="anim-pop display rounded-2xl bg-brand-2 px-5 py-1.5 text-xl text-[#12142b] shadow-2xl">⛰️ ON THE HILL</div>
+          <div className="anim-pop display rounded-2xl bg-brand-2 px-5 py-1.5 text-xl text-[#12142b] shadow-2xl">⛰️ 언덕 점령 중</div>
         </div>
       )}
       {colorMode && state.status === "PLAYING" && colorPhase.phase !== "roam" && (
@@ -225,38 +225,38 @@ export function GameHUD() {
           <div className="anim-slam display rounded-2xl px-8 py-2 text-4xl shadow-2xl hud-text" style={{ background: calledColor.hex, color: "#12142b" }}>
             {calledColor.name}!
           </div>
-          <div className="mt-1 text-xs font-black tracking-widest text-white/85 hud-text">{colorPhase.phase === "warn" ? `TILES DROP IN ${Math.ceil(colorPhase.msLeft / 1000)}` : "HOLD ON…"}</div>
+          <div className="mt-1 text-xs font-black tracking-widest text-white/85 hud-text">{colorPhase.phase === "warn" ? `${Math.ceil(colorPhase.msLeft / 1000)}초 뒤 타일 낙하` : "버텨!"}</div>
         </div>
       )}
       {colorMode && state.status === "PLAYING" && colorPhase.phase === "roam" && (
         <div className="absolute left-1/2 top-24 -translate-x-1/2">
-          <div className="chip px-3 py-1 text-[11px] font-black tracking-widest text-white/85">NEXT COLOR IN {Math.ceil(colorPhase.msLeft / 1000)}</div>
+          <div className="chip px-3 py-1 text-[11px] font-black tracking-widest text-white/85">다음 색까지 {Math.ceil(colorPhase.msLeft / 1000)}초</div>
         </div>
       )}
       {/* banners */}
       {final2 && (
         <div className="absolute left-1/2 top-24 -translate-x-1/2">
-          <div className="anim-slam display rounded-2xl bg-brand px-6 py-2 text-3xl text-white shadow-2xl hud-text">FINAL 2</div>
+          <div className="anim-slam display rounded-2xl bg-brand px-6 py-2 text-3xl text-white shadow-2xl hud-text">최후의 2인</div>
         </div>
       )}
       {suddenDeath && !final2 && (
         <div className="absolute left-1/2 top-24 -translate-x-1/2">
-          <div className="anim-slam display rounded-2xl bg-brand px-6 py-2 text-2xl text-white shadow-2xl hud-text">SUDDEN DEATH</div>
+          <div className="anim-slam display rounded-2xl bg-brand px-6 py-2 text-2xl text-white shadow-2xl hud-text">서든 데스</div>
         </div>
       )}
       {run && state.status === "PLAYING" && !isSpectating && !localFinished && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2">
-          <div className="chip px-3 py-1.5 text-[11px] font-black tracking-widest text-white/85">{mobile ? "TAP JUMP · TAP AGAIN IN AIR = WIRE" : "SPACE JUMP · SPACE IN AIR = WIRE"}</div>
+          <div className="chip px-3 py-1.5 text-[11px] font-black tracking-widest text-white/85">{mobile ? "탭: 점프 · 공중에서 탭: 와이어" : "SPACE: 점프 · 공중 SPACE: 와이어"}</div>
         </div>
       )}
       {run && stage > 1 && state.status === "PLAYING" && (
         <div key={stage} className="anim-banner pointer-events-none absolute inset-x-0 top-1/4 flex justify-center">
-          <div className="anim-slam display text-gradient gradient-shadow text-5xl sm:text-6xl">STAGE {stage}</div>
+          <div className="anim-slam display text-gradient gradient-shadow text-5xl sm:text-6xl">스테이지 {stage}</div>
         </div>
       )}
       {run && wireHint && (
         <div className="absolute left-1/2 top-1/3 -translate-x-1/2">
-          <div className="anim-pulse display rounded-2xl bg-brand-2 px-5 py-1.5 text-2xl text-[#12142b] shadow-2xl">🪝 WIRE!</div>
+          <div className="anim-pulse display rounded-2xl bg-brand-2 px-5 py-1.5 text-2xl text-[#12142b] shadow-2xl">🪝 와이어!</div>
         </div>
       )}
       {!mobile && !run && !isSpectating && !localFinished && state.status === "PLAYING" && (
@@ -265,13 +265,13 @@ export function GameHUD() {
             <span className="relative inline-block h-3 w-16 overflow-hidden rounded-full bg-white/10">
               <span className={`absolute inset-y-0 left-0 rounded-full ${dashLeft > 0 ? "bg-white/40" : "bg-brand-2"}`} style={{ width: `${dashPct}%` }} />
             </span>
-            DASH · SHIFT
+            대시 · SHIFT
           </div>
         </div>
       )}
       {(isSpectating || localFinished) && (
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-          <div className="chip px-4 py-2 text-xs font-bold tracking-widest text-white/85">{localFinished ? "🏁 FINISHED — WAITING FOR OTHERS" : "SPECTATING"}</div>
+          <div className="chip px-4 py-2 text-xs font-bold tracking-widest text-white/85">{localFinished ? "🏁 완주! 다른 플레이어 기다리는 중" : "관전 중"}</div>
         </div>
       )}
     </div>

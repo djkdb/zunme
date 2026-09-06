@@ -94,38 +94,38 @@ export function roundPoints(s: RoundSummary, streak: number): PointLine[] {
   const lines: PointLine[] = [];
   let base = PARTICIPATION_POINTS + (RANK_POINTS[s.rank - 1] ?? OTHER_RANK_POINTS);
   if (s.mode !== "RACE" && !s.won && s.rank === 1) base = Math.round(base * 0.6); // draw
-  lines.push({ label: s.won ? "Victory" : `Placed #${s.rank}`, points: base });
+  lines.push({ label: s.won ? "승리" : `${s.rank}위`, points: base });
 
   if (s.mode === "RACE") {
-    if (s.finished) lines.push({ label: "Finished the course", points: 30 });
-    if (s.checkpoints > 0) lines.push({ label: `${s.checkpoints} checkpoint${s.checkpoints > 1 ? "s" : ""}`, points: s.checkpoints * 8 });
+    if (s.finished) lines.push({ label: "코스 완주", points: 30 });
+    if (s.checkpoints > 0) lines.push({ label: `체크포인트 ${s.checkpoints}개`, points: s.checkpoints * 8 });
   } else if (s.mode === "GOGUN") {
-    if (s.finished) lines.push({ label: "Reached the goal", points: 40 });
-    if (s.distance && s.distance > 0) lines.push({ label: `${Math.floor(s.distance)} m run`, points: Math.min(40, Math.floor(s.distance / 10)) });
-    if (s.coinPoints && s.coinPoints > 0) lines.push({ label: "Coins", points: Math.min(60, s.coinPoints) });
+    if (s.finished) lines.push({ label: "골인", points: 40 });
+    if (s.distance && s.distance > 0) lines.push({ label: `${Math.floor(s.distance)} m 주행`, points: Math.min(40, Math.floor(s.distance / 10)) });
+    if (s.coinPoints && s.coinPoints > 0) lines.push({ label: "코인", points: Math.min(60, s.coinPoints) });
   } else if (s.mode === "TIPTOE" || s.mode === "TOWER") {
-    if (s.finished) lines.push({ label: s.mode === "TOWER" ? "Reached the summit" : "Crossed the grid", points: 35 });
-    if (s.checkpoints > 0) lines.push({ label: `${s.checkpoints} step${s.checkpoints > 1 ? "s" : ""} of progress`, points: Math.min(30, s.checkpoints * 3) });
+    if (s.finished) lines.push({ label: s.mode === "TOWER" ? "정상 도달" : "그리드 통과", points: 35 });
+    if (s.checkpoints > 0) lines.push({ label: `진행 ${s.checkpoints}단계`, points: Math.min(30, s.checkpoints * 3) });
   } else if (s.mode === "COIN") {
-    if (s.score && s.score > 0) lines.push({ label: `${s.score} coin points`, points: Math.min(45, s.score * 2) });
+    if (s.score && s.score > 0) lines.push({ label: `코인 ${s.score}점`, points: Math.min(45, s.score * 2) });
   } else if (s.mode === "HILL" || s.mode === "CROWN") {
     const sec = Math.floor((s.score ?? 0) / 1000);
-    if (sec > 0) lines.push({ label: `${sec}s ${s.mode === "HILL" ? "on the hill" : "with the crown"}`, points: Math.min(45, sec * 2) });
+    if (sec > 0) lines.push({ label: `${s.mode === "HILL" ? "언덕 위" : "왕관 착용"} ${sec}초`, points: Math.min(45, sec * 2) });
   } else {
     const survival = Math.min(30, Math.floor(s.survivedMs / 5000) * 2);
-    if (survival > 0) lines.push({ label: `Survived ${Math.floor(s.survivedMs / 1000)}s`, points: survival });
+    if (survival > 0) lines.push({ label: `${Math.floor(s.survivedMs / 1000)}초 생존`, points: survival });
   }
-  if (s.participants >= 6) lines.push({ label: "Full room (6+)", points: Math.round(base * 0.2) });
-  else if (s.participants >= 4) lines.push({ label: "Big room (4+)", points: Math.round(base * 0.1) });
+  if (s.participants >= 6) lines.push({ label: "풀 방 (6명+)", points: Math.round(base * 0.2) });
+  else if (s.participants >= 4) lines.push({ label: "큰 방 (4명+)", points: Math.round(base * 0.1) });
 
   let subtotal = lines.reduce((a, l) => a + l.points, 0);
   if (s.participants < 2) {
     const cut = -Math.round(subtotal * 0.5);
-    lines.push({ label: "Solo practice (½)", points: cut });
+    lines.push({ label: "혼자 연습 (½)", points: cut });
     subtotal += cut;
   }
   const mult = s.won ? streakMultiplier(streak) : 1;
-  if (mult > 1) lines.push({ label: `${streak} win streak ×${mult}`, points: Math.round(subtotal * (mult - 1)) });
+  if (mult > 1) lines.push({ label: `${streak}연승 ×${mult}`, points: Math.round(subtotal * (mult - 1)) });
   return lines;
 }
 
@@ -140,19 +140,19 @@ export interface Achievement {
 }
 
 export const ACHIEVEMENTS: Achievement[] = [
-  { id: "first_round", name: "Dropped In", description: "Play your first round.", emoji: "🪂", reward: 50, check: (s) => s.rounds >= 1 },
-  { id: "first_win", name: "Last One Standing", description: "Win a round.", emoji: "🏆", reward: 100, check: (s) => s.wins >= 1 },
-  { id: "wins_5", name: "Bully", description: "Win 5 rounds.", emoji: "💪", reward: 200, check: (s) => s.wins >= 5 },
-  { id: "wins_25", name: "Island King", description: "Win 25 rounds.", emoji: "👑", reward: 600, check: (s) => s.wins >= 25 },
-  { id: "all_modes", name: "Triple Threat", description: "Win in all three modes.", emoji: "🎯", reward: 300, check: (s) => s.sumoWins > 0 && s.raceWins > 0 && s.meltdownWins > 0 },
-  { id: "finisher", name: "Finisher", description: "Complete SKY DASH.", emoji: "🏁", reward: 80, check: (s) => s.racesFinished >= 1 },
-  { id: "ninja", name: "Rooftop Ninja", description: "Reach the goal in GOGUN RUN.", emoji: "🐱", reward: 150, check: (_, last) => last.mode === "GOGUN" && last.finished },
-  { id: "speedster", name: "Speedster", description: "Finish SKY DASH in under 100 s.", emoji: "⚡", reward: 250, check: (s) => s.bestRaceMs > 0 && s.bestRaceMs < 100_000 },
-  { id: "survivor", name: "Survivor", description: "Stay alive 60 s in a single round.", emoji: "🛡️", reward: 120, check: (s) => s.longestSurvivalMs >= 60_000 },
-  { id: "party", name: "Party Time", description: "Play a round with 6+ players.", emoji: "🎉", reward: 150, check: (_, last) => last.participants >= 6 },
-  { id: "streak_3", name: "Unstoppable", description: "Win 3 rounds in a row.", emoji: "🔥", reward: 300, check: (s) => s.streakBest >= 3 },
-  { id: "podium_10", name: "Podium Regular", description: "Finish top 3 ten times.", emoji: "🥉", reward: 200, check: (s) => s.top3 >= 10 },
-  { id: "veteran", name: "Veteran", description: "Play 50 rounds.", emoji: "🎖️", reward: 400, check: (s) => s.rounds >= 50 },
+  { id: "first_round", name: "첫 낙하", description: "첫 라운드를 플레이하세요.", emoji: "🪂", reward: 50, check: (s) => s.rounds >= 1 },
+  { id: "first_win", name: "최후의 1인", description: "한 라운드 승리.", emoji: "🏆", reward: 100, check: (s) => s.wins >= 1 },
+  { id: "wins_5", name: "골목대장", description: "5라운드 승리.", emoji: "💪", reward: 200, check: (s) => s.wins >= 5 },
+  { id: "wins_25", name: "섬의 왕", description: "25라운드 승리.", emoji: "👑", reward: 600, check: (s) => s.wins >= 25 },
+  { id: "all_modes", name: "삼관왕", description: "드롭존·스카이 대시·멜트다운 모두 승리.", emoji: "🎯", reward: 300, check: (s) => s.sumoWins > 0 && s.raceWins > 0 && s.meltdownWins > 0 },
+  { id: "finisher", name: "완주자", description: "스카이 대시 완주.", emoji: "🏁", reward: 80, check: (s) => s.racesFinished >= 1 },
+  { id: "ninja", name: "옥상 닌자", description: "고군분투 골인.", emoji: "🐱", reward: 150, check: (_, last) => last.mode === "GOGUN" && last.finished },
+  { id: "speedster", name: "스피드스터", description: "스카이 대시 100초 안에 완주.", emoji: "⚡", reward: 250, check: (s) => s.bestRaceMs > 0 && s.bestRaceMs < 100_000 },
+  { id: "survivor", name: "생존자", description: "한 라운드에서 60초 생존.", emoji: "🛡️", reward: 120, check: (s) => s.longestSurvivalMs >= 60_000 },
+  { id: "party", name: "파티 타임", description: "6명 이상과 한 라운드 플레이.", emoji: "🎉", reward: 150, check: (_, last) => last.participants >= 6 },
+  { id: "streak_3", name: "무적", description: "3연승.", emoji: "🔥", reward: 300, check: (s) => s.streakBest >= 3 },
+  { id: "podium_10", name: "단골 시상대", description: "TOP 3 10회.", emoji: "🥉", reward: 200, check: (s) => s.top3 >= 10 },
+  { id: "veteran", name: "베테랑", description: "50라운드 플레이.", emoji: "🎖️", reward: 400, check: (s) => s.rounds >= 50 },
 ];
 
 // ── Daily missions ───────────────────────────────────────────────────
@@ -166,16 +166,16 @@ export interface MissionDef {
 }
 
 export const MISSION_POOL: MissionDef[] = [
-  { id: "play_3", name: "Play 3 rounds", target: 3, reward: 80, emoji: "🎮", progress: () => 1 },
-  { id: "win_1", name: "Win a round", target: 1, reward: 120, emoji: "🏆", progress: (l) => (l.won ? 1 : 0) },
-  { id: "top3_2", name: "Finish top 3 twice", target: 2, reward: 100, emoji: "🥉", progress: (l) => (l.rank <= 3 ? 1 : 0) },
-  { id: "race_finish", name: "Finish SKY DASH", target: 1, reward: 110, emoji: "🏁", progress: (l) => (l.mode === "RACE" && l.finished ? 1 : 0) },
-  { id: "gogun_300", name: "Run 300 m in GOGUN RUN", target: 300, reward: 120, emoji: "🐱", progress: (l) => (l.mode === "GOGUN" ? Math.floor(l.distance ?? 0) : 0) },
-  { id: "survive_45", name: "Survive 45 s in a round", target: 1, reward: 90, emoji: "🛡️", progress: (l) => (l.mode !== "RACE" && l.survivedMs >= 45_000 ? 1 : 0) },
-  { id: "meltdown_2", name: "Play MELTDOWN twice", target: 2, reward: 90, emoji: "🔥", progress: (l) => (l.mode === "MELTDOWN" ? 1 : 0) },
-  { id: "sumo_win", name: "Win DROPZONE", target: 1, reward: 130, emoji: "🥊", progress: (l) => (l.mode === "SUMO" && l.won ? 1 : 0) },
-  { id: "checkpoints_6", name: "Pass 6 checkpoints", target: 6, reward: 100, emoji: "🚩", progress: (l) => (l.mode === "RACE" ? l.checkpoints : 0) },
-  { id: "big_room", name: "Play with 4+ players", target: 1, reward: 100, emoji: "👥", progress: (l) => (l.participants >= 4 ? 1 : 0) },
+  { id: "play_3", name: "3라운드 플레이", target: 3, reward: 80, emoji: "🎮", progress: () => 1 },
+  { id: "win_1", name: "1승 달성", target: 1, reward: 120, emoji: "🏆", progress: (l) => (l.won ? 1 : 0) },
+  { id: "top3_2", name: "TOP 3 두 번", target: 2, reward: 100, emoji: "🥉", progress: (l) => (l.rank <= 3 ? 1 : 0) },
+  { id: "race_finish", name: "스카이 대시 완주", target: 1, reward: 110, emoji: "🏁", progress: (l) => (l.mode === "RACE" && l.finished ? 1 : 0) },
+  { id: "gogun_300", name: "고군분투 300 m 달리기", target: 300, reward: 120, emoji: "🐱", progress: (l) => (l.mode === "GOGUN" ? Math.floor(l.distance ?? 0) : 0) },
+  { id: "survive_45", name: "한 라운드 45초 생존", target: 1, reward: 90, emoji: "🛡️", progress: (l) => (l.mode !== "RACE" && l.survivedMs >= 45_000 ? 1 : 0) },
+  { id: "meltdown_2", name: "멜트다운 두 번 플레이", target: 2, reward: 90, emoji: "🔥", progress: (l) => (l.mode === "MELTDOWN" ? 1 : 0) },
+  { id: "sumo_win", name: "드롭존 승리", target: 1, reward: 130, emoji: "🥊", progress: (l) => (l.mode === "SUMO" && l.won ? 1 : 0) },
+  { id: "checkpoints_6", name: "체크포인트 6개 통과", target: 6, reward: 100, emoji: "🚩", progress: (l) => (l.mode === "RACE" ? l.checkpoints : 0) },
+  { id: "big_room", name: "4명 이상과 플레이", target: 1, reward: 100, emoji: "👥", progress: (l) => (l.participants >= 4 ? 1 : 0) },
 ];
 
 export function todayKey(now = new Date()): string {
