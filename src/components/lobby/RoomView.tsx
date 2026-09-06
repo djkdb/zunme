@@ -52,6 +52,7 @@ export function RoomView({ roomCode }: { roomCode: string }) {
   const localId = useGameStore((s) => s.localId);
   const alive = useGameStore((s) => s.state.alive);
   const participants = useGameStore((s) => s.state.participants);
+  const reconnecting = useGameStore((s) => s.reconnecting);
 
   const [needsName, setNeedsName] = useState(() => !hasStoredNickname());
   const [draftName, setDraftName] = useState(storedNickname);
@@ -138,6 +139,11 @@ export function RoomView({ roomCode }: { roomCode: string }) {
         </div>
       )}
 
+      {reconnecting && (
+        <div className="pointer-events-none absolute left-1/2 top-3 z-40 -translate-x-1/2 safe-pad">
+          <div className="anim-pulse chip border-brand-2/60 px-4 py-2 text-xs font-black tracking-widest text-brand-2">🔌 재연결 중…</div>
+        </div>
+      )}
       {connected && showLobby && <Lobby roomCode={roomCode} />}
       {connected && inRound && isParticipant && !viewingLobby && (
         <>

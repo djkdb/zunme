@@ -18,6 +18,7 @@ import { CoinField, ColorArena, CrownArena, HillArena, ModeMarkers, SpinCycle, W
 import { TiptoeCourse, tiptoeStep } from "@/components/game/TiptoeCourse";
 import { LavaTower } from "@/components/game/LavaTower";
 import { EmoteBubbles } from "@/components/game/EmoteBubbles";
+import { TrainingDummy } from "@/components/game/TrainingDummy";
 import {
   GOGUN_COIN_POINTS,
   GOGUN_COIN_RADIUS,
@@ -350,6 +351,8 @@ export function GameScene({ mobile }: { mobile: boolean }) {
           <Meteors />
         </>
       )}
+      {/* lobby punching bag on the island modes */}
+      {status === "LOBBY" && (mode === "SUMO" || mode === "BOSS" || mode === "TAG" || mode === "BOMB" || mode === "CROWN") && <TrainingDummy />}
       {mode === "RACE" && <RaceCourse />}
       {mode === "MELTDOWN" && <MeltdownArena />}
       {mode === "GOGUN" && <RooftopCourse course={course} />}

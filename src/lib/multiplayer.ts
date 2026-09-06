@@ -39,6 +39,8 @@ export interface RoomClientCallbacks {
   onState(state: GameState): void;
   onEvent(evt: ClientEvent): void;
   onError(message: string): void;
+  /** socket dropped / came back (worker transport) */
+  onConnection?(connected: boolean): void;
 }
 
 export class RoomClient {
@@ -96,6 +98,11 @@ export class RoomClient {
       if (!this.disposed) emitGameplayEvent(payload as GameplayEvent);
     });
     this.transport.onPresence((players) => this.onPresence(players));
+    this.transport.onStatus?.((ok) => {
+      if (this.disposed) return;
+      if (ok && this.presence) this.transport.updatePresence(this.presence); // re-announce after a drop
+      this.callbacks.onConnection?.(ok);
+    });
     await this.transport.connect(this.roomCode, this.presence);
     this.hostTimer = setInterval(() => this.hostTick(), 100);
   }

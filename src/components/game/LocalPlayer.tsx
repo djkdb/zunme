@@ -59,6 +59,7 @@ import { sound } from "@/game/audio";
 import { raceRuntime } from "@/game/sync";
 import { partyRuntime } from "@/game/party";
 import { onGameplayEvent } from "@/game/sync";
+import { DUMMY_ID, dummyState } from "@/components/game/TrainingDummy";
 import { NET_BURST_AFTER_MS } from "@/game/config";
 import { useGameStore } from "@/store/gameStore";
 import { isRoundActive } from "@/game/clock";
@@ -237,7 +238,10 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
     if (grounded.current) lastGroundedAt.current = now;
     const stunned = now < localPose.stunUntil;
     const dashing = now < localPose.dashUntil;
-    const canControl = active && !stunned;
+    // The lobby and the result screen are a playground: you can run, jump and dash
+    // (into the training dummy or each other) while waiting.
+    const roomStatus = useGameStore.getState().state.status;
+    const canControl = (active || roomStatus === "LOBBY" || roomStatus === "FINISHED") && !stunned;
 
     // ── ROOFTOP RUNNER: auto-run, jump, wire swing ──
     const auto = rulesRef.current.autoRun;
@@ -568,7 +572,10 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
     const now = performance.now();
 
     if (data.type === "player") {
-      if (data.id) rulesRef.current.onContact?.(data.id);
+      if (data.id === DUMMY_ID) {
+        dummyState.hitAt = now;
+        dummyState.hits++;
+      } else if (data.id) rulesRef.current.onContact?.(data.id);
       tmpDir.set(me.x - them.x, 0, me.z - them.z);
       if (tmpDir.lengthSq() < 1e-4) tmpDir.set(Math.random() - 0.5, 0, Math.random() - 0.5);
       tmpDir.normalize();
@@ -595,12 +602,12 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       anim.hitAt = now;
       localPose.lastImpactAt = now;
       // Knock-out credit: whoever shoved us last gets the KO if we fall soon after.
-      if (data.id && !dashing) {
+      if (data.id && data.id !== DUMMY_ID && !dashing) {
         localPose.lastHitBy = data.id;
         localPose.lastHitAt = now;
       }
       // Tell the victim: their screen may not have seen our body pass through them.
-      if (data.id && (dashing || relative > 9)) {
+      if (data.id && data.id !== DUMMY_ID && (dashing || relative > 9)) {
         let theirs = THREE.MathUtils.clamp(PUSH_IMPULSE + relative * PUSH_RELATIVE_FACTOR, PUSH_IMPULSE * 0.6, PUSH_IMPULSE_MAX) * PLAYER_MASS;
         if (dashing) theirs *= DASH_HIT_MULTIPLIER;
         if (boss) theirs *= BOSS_HIT_MULTIPLIER;

@@ -49,6 +49,8 @@ interface GameStore {
   muted: boolean;
   /** lobby toasts: joins and leaves */
   roomNotices: { key: number; text: string; at: number }[];
+  /** socket dropped; the transport is retrying */
+  reconnecting: boolean;
 
   join(roomCode: string, nickname?: string): Promise<void>;
   leave(): void;
@@ -96,6 +98,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   localOutAt: 0,
   muted: false,
   roomNotices: [],
+  reconnecting: false,
 
   async join(roomCode, nickname) {
     const existing = get().client;
@@ -202,6 +205,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         /* impacts etc. are handled locally via the effects bus */
       },
       onError: (message) => set({ error: message }),
+      onConnection: (ok) => set({ reconnecting: !ok }),
     });
 
     try {

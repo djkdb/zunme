@@ -17,6 +17,8 @@ export interface Transport {
   onPresence(handler: (players: PlayerPresence[]) => void): void;
   on(event: string, handler: MessageHandler): void;
   send(event: string, payload: unknown): void;
+  /** connection lost / restored (transports that can drop) */
+  onStatus?(handler: (connected: boolean) => void): void;
   readonly offline: boolean;
 }
 
@@ -138,6 +140,8 @@ export class WorkerTransport implements Transport {
   private closedByUs = false;
   private attempts = 0;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private statusHandler: ((connected: boolean) => void) | null = null;
+  private wasConnected = false;
 
   constructor(url: string) {
     this.url = url;
@@ -147,8 +151,28 @@ export class WorkerTransport implements Transport {
     this.roomCode = roomCode;
     this.presence = presence;
     this.closedByUs = false;
+    if (typeof window !== "undefined") {
+      // Phones: screen lock / app switch / network change kill the socket. Retry
+      // immediately when we come back instead of waiting out the backoff.
+      document.addEventListener("visibilitychange", this.onWake);
+      window.addEventListener("online", this.onWake);
+      window.addEventListener("focus", this.onWake);
+    }
     return this.open(true);
   }
+
+  onStatus(handler: (connected: boolean) => void) {
+    this.statusHandler = handler;
+  }
+
+  private onWake = () => {
+    if (this.closedByUs || document.visibilityState === "hidden") return;
+    if (this.ws && this.ws.readyState === WebSocket.OPEN) return;
+    this.attempts = 0;
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
+    this.scheduleReconnect(0);
+  };
 
   private open(initial: boolean): Promise<void> {
     return new Promise<void>((resolve, reject) => {
@@ -167,6 +191,8 @@ export class WorkerTransport implements Transport {
         this.attempts = 0;
         if (this.presence) ws.send(JSON.stringify({ t: "join", presence: this.presence }));
         clearTimeout(timer);
+        if (!this.wasConnected || !initial) this.statusHandler?.(true);
+        this.wasConnected = true;
         settle();
       };
       ws.onmessage = (ev: MessageEvent<string>) => {
@@ -195,14 +221,16 @@ export class WorkerTransport implements Transport {
         if (this.ws === ws) this.ws = null;
         if (this.closedByUs) return;
         if (!settled) settle(new Error("Connection closed"));
+        if (this.wasConnected) this.statusHandler?.(false);
         this.scheduleReconnect();
       };
     });
   }
 
-  private scheduleReconnect() {
-    if (this.reconnectTimer || this.closedByUs || this.attempts >= 6) return;
-    const delay = Math.min(8000, 500 * 2 ** this.attempts++);
+  /** Exponential backoff capped at 8 s; keeps trying for as long as the tab is open. */
+  private scheduleReconnect(delayOverride?: number) {
+    if (this.reconnectTimer || this.closedByUs) return;
+    const delay = delayOverride ?? Math.min(8000, 500 * 2 ** Math.min(this.attempts++, 4));
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       this.open(false).catch(() => this.scheduleReconnect());
@@ -211,6 +239,11 @@ export class WorkerTransport implements Transport {
 
   disconnect() {
     this.closedByUs = true;
+    if (typeof window !== "undefined") {
+      document.removeEventListener("visibilitychange", this.onWake);
+      window.removeEventListener("online", this.onWake);
+      window.removeEventListener("focus", this.onWake);
+    }
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = null;
     this.ws?.close(1000, "leave");

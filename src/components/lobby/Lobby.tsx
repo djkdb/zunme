@@ -44,6 +44,23 @@ export function Lobby({ roomCode }: { roomCode: string }) {
   }, [notices]);
   const liveNotices = now ? notices.filter((n) => now - n.at < 3200) : notices;
   const me = players.find((p) => p.id === localId);
+  const [coach, setCoach] = useState(false);
+  useEffect(() => {
+    try {
+      const n = Number(localStorage.getItem("zuuun:coach") ?? "0");
+      if (n < 2) {
+        localStorage.setItem("zuuun:coach", String(n + 1));
+        const show = setTimeout(() => setCoach(true), 600);
+        const hide = setTimeout(() => setCoach(false), 12000);
+        return () => {
+          clearTimeout(show);
+          clearTimeout(hide);
+        };
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
   const readyCount = players.filter((p) => p.ready).length;
   const othersReady = players.filter((p) => !p.isHost).every((p) => p.ready);
 
@@ -102,8 +119,13 @@ export function Lobby({ roomCode }: { roomCode: string }) {
         </div>
       )}
       <EmoteControls placement="lobby" />
+      {coach && (
+        <div className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 short:hidden">
+          <div className="anim-rise chip px-4 py-2 text-[12px] font-bold text-white">🎯 기다리는 동안 움직여 보세요 — 허수아비를 대시로 밀쳐 보기!</div>
+        </div>
+      )}
       <div className="flex min-h-0 flex-1 overflow-y-auto scroll-y px-3 pb-3 short:px-2 short:pb-2">
-        <div className="panel anim-rise pointer-events-auto m-auto w-full max-w-md p-5 sm:p-7 short:max-w-2xl short:p-4">
+        <div className="panel anim-rise pointer-events-auto m-auto w-full max-w-md p-5 sm:p-6 md:mr-2 md:ml-auto short:max-w-2xl short:p-4">
           <div className="text-center">
             <div className="display text-3xl text-white sm:text-4xl short:hidden">ZUUUN</div>
             <div className="mt-3 text-[11px] font-bold tracking-[0.35em] text-white/60 short:mt-0">방 코드</div>
@@ -123,7 +145,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
             <span>게임 모드 {!isHost && <span className="text-white/40">(호스트가 선택)</span>}</span>
             <span className="text-white/40">{Object.keys(GAME_MODES).length}개 모드</span>
           </div>
-          <div className="mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-5 sm:gap-2">
+          <div className="mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2">
             {(Object.keys(GAME_MODES) as GameMode[]).map((m) => {
               const meta = GAME_MODES[m];
               const active = m === mode;

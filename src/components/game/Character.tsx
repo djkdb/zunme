@@ -108,6 +108,9 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
   const legR = useRef<THREE.Group>(null);
   const phase = useRef(-1);
   const spin = useRef(0);
+  const torsoMat = useRef<THREE.MeshStandardMaterial>(null);
+  const lastYaw = useRef(0);
+  const lean = useRef(0);
 
   const colors = useMemo(
     () => ({
@@ -136,6 +139,14 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
     else if (celebrating) spin.current += dt * 5;
     else spin.current = THREE.MathUtils.lerp(spin.current, Math.round(spin.current / (Math.PI * 2)) * Math.PI * 2, dt * 12);
     g.rotation.y = anim.yaw + spin.current;
+    // lean into turns: yaw change per second → sideways tilt, eased
+    let dy = anim.yaw - lastYaw.current;
+    while (dy > Math.PI) dy -= Math.PI * 2;
+    while (dy < -Math.PI) dy += Math.PI * 2;
+    lastYaw.current = anim.yaw;
+    const turnRate = dt > 0 ? dy / dt : 0;
+    lean.current = THREE.MathUtils.lerp(lean.current, THREE.MathUtils.clamp(-turnRate * 0.04, -0.28, 0.28) * Math.min(1, anim.speed / 5), Math.min(1, dt * 10));
+    g.rotation.z = lean.current;
 
     const moving = anim.speed > 0.4;
     const target = moving ? Math.min(1, anim.speed / 7) : 0;
@@ -149,6 +160,8 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
     const squash = (sinceLand < 0.25 ? Math.sin((sinceLand / 0.25) * Math.PI) * 0.18 : 0) - stretch;
     const sinceHit = (now - anim.hitAt) / 1000;
     const flinch = sinceHit < 0.3 ? Math.sin((sinceHit / 0.3) * Math.PI) * 0.35 : 0;
+    // white-hot flash on the hoodie right after a hit
+    if (torsoMat.current) torsoMat.current.emissiveIntensity = sinceHit < 0.18 ? (1 - sinceHit / 0.18) * 1.4 : 0;
 
     if (celebrating) {
       // winner dance: arms up, pumping
@@ -179,7 +192,10 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
     if (body.current) {
       const bob = celebrating ? Math.abs(Math.sin(now * 0.012)) * 0.35 : anim.grounded ? Math.abs(Math.sin(phase.current)) * 0.05 * target : 0;
       body.current.position.y = bob - squash * 0.5;
-      body.current.scale.set(1 + squash * 0.6, 1 - squash, 1 + squash * 0.6);
+      // idle breathing, dash stretch along the run direction
+      const breathe = anim.speed < 0.4 && anim.grounded ? Math.sin(now * 0.003) * 0.012 : 0;
+      const dashStretch = dashing ? 0.12 : 0;
+      body.current.scale.set(1 + squash * 0.6 - dashStretch * 0.5, 1 - squash + breathe, 1 + squash * 0.6 + dashStretch);
       body.current.rotation.x = THREE.MathUtils.lerp(body.current.rotation.x, target * 0.14 - flinch * 0.6 + (dashing ? 0.55 : 0) + (stunned ? -0.5 : 0), dt * (dashing ? 20 : 8));
     }
     if (head.current) {
@@ -196,9 +212,10 @@ export function Character({ colorHex, nickname, animRef, isLocal = false, showLa
     <group ref={root} scale={scale}>
       <group ref={body}>
         {/* ── hoodie torso ── */}
+        {/* (first mesh carries the hit-flash material) */}
         <mesh castShadow receiveShadow position={[0, 0.56, 0]}>
           <boxGeometry args={[0.6, 0.5, 0.4]} />
-          <meshStandardMaterial color={colors.hoodie} roughness={0.7} flatShading />
+          <meshStandardMaterial ref={torsoMat} color={colors.hoodie} emissive="#ffffff" emissiveIntensity={0} roughness={0.7} flatShading />
         </mesh>
         {/* kangaroo pocket */}
         <mesh position={[0, 0.42, 0.205]}>
