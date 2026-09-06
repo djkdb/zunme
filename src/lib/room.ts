@@ -29,8 +29,8 @@ export function generatePlayerId(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
-const ADJECTIVES = ["Swift", "Bouncy", "Wobbly", "Turbo", "Sneaky", "Mighty", "Zippy", "Lucky", "Wild", "Cosmic"];
-const NOUNS = ["Bean", "Blob", "Rocket", "Pickle", "Comet", "Otter", "Mango", "Ninja", "Yeti", "Panda"];
+const ADJECTIVES = ["재빠른", "통통", "흔들", "터보", "살금", "힘센", "쌩쌩", "행운의", "야생", "우주"];
+const NOUNS = ["콩", "젤리", "로켓", "피클", "혜성", "수달", "망고", "닌자", "예티", "판다"];
 
 export function randomNickname(): string {
   const a = ADJECTIVES[Math.floor(Math.random() * ADJECTIVES.length)];
