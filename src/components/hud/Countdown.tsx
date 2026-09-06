@@ -36,8 +36,8 @@ export function Countdown() {
   if (!label) return null;
   const isGo = label === "시작!";
   return (
-    <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-      <div key={label} className={`display anim-pop ${isGo ? "text-gradient gradient-shadow text-[120px] sm:text-[180px]" : "hud-text text-stroke text-[140px] text-white sm:text-[200px]"}`}>
+    <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center short:pt-24">
+      <div key={label} className={`display anim-pop ${isGo ? "text-gradient gradient-shadow text-[120px] sm:text-[180px] short:text-[100px]" : "hud-text text-stroke text-[140px] text-white sm:text-[200px] short:text-[120px]"}`}>
         {label}
       </div>
     </div>

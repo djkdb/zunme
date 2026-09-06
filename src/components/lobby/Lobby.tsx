@@ -116,7 +116,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
               );
             })}
           </div>
-          <p className="mt-1.5 text-center text-[11px] font-semibold text-white/60 short:hidden">{GAME_MODES[mode].description}</p>
+          <p className="mt-1.5 text-center text-[11px] font-semibold text-white/70 short:text-[10px]">{GAME_MODES[mode].description}</p>
           <button
             disabled={!isHost || roundInProgress}
             onClick={() => {
@@ -147,14 +147,14 @@ export function Lobby({ roomCode }: { roomCode: string }) {
           </div>
           <ul className="mt-2 grid grid-cols-2 gap-2 pr-1 sm:max-h-32 sm:overflow-y-auto sm:scroll-y short:grid-cols-4">
             {players.map((p) => (
-              <li key={p.id} className="flex items-center gap-2 rounded-xl bg-white/8 px-3 py-2">
+              <li key={p.id} className="flex min-w-0 items-center gap-2 rounded-xl bg-white/8 px-3 py-2">
                 <span className="h-3.5 w-3.5 shrink-0 rounded-full" style={{ background: p.colorHex, boxShadow: `0 0 10px ${p.colorHex}` }} />
-                <span className="truncate text-sm font-bold text-white">
+                <span className="min-w-0 truncate text-sm font-bold text-white">
                   {p.nickname}
                   {p.id === localId && <span className="text-white/50"> (나)</span>}
                 </span>
-                <span className="rounded-full bg-white/10 px-1.5 text-[9px] font-black text-brand-2">LV{p.level ?? 1}</span>
-                {p.isHost && <span className="ml-auto text-[10px] font-black text-brand-2">호스트</span>}
+                <span className="shrink-0 rounded-full bg-white/10 px-1.5 text-[9px] font-black text-brand-2">LV{p.level ?? 1}</span>
+                {p.isHost && <span className="ml-auto shrink-0 whitespace-nowrap text-[10px] font-black text-brand-2">호스트</span>}
               </li>
             ))}
             {Array.from({ length: Math.max(0, Math.min(MAX_PLAYERS, 2) - players.length) }).map((_, i) => (
@@ -164,7 +164,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
             ))}
           </ul>
 
-          <div className="mt-5 short:mt-3">
+          <div className="sticky -bottom-5 mt-5 -mx-5 bg-[#1a1c36]/95 px-5 pb-1 pt-3 backdrop-blur sm:static sm:mx-0 sm:bg-transparent sm:p-0 sm:pt-0 sm:backdrop-blur-none short:-bottom-4 short:-mx-4 short:mt-3 short:px-4">
             {roundInProgress ? (
               <div className="rounded-2xl bg-white/10 p-3 text-center text-sm font-bold text-white/80">라운드 진행 중 — 다음 라운드에 참가해요.</div>
             ) : isHost ? (

@@ -15,6 +15,7 @@ import {
   COLOR_CYCLE_START,
   COLOR_CYCLE_STEP,
   COLOR_DROP_MS,
+  COLOR_FIRST_GRACE,
   COLOR_GRID,
   COLOR_WARN_MS,
   SPIN_RADIUS,
@@ -92,7 +93,7 @@ export interface ColorPhase {
 }
 
 function colorCycleLength(cycle: number): number {
-  return Math.max(COLOR_CYCLE_MIN, COLOR_CYCLE_START - cycle * COLOR_CYCLE_STEP);
+  return Math.max(COLOR_CYCLE_MIN, COLOR_CYCLE_START - cycle * COLOR_CYCLE_STEP) + (cycle === 0 ? COLOR_FIRST_GRACE : 0);
 }
 
 export function colorPhaseAt(seed: number, elapsed: number, out: ColorPhase): ColorPhase {

@@ -44,7 +44,7 @@ import {
   PUSH_IMPULSE_MAX,
   PUSH_UPWARD,
 } from "@/game/config";
-import { burst, shake } from "@/game/effects";
+import { burst, haptic, shake } from "@/game/effects";
 import { consumeDash, consumeJump, input, lastJumpPressAt } from "@/game/input";
 import { GOGUN_CRASH_MS, GOGUN_JUMP_CUT, GOGUN_WIRE_MAX_MS, GOGUN_WIRE_RELEASE_BOOST, gogunRuntime } from "@/game/gogun";
 import { livePoses, localPose } from "@/game/remote";
@@ -535,6 +535,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       const mid = { x: (me.x + them.x) / 2, y: me.y, z: (me.z + them.z) / 2 };
       burst({ position: mid, color: ["#ffffff", "#ffd32a", colorHex], count: 10, speed: 3, life: 0.45, size: 0.14 });
       shake(0.25 + Math.min(0.35, relative * 0.04));
+      if (strength >= PUSH_IMPULSE * 1.6) haptic(35);
       sound.play("impact", { volume: 0.7, throttleMs: 80 });
     } else if (data.type === "spinner") {
       // Tangential shove in the bar's direction of travel.

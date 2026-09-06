@@ -37,6 +37,15 @@ export const focusEvents = new Emitter<{ playerId: string | null; durationMs: nu
 let timeScale = 1;
 let slowmoUntil = 0;
 
+/** Short vibration on phones that support it (hits, falls); silently ignored elsewhere. */
+export function haptic(ms: number) {
+  try {
+    if (typeof navigator !== "undefined" && "vibrate" in navigator) navigator.vibrate(ms);
+  } catch {
+    /* unsupported */
+  }
+}
+
 export function shake(strength: number) {
   shakeEvents.emit(strength);
 }

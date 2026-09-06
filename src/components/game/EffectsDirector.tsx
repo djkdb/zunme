@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { ELIMINATION_SLOWMO_DURATION, ELIMINATION_SLOWMO_SCALE, PLAYER_COLORS } from "@/game/config";
-import { burst, focusEvents, shake, slowMotion } from "@/game/effects";
+import { burst, focusEvents, haptic, shake, slowMotion } from "@/game/effects";
 import { livePoses } from "@/game/remote";
 import { sound } from "@/game/audio";
 import { useGameStore } from "@/store/gameStore";
@@ -74,6 +74,7 @@ export function EffectsDirector() {
         const pos = p ? { x: p.x, y: Math.max(p.y, -3), z: p.z } : { x: 0, y: 0, z: 0 };
         burst({ position: pos, color: [colorHex, "#ffffff", "#2b2d42"], count: 40, speed: 7, life: 1.1, size: 0.2, gravity: 10, spread: 1.2 });
         shake(0.7);
+        if (playerId === s.localId) haptic(120);
         slowMotion(ELIMINATION_SLOWMO_SCALE, ELIMINATION_SLOWMO_DURATION);
         sound.play("elimination");
         if (playerId !== s.localId) focusEvents.emit({ playerId, durationMs: 1100 });

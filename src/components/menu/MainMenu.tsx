@@ -66,18 +66,18 @@ export function MainMenu() {
 
       <div className="relative z-10 flex h-full w-full flex-col items-center justify-center px-5 safe-pad">
         <div className="anim-rise flex flex-col items-center text-center">
-          <div className="chip mb-4 px-3 py-1 text-[11px] font-bold tracking-[0.3em] text-white/80">8인 · 15개 게임 모드 · 파티 믹스</div>
-          <h1 className="display gradient-shadow text-[64px] sm:text-[96px] md:text-[120px]" aria-label="DROPZONE">
+          <div className="chip mb-4 px-3 py-1 text-[11px] font-bold tracking-[0.2em] text-white/80 short:mb-1">8인 · 15개 게임 모드 · 파티 믹스</div>
+          <h1 className="display gradient-shadow text-[64px] sm:text-[96px] md:text-[120px] short:text-[52px]" aria-label="DROPZONE">
             {"DROPZONE".split("").map((ch, i) => (
               <span key={i} className="title-letter text-gradient" style={{ animationDelay: `${i * 0.06}s` }}>
                 {ch}
               </span>
             ))}
           </h1>
-          <p className="shimmer mt-2 text-sm font-extrabold tracking-[0.45em] sm:text-lg">최후의 1인이 되어라</p>
+          <p className="shimmer mt-2 text-sm font-extrabold tracking-[0.25em] sm:text-lg short:mt-0">최후의 1인이 되어라</p>
         </div>
 
-        <div className="anim-rise delay-2 mt-8 w-full max-w-sm">
+        <div className="anim-rise delay-2 mt-8 w-full max-w-sm short:mt-3">
           <label className="mb-1 block text-[11px] font-bold tracking-widest text-white/70">닉네임</label>
           <input
             value={nickname}

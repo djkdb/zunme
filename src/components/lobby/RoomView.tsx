@@ -10,6 +10,7 @@ import { FinishBanner } from "@/components/hud/FinishBanner";
 import { GameHUD } from "@/components/hud/GameHUD";
 import { LandscapeHint } from "@/components/hud/LandscapeHint";
 import { MobileControls } from "@/components/hud/MobileControls";
+import { ModeIntro } from "@/components/hud/ModeIntro";
 import { ResultScreen } from "@/components/hud/ResultScreen";
 import { ScreenEffects } from "@/components/hud/ScreenEffects";
 import { MusicDirector } from "@/components/hud/MusicDirector";
@@ -140,10 +141,18 @@ export function RoomView({ roomCode }: { roomCode: string }) {
         <>
           <ScreenEffects />
           <GameHUD />
+          <ModeIntro />
           <Countdown />
           <EliminationBanner />
           <FinishBanner />
           {showControls && <MobileControls />}
+        </>
+      )}
+      {/* the final fall / finish keeps its splash while the result screen is still holding */}
+      {connected && status === "FINISHED" && isParticipant && !viewingLobby && (
+        <>
+          <EliminationBanner />
+          <FinishBanner />
         </>
       )}
       {connected && status === "FINISHED" && !viewingLobby && <ResultScreen roomCode={roomCode} />}

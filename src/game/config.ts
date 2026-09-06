@@ -195,6 +195,7 @@ export const COIN_GOLD_POINTS = 3;
 export const COLOR_WARN_MS = 2_300;
 export const COLOR_DROP_MS = 2_600;
 export const COLOR_CYCLE_START = 9_000;
+export const COLOR_FIRST_GRACE = 4_000; // extra roam time before the very first call
 export const COLOR_CYCLE_MIN = 5_200;
 export const COLOR_CYCLE_STEP = 450;
 export const COLOR_GRID = 11; // tiles per side
