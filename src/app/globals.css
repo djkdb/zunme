@@ -42,6 +42,16 @@ textarea {
   -webkit-user-select: text;
 }
 
+/* Scrollable overlays: the body disables touch gestures for the game, so every
+   scroll container must opt back in (touch scrolling + pointer events). */
+.scroll-y {
+  pointer-events: auto;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+}
+
 /* ── Type ────────────────────────────────────────────────────────────── */
 .display {
   font-weight: 900;

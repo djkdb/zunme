@@ -30,7 +30,7 @@ export function MissionsPanel() {
   const stats = useProgressStore((s) => s.stats);
   const defs = missionDefs(daily.day);
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
+    <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto scroll-y pr-1">
       <div className="text-[10px] font-bold tracking-[0.3em] text-white/50">오늘의 미션 · {daily.day}</div>
       {daily.missions.map((m) => {
         const def = defs.find((d) => d.id === m.id);
@@ -77,7 +77,7 @@ export function BadgesPanel() {
   const unlocked = useProgressStore((s) => s.achievements);
   const stats = useProgressStore((s) => s.stats);
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
+    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto scroll-y pr-1">
       <div className="mb-2 text-[10px] font-bold tracking-[0.3em] text-white/50">
         배지 · {unlocked.length} / {ACHIEVEMENTS.length}
       </div>

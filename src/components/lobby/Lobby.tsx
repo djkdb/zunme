@@ -74,7 +74,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1 overflow-y-auto px-3 pb-3 short:px-2 short:pb-2">
+      <div className="flex min-h-0 flex-1 overflow-y-auto scroll-y px-3 pb-3 short:px-2 short:pb-2">
         <div className="panel anim-rise pointer-events-auto m-auto w-full max-w-md p-5 sm:p-7 short:max-w-2xl short:p-4">
           <div className="text-center">
             <div className="display text-3xl text-white sm:text-4xl short:hidden">DROPZONE</div>
@@ -95,7 +95,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
             <span>게임 모드 {!isHost && <span className="text-white/40">(호스트가 선택)</span>}</span>
             <span className="text-white/40">{Object.keys(GAME_MODES).length}개 모드</span>
           </div>
-          <div className="mt-2 grid max-h-44 grid-cols-3 gap-1.5 overflow-y-auto pr-1 sm:max-h-none sm:grid-cols-5 sm:gap-2">
+          <div className="mt-2 grid grid-cols-3 gap-1.5 sm:grid-cols-5 sm:gap-2">
             {(Object.keys(GAME_MODES) as GameMode[]).map((m) => {
               const meta = GAME_MODES[m];
               const active = m === mode;
@@ -145,7 +145,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
               {players.length} / {MAX_PLAYERS}
             </span>
           </div>
-          <ul className="mt-2 grid max-h-32 grid-cols-2 gap-2 overflow-y-auto pr-1 short:grid-cols-4">
+          <ul className="mt-2 grid grid-cols-2 gap-2 pr-1 sm:max-h-32 sm:overflow-y-auto sm:scroll-y short:grid-cols-4">
             {players.map((p) => (
               <li key={p.id} className="flex items-center gap-2 rounded-xl bg-white/8 px-3 py-2">
                 <span className="h-3.5 w-3.5 shrink-0 rounded-full" style={{ background: p.colorHex, boxShadow: `0 0 10px ${p.colorHex}` }} />

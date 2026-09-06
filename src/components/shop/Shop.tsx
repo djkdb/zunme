@@ -134,7 +134,7 @@ export function Shop({ onClose }: { onClose: () => void }) {
                 </button>
               ))}
             </div>
-            <div className="mt-2 grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-y-auto pr-1 sm:grid-cols-3">
+            <div className="mt-2 grid min-h-0 flex-1 grid-cols-2 gap-2 overflow-y-auto scroll-y pr-1 sm:grid-cols-3">
               {items.map((item) => {
                 const isOwned = owned.includes(item.id);
                 const isEquipped = equipped[item.slot] === item.id;

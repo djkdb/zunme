@@ -104,7 +104,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
       )}
 
       {showPanel && (
-        <div className="flex min-h-0 flex-1 overflow-y-auto px-3 py-3 short:px-2 short:py-2">
+        <div className="flex min-h-0 flex-1 overflow-y-auto scroll-y px-3 py-3 short:px-2 short:py-2">
           <div className="panel anim-rise pointer-events-auto m-auto w-full max-w-md p-5 sm:p-6 short:max-w-2xl short:p-4">
             <div className="text-center">
               <div className="text-[11px] font-black tracking-[0.4em] text-white/60">{meta.icon} {meta.name}</div>
@@ -124,7 +124,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
                   <div className="text-xs font-bold text-white/60">⭐ {points} · Lv.{level}</div>
                 </div>
                 {lines.length > 0 && (
-                  <ul className="mx-auto mt-2 max-h-24 max-w-xs space-y-0.5 overflow-y-auto text-[11px] font-bold">
+                  <ul className="mx-auto mt-2 max-w-xs space-y-0.5 text-[11px] font-bold sm:max-h-24 sm:overflow-y-auto sm:scroll-y">
                     {lines.map((l, i) => (
                       <li key={i} className={`flex justify-between ${l.points < 0 ? "text-white/40" : l.label.startsWith("미션") || l.label.startsWith("레벨") || /^[^\p{L}\p{N}#]/u.test(l.label) ? "text-brand-2" : "text-white/75"}`}>
                         <span className="truncate">{l.label}</span>
@@ -183,7 +183,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
                 })}
               </div>
             )}
-            <ol className="max-h-40 space-y-1 overflow-y-auto pr-1 short:grid short:max-h-24 short:grid-cols-2 short:gap-1 short:space-y-0">
+            <ol className="space-y-1 pr-1 sm:max-h-40 sm:overflow-y-auto sm:scroll-y short:grid short:grid-cols-2 short:gap-1 short:space-y-0">
               {ranking.map((id, i) => (
                 <li key={id} className={`flex items-center gap-2 rounded-xl px-3 py-1.5 text-sm font-bold ${i === 0 ? "bg-brand-2/20 text-white" : "bg-white/5 text-white/85"}`}>
                   <span className="w-6 text-center">{MEDALS[i] ?? `${i + 1}.`}</span>
