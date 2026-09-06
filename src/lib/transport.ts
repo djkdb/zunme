@@ -256,7 +256,7 @@ export class LocalTransport implements Transport {
   private peers = new Map<string, { presence: PlayerPresence; lastSeen: number }>();
   private timer: ReturnType<typeof setInterval> | null = null;
   private static readonly HEARTBEAT = 1000;
-  private static readonly EXPIRY = 4000;
+  private static readonly EXPIRY = 8000; // generous: a tab whose timers stall under heavy frames must not drop out of the round
 
   async connect(roomCode: string, presence: PlayerPresence) {
     this.presence = presence;

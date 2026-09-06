@@ -91,8 +91,11 @@ export function Lobby({ roomCode }: { roomCode: string }) {
             {offline && <p className="mt-3 text-[11px] font-bold text-brand-2">LOCAL MODE — other tabs on this device can join. Add Supabase keys for online play.</p>}
           </div>
 
-          <div className="mt-4 text-xs font-bold tracking-widest text-white/70 short:mt-2">GAME MODE {!isHost && <span className="text-white/40">(host picks)</span>}</div>
-          <div className="mt-2 grid grid-cols-3 gap-2 sm:grid-cols-5">
+          <div className="mt-4 flex items-center justify-between text-xs font-bold tracking-widest text-white/70 short:mt-2">
+            <span>GAME MODE {!isHost && <span className="text-white/40">(host picks)</span>}</span>
+            <span className="text-white/40">{Object.keys(GAME_MODES).length} MODES</span>
+          </div>
+          <div className="mt-2 grid max-h-44 grid-cols-3 gap-1.5 overflow-y-auto pr-1 sm:max-h-none sm:grid-cols-5 sm:gap-2">
             {(Object.keys(GAME_MODES) as GameMode[]).map((m) => {
               const meta = GAME_MODES[m];
               const active = m === mode;
@@ -104,11 +107,11 @@ export function Lobby({ roomCode }: { roomCode: string }) {
                     sound.play("click");
                     setMode(m);
                   }}
-                  className={`rounded-xl border-2 px-2 py-2 text-left transition ${active ? "border-brand-2 bg-brand-2/15" : "border-white/10 bg-white/5"} ${isHost ? "active:scale-95" : "cursor-default"}`}
+                  className={`rounded-xl border-2 px-2 py-1.5 text-left transition sm:py-2 ${active ? "border-brand-2 bg-brand-2/15" : "border-white/10 bg-white/5"} ${isHost ? "active:scale-95" : "cursor-default"}`}
                 >
-                  <div className="text-lg leading-none">{meta.icon}</div>
-                  <div className={`mt-1 text-[12px] font-black leading-tight ${active ? "text-brand-2" : "text-white"}`}>{meta.name}</div>
-                  <div className="text-[9px] font-bold tracking-wider text-white/50">{meta.tagline}</div>
+                  <div className="text-base leading-none sm:text-lg">{meta.icon}</div>
+                  <div className={`mt-1 text-[11px] font-black leading-tight sm:text-[12px] ${active ? "text-brand-2" : "text-white"}`}>{meta.name}</div>
+                  <div className="hidden text-[9px] font-bold tracking-wider text-white/50 sm:block">{meta.tagline}</div>
                 </button>
               );
             })}
@@ -171,10 +174,10 @@ export function Lobby({ roomCode }: { roomCode: string }) {
             ) : (
               <div className="anim-pulse rounded-2xl bg-white/10 p-3 text-center text-sm font-bold text-white/80">Waiting for the host to start…</div>
             )}
-            {isHost && mode === "BOSS" && players.length < 2 && !roundInProgress && (
-              <p className="mt-2 text-center text-[11px] font-semibold text-brand-2">1 vs ALL needs at least 2 players — starting solo just lets you try the boss.</p>
+            {isHost && GAME_MODES[mode].minPlayers > players.length && !roundInProgress && (
+              <p className="mt-2 text-center text-[11px] font-semibold text-brand-2">{GAME_MODES[mode].name} needs at least {GAME_MODES[mode].minPlayers} players — starting solo just lets you look around.</p>
             )}
-            {isHost && players.length < 2 && !roundInProgress && mode !== "BOSS" && (
+            {isHost && players.length < 2 && !roundInProgress && GAME_MODES[mode].minPlayers <= players.length && (
               <p className="mt-2 text-center text-[11px] font-semibold text-white/55 short:hidden">Share the code — it&apos;s way more fun with friends. You can start solo to practice.</p>
             )}
           </div>

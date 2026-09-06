@@ -1,5 +1,7 @@
 "use client";
 
+import { hasFinishLine } from "@/game/authority";
+
 import { useGameStore } from "@/store/gameStore";
 
 /** "FINISH!" splash when someone crosses the line (RACE). Lifetime is CSS-driven. */
@@ -9,7 +11,7 @@ export function FinishBanner() {
   const localId = useGameStore((s) => s.localId);
   const state = useGameStore((s) => s.state);
 
-  if (!notice || (state.mode !== "RACE" && state.mode !== "GOGUN") || (state.status !== "PLAYING" && state.status !== "FINISHED")) return null;
+  if (!notice || !hasFinishLine(state.mode) || (state.status !== "PLAYING" && state.status !== "FINISHED")) return null;
   const isYou = notice.playerId === localId;
   const place = state.finishOrder.indexOf(notice.playerId) + 1;
   return (

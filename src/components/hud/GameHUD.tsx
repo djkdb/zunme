@@ -1,8 +1,10 @@
 "use client";
 
 import { MuteButton } from "@/components/hud/MuteButton";
-import { isSuddenDeath, roundEndAt } from "@/game/authority";
-import { GAME_MODES } from "@/game/config";
+import { hasFinishLine, isScoreMode, isSuddenDeath, roundEndAt } from "@/game/authority";
+import { GAME_MODES, TIPTOE_ROWS, TOWER_PLATFORMS } from "@/game/config";
+import { COLOR_PALETTE } from "@/game/modes";
+import { colorRuntime, partyRuntime } from "@/game/party";
 import { RACE_CHECKPOINTS } from "@/game/race";
 import { useHostClock } from "@/hooks/useHostClock";
 import { useDashCooldown } from "@/hooks/useDashCooldown";
@@ -43,6 +45,30 @@ function useWireHint(enabled: boolean): boolean {
   return enabled && hint;
 }
 
+/** COLOR PANIC phase for the banner (polled; the arena writes it every frame). */
+function useColorPhase(enabled: boolean): { phase: "roam" | "warn" | "drop"; called: number; msLeft: number } {
+  const [v, setV] = useState({ phase: "roam" as "roam" | "warn" | "drop", called: 0, msLeft: 0 });
+  useEffect(() => {
+    if (!enabled) return;
+    const id = setInterval(() => {
+      const next = { phase: colorRuntime.phase, called: colorRuntime.called, msLeft: colorRuntime.msLeft };
+      setV((prev) => (prev.phase === next.phase && prev.called === next.called && Math.ceil(prev.msLeft / 1000) === Math.ceil(next.msLeft / 1000) ? prev : next));
+    }, 100);
+    return () => clearInterval(id);
+  }, [enabled]);
+  return v;
+}
+
+function useOnHill(enabled: boolean): boolean {
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    if (!enabled) return;
+    const id = setInterval(() => setOn((prev) => (prev === partyRuntime.onHill ? prev : partyRuntime.onHill)), 120);
+    return () => clearInterval(id);
+  }, [enabled]);
+  return enabled && on;
+}
+
 export function GameHUD() {
   const players = useGameStore(selectPlayers);
   const state = useGameStore((s) => s.state);
@@ -56,9 +82,28 @@ export function GameHUD() {
   const race = state.mode === "RACE";
   const run = state.mode === "GOGUN";
   const bossMode = state.mode === "BOSS";
+  const tag = state.mode === "TAG";
+  const bomb = state.mode === "BOMB";
+  const crown = state.mode === "CROWN";
+  const hill = state.mode === "HILL";
+  const coin = state.mode === "COIN";
+  const colorMode = state.mode === "COLOR";
+  const tiptoe = state.mode === "TIPTOE";
+  const tower = state.mode === "TOWER";
+  const scoreMode = isScoreMode(state.mode);
   const bossName = bossMode ? (players.find((p) => p.id === state.bossId)?.nickname ?? "?") : "";
   const isBoss = bossMode && state.bossId === localId;
-  const finishLine = race || run;
+  const finishLine = hasFinishLine(state.mode);
+  const infected = tag && state.tagged.includes(localId);
+  const tagSurvivors = state.alive.filter((id) => !state.tagged.includes(id)).length;
+  const holderName = players.find((p) => p.id === state.holderId)?.nickname ?? "?";
+  const isHolder = state.holderId === localId;
+  const fuseLeft = bomb ? Math.max(0, state.fuseAt - now) / 1000 : 0;
+  const myScore = state.scores[localId] ?? 0;
+  const colorPhase = useColorPhase(colorMode && state.status === "PLAYING");
+  const onHill = useOnHill(hill && state.status === "PLAYING");
+  const calledColor = COLOR_PALETTE[colorPhase.called];
+  const modeBanner = state.status === "PLAYING" && (bossMode || tag || bomb || crown || (colorMode && colorPhase.phase !== "roam"));
   const meta = GAME_MODES[state.mode];
   const participants = state.participants.length ? state.participants : players.map((p) => p.id);
   const survivors = state.alive.length;
@@ -66,7 +111,7 @@ export function GameHUD() {
   const remaining = state.status === "COUNTDOWN" ? meta.duration : roundEndAt(state) - now;
   const timeLabel = Math.max(0, Math.ceil(remaining / 1000));
   const hurry = finishLine && state.finishOrder.length > 0;
-  const final2 = !finishLine && state.status === "PLAYING" && survivors === 2 && participants.length > 2;
+  const final2 = !finishLine && !scoreMode && !tag && !modeBanner && state.status === "PLAYING" && survivors === 2 && participants.length > 2;
   const isSpectating = !state.alive.includes(localId) && state.status === "PLAYING";
   const localFinished = finishLine && state.finishOrder.includes(localId);
   const localCp = (state.progress[localId] ?? -1) + 1;
@@ -80,16 +125,26 @@ export function GameHUD() {
           {meta.icon} {meta.name} · {run ? `STAGE ${stage}` : `R${state.round}`}
         </div>
         <div className="chip anim-pop px-4 py-2 text-center text-white">
-          <div className="text-[10px] font-bold tracking-[0.3em] text-white/60">{run ? "DISTANCE" : race ? "FINISHED" : bossMode ? "HUNTERS" : "SURVIVORS"}</div>
+          <div className="text-[10px] font-bold tracking-[0.3em] text-white/60">
+            {run ? "DISTANCE" : finishLine ? "FINISHED" : bossMode ? "HUNTERS" : tag ? "SURVIVORS" : coin ? "YOUR COINS" : hill ? "HILL TIME" : crown ? "CROWN TIME" : "SURVIVORS"}
+          </div>
           <div className="display text-2xl sm:text-3xl">
             {run ? (
               <>
                 {Math.floor(gogunRuntime.distance)}
                 <span className="text-white/50"> m · 🪙 {gogunRuntime.coins}</span>
               </>
+            ) : coin ? (
+              <>🪙 {myScore}</>
+            ) : hill || crown ? (
+              <>
+                {(myScore / 1000).toFixed(1)}
+                <span className="text-white/50">s</span>
+              </>
             ) : (
               <>
-                {race ? state.finishOrder.length : bossMode ? survivors - (state.bossId && state.alive.includes(state.bossId) ? 1 : 0) : survivors} <span className="text-white/50">/ {bossMode ? participants.length - 1 : participants.length}</span>
+                {finishLine ? state.finishOrder.length : bossMode ? survivors - (state.bossId && state.alive.includes(state.bossId) ? 1 : 0) : tag ? tagSurvivors : survivors}{" "}
+                <span className="text-white/50">/ {bossMode ? participants.length - 1 : participants.length}</span>
               </>
             )}
           </div>
@@ -110,15 +165,20 @@ export function GameHUD() {
         {roster.map((p) => {
           const alive = state.alive.includes(p.id);
           const finished = state.finishOrder.includes(p.id);
-          const dim = race ? false : !alive;
+          const dim = race || tiptoe || scoreMode ? false : !alive;
           const prog = state.progress[p.id] ?? -1;
-          const crown = bossMode && state.bossId === p.id;
+          const marker = (bossMode && state.bossId === p.id) || (crown && state.holderId === p.id) ? "👑 " : bomb && state.holderId === p.id ? "💣 " : tag && state.tagged.includes(p.id) ? "🧟 " : "";
+          const score = state.scores[p.id] ?? 0;
           return (
             <li key={p.id} className={`chip flex items-center gap-2 px-3 py-1 text-xs font-bold transition-opacity ${dim ? "text-white/40 line-through" : "text-white"}`}>
               {dim ? <span className="text-[10px] text-white/50">✕</span> : <span className="h-2.5 w-2.5 rounded-full" style={{ background: p.colorHex }} />}
-              <span className="max-w-[110px] truncate">{crown ? "👑 " : ""}{p.nickname}</span>
+              <span className="max-w-[110px] truncate">{marker}{p.nickname}</span>
               {race && (finished ? <span className="text-brand-2">🏁</span> : <span className="text-white/50">CP{prog + 1}</span>)}
               {run && (finished ? <span className="text-brand-2">🏁</span> : <span className="text-white/50">{Math.max(0, prog) * GOGUN_PROGRESS_STEP}m</span>)}
+              {tiptoe && (finished ? <span className="text-brand-2">🏁</span> : <span className="text-white/50">ROW {Math.max(0, prog + 1)}/{TIPTOE_ROWS}</span>)}
+              {tower && (finished ? <span className="text-brand-2">🏁</span> : <span className="text-white/50">▲{Math.max(0, prog)}/{TOWER_PLATFORMS}</span>)}
+              {coin && <span className="text-brand-2">🪙 {score}</span>}
+              {(hill || crown) && <span className="text-brand-2">{(score / 1000).toFixed(1)}s</span>}
             </li>
           );
         })}
@@ -136,6 +196,41 @@ export function GameHUD() {
       {bossMode && state.status === "PLAYING" && (
         <div className="absolute left-1/2 top-24 -translate-x-1/2">
           <div className={`anim-slam display rounded-2xl px-6 py-2 text-2xl shadow-2xl hud-text ${isBoss ? "bg-brand text-white" : "bg-[#12142b]/80 text-brand-2"}`}>{isBoss ? "YOU ARE THE BOSS" : `⚔️ BOSS: ${bossName}`}</div>
+        </div>
+      )}
+      {tag && state.status === "PLAYING" && (
+        <div className="absolute left-1/2 top-24 -translate-x-1/2 text-center">
+          <div key={infected ? "z" : "s"} className={`anim-slam display rounded-2xl px-6 py-2 text-2xl shadow-2xl hud-text ${infected ? "bg-[#2ed573] text-[#12142b]" : "bg-[#12142b]/80 text-white"}`}>{infected ? "🧟 YOU'RE INFECTED — TOUCH THEM" : `🏃 RUN! ${state.tagged.length} INFECTED`}</div>
+        </div>
+      )}
+      {bomb && state.status === "PLAYING" && state.holderId && (
+        <div className="absolute left-1/2 top-24 -translate-x-1/2">
+          <div key={state.holderId} className={`anim-slam display rounded-2xl px-6 py-2 text-2xl shadow-2xl hud-text ${isHolder ? (fuseLeft < 3 ? "anim-pulse bg-brand text-white" : "bg-brand text-white") : "bg-[#12142b]/80 text-brand-2"}`}>
+            {isHolder ? "💣 PASS IT!" : `💣 ${holderName}`} <span className="text-white/80">{fuseLeft.toFixed(1)}s</span>
+          </div>
+        </div>
+      )}
+      {crown && state.status === "PLAYING" && (
+        <div className="absolute left-1/2 top-24 -translate-x-1/2">
+          <div key={state.holderId ?? "none"} className={`anim-slam display rounded-2xl px-6 py-2 text-2xl shadow-2xl hud-text ${isHolder ? "bg-brand-2 text-[#12142b]" : "bg-[#12142b]/80 text-brand-2"}`}>{isHolder ? "👑 YOU HAVE THE CROWN — RUN" : state.holderId ? `👑 ${holderName}` : "👑 GRAB THE CROWN"}</div>
+        </div>
+      )}
+      {hill && onHill && (
+        <div className="absolute left-1/2 top-24 -translate-x-1/2">
+          <div className="anim-pop display rounded-2xl bg-brand-2 px-5 py-1.5 text-xl text-[#12142b] shadow-2xl">⛰️ ON THE HILL</div>
+        </div>
+      )}
+      {colorMode && state.status === "PLAYING" && colorPhase.phase !== "roam" && (
+        <div key={`${colorPhase.called}-${colorPhase.phase}`} className="absolute left-1/2 top-24 -translate-x-1/2 text-center">
+          <div className="anim-slam display rounded-2xl px-8 py-2 text-4xl shadow-2xl hud-text" style={{ background: calledColor.hex, color: "#12142b" }}>
+            {calledColor.name}!
+          </div>
+          <div className="mt-1 text-xs font-black tracking-widest text-white/85 hud-text">{colorPhase.phase === "warn" ? `TILES DROP IN ${Math.ceil(colorPhase.msLeft / 1000)}` : "HOLD ON…"}</div>
+        </div>
+      )}
+      {colorMode && state.status === "PLAYING" && colorPhase.phase === "roam" && (
+        <div className="absolute left-1/2 top-24 -translate-x-1/2">
+          <div className="chip px-3 py-1 text-[11px] font-black tracking-widest text-white/85">NEXT COLOR IN {Math.ceil(colorPhase.msLeft / 1000)}</div>
         </div>
       )}
       {/* banners */}

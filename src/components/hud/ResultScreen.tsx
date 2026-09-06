@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { formatClock } from "@/components/hud/GameHUD";
-import { computeRanking } from "@/game/authority";
+import { computeRanking, hasFinishLine, isScoreMode, teamLabel } from "@/game/authority";
 import { GAME_MODES } from "@/game/config";
 import { sound } from "@/game/audio";
 import { roomShareUrl } from "@/lib/room";
@@ -51,9 +51,13 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
   const ranking = computeRanking(state);
   const winner = state.winnerId;
   const survived = formatClock(state.endAt - state.startAt);
-  const race = state.mode === "RACE" || state.mode === "GOGUN";
+  const race = hasFinishLine(state.mode);
+  const scoreMode = isScoreMode(state.mode);
   const bossMode = state.mode === "BOSS";
-  const huntersWon = bossMode && state.bossFell;
+  const teamWon = state.team.length > 0;
+  const winnerLabel = bossMode ? "BOSS WINS" : state.mode === "TAG" ? (state.tagged[0] === winner ? "INFECTION WINS" : "LAST SURVIVOR") : scoreMode ? "TOP SCORE" : state.mode === "BOMB" ? "LAST STANDING" : "WINNER";
+  const noWinnerLabel = state.mode === "GOGUN" ? "WIPEOUT" : race ? "TIME'S UP" : scoreMode ? "NO SCORE" : "DRAW";
+  const scoreOf = (id: string) => (state.mode === "COIN" ? `🪙 ${state.scores[id] ?? 0}` : `${((state.scores[id] ?? 0) / 1000).toFixed(1)}s`);
   const series = state.series;
   const seriesRows = players.filter((p) => (series[p.id] ?? 0) > 0).sort((a, b) => (series[b.id] ?? 0) - (series[a.id] ?? 0));
   const meta = GAME_MODES[state.mode];
@@ -65,7 +69,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
   const share = async () => {
     sound.play("click");
     const url = roomShareUrl(roomCode);
-    const headline = huntersWon ? "⚔️ The hunters took down the boss!" : winner ? `🏆 ${name(winner)} won ${meta.name}!` : race ? "⏱ Nobody finished SKY DASH!" : "💀 Nobody survived DROPZONE!";
+    const headline = teamWon ? `⚔️ ${teamLabel(state.mode)} in ${meta.name}!` : winner ? `🏆 ${name(winner)} won ${meta.name}!` : race ? `⏱ Nobody finished ${meta.name}!` : `💀 Nobody survived ${meta.name}!`;
     const stats = race ? `${state.participants.length} players · ${survived} · ${dnf} DNF` : `${state.participants.length} players · survived ${survived} · ${eliminations} eliminations`;
     const text = `${headline}\n${stats}\nPlay: ${url}`;
     if (navigator.share) {
@@ -90,7 +94,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
       {/* Winner splash */}
       {phase === "splash" && (
         <div className="flex flex-1 flex-col items-center justify-center">
-          <div className="anim-slam display text-gradient gradient-shadow text-6xl sm:text-8xl">{huntersWon ? "HUNTERS WIN" : winner ? (bossMode ? "BOSS WINS" : "WINNER") : state.mode === "GOGUN" ? "WIPEOUT" : race ? "TIME'S UP" : "DRAW"}</div>
+          <div className="anim-slam display text-gradient gradient-shadow text-6xl sm:text-8xl">{teamWon ? teamLabel(state.mode) : winner ? winnerLabel : noWinnerLabel}</div>
           {winner && (
             <div className="anim-rise delay-2 display mt-3 text-4xl text-white hud-text sm:text-5xl" style={{ color: color(winner) }}>
               {name(winner)}
@@ -104,7 +108,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
           <div className="panel anim-rise pointer-events-auto m-auto w-full max-w-md p-5 sm:p-6 short:max-w-2xl short:p-4">
             <div className="text-center">
               <div className="text-[11px] font-black tracking-[0.4em] text-white/60">{meta.icon} {meta.name}</div>
-              <div className="display mt-1 text-2xl text-brand-2">{huntersWon ? "⚔️ HUNTERS WIN" : winner ? (bossMode ? "👑 BOSS WINS" : "🏆 WINNER") : state.mode === "GOGUN" ? "💀 WIPEOUT" : race ? "⏱ NO FINISHERS" : "💀 NO SURVIVORS"}</div>
+              <div className="display mt-1 text-2xl text-brand-2">{teamWon ? `⚔️ ${teamLabel(state.mode)}` : winner ? `${bossMode ? "👑" : "🏆"} ${winnerLabel}` : state.mode === "GOGUN" ? "💀 WIPEOUT" : race ? "⏱ NO FINISHERS" : scoreMode ? "🤷 NO SCORE" : "💀 NO SURVIVORS"}</div>
               {winner && (
                 <div className="display mt-1 text-4xl sm:text-5xl" style={{ color: color(winner) }}>
                   {name(winner)}
@@ -141,8 +145,8 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
                 <div className="text-[10px] font-bold tracking-widest text-white/55">{race ? "ROUND TIME" : "SURVIVED"}</div>
               </div>
               <div>
-                <div className="display text-xl text-white">{race ? dnf : eliminations}</div>
-                <div className="text-[10px] font-bold tracking-widest text-white/55">{race ? "DNF" : "ELIMINATIONS"}</div>
+                <div className="display text-xl text-white">{race ? dnf : scoreMode ? scoreOf(localId) : eliminations}</div>
+                <div className="text-[10px] font-bold tracking-widest text-white/55">{race ? "DNF" : scoreMode ? "YOUR SCORE" : "ELIMINATIONS"}</div>
               </div>
             </div>
 
@@ -156,7 +160,7 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
                 ))}
               </div>
             )}
-            {!race && lastToFall && (
+            {!race && !scoreMode && lastToFall && (
               <div className="mb-3 flex items-center justify-center gap-2 text-sm font-bold text-white/80">
                 <span>💀 LAST TO FALL</span>
                 <span style={{ color: color(lastToFall) }}>{name(lastToFall)}</span>
@@ -186,6 +190,8 @@ export function ResultScreen({ roomCode }: { roomCode: string }) {
                   <span className="h-3 w-3 rounded-full" style={{ background: color(id) }} />
                   <span className="truncate">{name(id)}</span>
                   {id === localId && <span className="text-white/50">(you)</span>}
+                  {scoreMode && <span className="ml-auto text-brand-2">{scoreOf(id)}</span>}
+                  {teamWon && state.team.includes(id) && <span className="ml-auto text-brand-2">WIN</span>}
                 </li>
               ))}
             </ol>

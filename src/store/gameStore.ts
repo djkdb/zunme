@@ -59,6 +59,11 @@ interface GameStore {
   reportCheckpoint(index: number): void;
   returnToLobby(): void;
   reportFall(): void;
+  /** TAG / BOMB / CROWN: touched another player (or the loose crown when null) */
+  reportTag(targetId: string | null): void;
+  reportCoin(coinId: string): void;
+  reportZone(on: boolean): void;
+  reportDrop(): void;
   setMuted(muted: boolean): void;
 }
 
@@ -157,13 +162,14 @@ export const useGameStore = create<GameStore>((set, get) => ({
               mode: state.mode,
               rank: reward.rank,
               participants: state.participants.length,
-              won: state.winnerId === localId || (state.mode === "BOSS" && state.bossFell && state.alive.includes(localId)),
+              won: state.winnerId === localId || state.team.includes(localId),
               finished,
               survivedMs: outAt > state.startAt ? outAt - state.startAt : roundMs,
-              checkpoints: state.mode === "RACE" ? Math.max(0, Math.min(5, (state.progress[localId] ?? -1) + 1)) : 0,
+              checkpoints: state.mode === "RACE" ? Math.max(0, Math.min(5, (state.progress[localId] ?? -1) + 1)) : state.mode === "TIPTOE" || state.mode === "TOWER" ? Math.max(0, Math.min(30, (state.progress[localId] ?? -1) + 1)) : 0,
               roundMs,
               coinPoints: state.mode === "GOGUN" ? gogunRuntime.coinPoints : 0,
               distance: state.mode === "GOGUN" ? gogunRuntime.distance : 0,
+              score: state.scores[localId] ?? 0,
             });
             if (report) get().client?.updatePresence({ level: currentLevel() });
           }
@@ -250,6 +256,26 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const { client, localId } = get();
     if (client && !get().localOutAt) set({ localOutAt: client.now() });
     client?.sendEvent({ type: "fall", playerId: localId, at: Date.now() });
+  },
+
+  reportTag(targetId) {
+    const { client, localId } = get();
+    client?.sendEvent({ type: "tag", playerId: localId, targetId });
+  },
+
+  reportCoin(coinId) {
+    const { client, localId } = get();
+    client?.sendEvent({ type: "coin", playerId: localId, coinId });
+  },
+
+  reportZone(on) {
+    const { client, localId } = get();
+    client?.sendEvent({ type: "zone", playerId: localId, on });
+  },
+
+  reportDrop() {
+    const { client, localId } = get();
+    client?.sendEvent({ type: "drop", playerId: localId });
   },
 
   setMuted(muted) {

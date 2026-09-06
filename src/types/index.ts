@@ -1,7 +1,22 @@
 import type { PlayerColorName } from "@/game/config";
 import type { Cosmetics } from "@/game/items";
 
-export type GameMode = "SUMO" | "RACE" | "MELTDOWN" | "GOGUN" | "BOSS";
+export type GameMode =
+  | "SUMO"
+  | "RACE"
+  | "MELTDOWN"
+  | "GOGUN"
+  | "BOSS"
+  | "TAG"
+  | "BOMB"
+  | "HILL"
+  | "COIN"
+  | "COLOR"
+  | "WALLS"
+  | "TIPTOE"
+  | "TOWER"
+  | "SPIN"
+  | "CROWN";
 
 export type RoomStatus =
   | "LOBBY"
@@ -61,6 +76,22 @@ export interface GameState {
   bossId: string | null;
   /** BOSS: true when the hunters knocked the boss off */
   bossFell: boolean;
+  /** TAG: infected players, in infection order (first = patient zero) */
+  tagged: string[];
+  /** BOMB / CROWN: who holds the bomb / crown */
+  holderId: string | null;
+  /** host time the current holder received it (pass / steal cooldown) */
+  holderSince: number;
+  /** BOMB: host time the bomb explodes */
+  fuseAt: number;
+  /** HILL / CROWN: ms held; COIN: coin points */
+  scores: Record<string, number>;
+  /** COIN: ids of coins already picked up */
+  taken: string[];
+  /** HILL: players currently on the hill (client reported) */
+  zone: string[];
+  /** team winners when there is no single winner (hunters, survivors) */
+  team: string[];
   /** rotate modes every round */
   partyMix: boolean;
   /** cumulative wins this session (reset when returning to lobby) */
@@ -98,6 +129,12 @@ export type ClientEvent =
   | { type: "finish"; playerId: string; at: number }
   | { type: "checkpoint"; playerId: string; index: number }
   | { type: "impact"; playerId: string; otherId: string; strength: number }
+  /** TAG: touched someone; BOMB: passed the bomb; CROWN: touched the holder (targetId) or picked up the loose crown (null) */
+  | { type: "tag"; playerId: string; targetId: string | null }
+  | { type: "coin"; playerId: string; coinId: string }
+  | { type: "zone"; playerId: string; on: boolean }
+  /** CROWN: holder fell off — the crown returns to the centre */
+  | { type: "drop"; playerId: string }
   | { type: "requestStart"; playerId: string };
 
 export interface RankingEntry {

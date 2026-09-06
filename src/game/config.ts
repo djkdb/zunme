@@ -28,6 +28,7 @@ export const GAME_MODES = {
     icon: "🥊",
     duration: 65_000,
     suddenDeath: 30_000,
+    minPlayers: 1,
   },
   RACE: {
     name: "SKY DASH",
@@ -36,6 +37,7 @@ export const GAME_MODES = {
     icon: "🏁",
     duration: 150_000,
     suddenDeath: 0,
+    minPlayers: 1,
   },
   MELTDOWN: {
     name: "MELTDOWN",
@@ -44,6 +46,7 @@ export const GAME_MODES = {
     icon: "🔥",
     duration: 75_000,
     suddenDeath: 0,
+    minPlayers: 1,
   },
   BOSS: {
     name: "1 vs ALL",
@@ -52,6 +55,7 @@ export const GAME_MODES = {
     icon: "⚔️",
     duration: 60_000,
     suddenDeath: 0,
+    minPlayers: 2,
   },
   GOGUN: {
     name: "GOGUN RUN",
@@ -60,6 +64,97 @@ export const GAME_MODES = {
     icon: "🐱",
     duration: 150_000,
     suddenDeath: 0,
+    minPlayers: 1,
+  },
+  TAG: {
+    name: "INFECTION",
+    tagline: "DON'T GET TOUCHED",
+    description: "One player starts infected. A touch spreads it. Fall off and you turn too. Survivors win when time runs out — if everyone turns, patient zero wins.",
+    icon: "🧟",
+    duration: 60_000,
+    suddenDeath: 0,
+    minPlayers: 2,
+  },
+  BOMB: {
+    name: "HOT POTATO",
+    tagline: "PASS THE BOMB",
+    description: "Someone is holding a bomb with a short fuse. Touch another player to pass it. When it blows, the holder is out and a new bomb appears. Last one standing wins.",
+    icon: "💣",
+    duration: 90_000,
+    suddenDeath: 0,
+    minPlayers: 2,
+  },
+  HILL: {
+    name: "HILL KING",
+    tagline: "HOLD THE CENTRE",
+    description: "Stand on the hill in the middle to score. Shove everyone else off it. Falling only costs you time. Most seconds on the hill wins.",
+    icon: "⛰️",
+    duration: 60_000,
+    suddenDeath: 0,
+    minPlayers: 1,
+  },
+  COIN: {
+    name: "COIN FRENZY",
+    tagline: "GRAB EVERYTHING",
+    description: "Coins rain onto the island in waves. Gold ones are worth three. Shove rivals away from the piles. Highest total wins.",
+    icon: "🪙",
+    duration: 60_000,
+    suddenDeath: 0,
+    minPlayers: 1,
+  },
+  COLOR: {
+    name: "COLOR PANIC",
+    tagline: "STAND ON THE COLOR",
+    description: "A colour is called, then every other tile drops away. Get onto the right colour before it does. Rounds get faster. Last survivor wins.",
+    icon: "🎨",
+    duration: 75_000,
+    suddenDeath: 0,
+    minPlayers: 1,
+  },
+  WALLS: {
+    name: "WALL RUSH",
+    tagline: "FIND THE GAP",
+    description: "Walls with holes sweep across the platform, faster every time. Slip through the gaps or get pushed into the void.",
+    icon: "🧱",
+    duration: 75_000,
+    suddenDeath: 0,
+    minPlayers: 1,
+  },
+  TIPTOE: {
+    name: "TIPTOE",
+    tagline: "TRUST NOTHING",
+    description: "A hidden path across a grid of fake tiles. Step on a fake one and it drops you. Everyone sees what you reveal — let others test the way, or lead.",
+    icon: "👣",
+    duration: 90_000,
+    suddenDeath: 0,
+    minPlayers: 1,
+  },
+  TOWER: {
+    name: "LAVA CLIMB",
+    tagline: "CLIMB OR BURN",
+    description: "Lava rises up a spiral tower. Jump from platform to platform to the top before it catches you. First to the summit wins.",
+    icon: "🌋",
+    duration: 90_000,
+    suddenDeath: 0,
+    minPlayers: 1,
+  },
+  SPIN: {
+    name: "SPIN CYCLE",
+    tagline: "JUMP THE BARS",
+    description: "A tiny disc, counter-rotating bars at two heights, and they keep speeding up. Time your jumps. Last one on the disc wins.",
+    icon: "🌀",
+    duration: 75_000,
+    suddenDeath: 0,
+    minPlayers: 1,
+  },
+  CROWN: {
+    name: "CROWN RUSH",
+    tagline: "KEEP AWAY",
+    description: "Grab the crown and run. Anyone who touches you takes it. Falling drops it back to the centre. Longest total time wearing the crown wins.",
+    icon: "👑",
+    duration: 60_000,
+    suddenDeath: 0,
+    minPlayers: 1,
   },
 } as const;
 export const DEFAULT_MODE = "SUMO" as const;
@@ -81,6 +176,48 @@ export const BOSS_SPEED = 6.8;
 export const BOSS_DASH_COOLDOWN = 1000;
 export const BOSS_HIT_MULTIPLIER = 1.7; // knockback dealt by the boss
 export const BOSS_KNOCKBACK_RESIST = 0.45; // knockback received by the boss
+
+// ── Party modes ──────────────────────────────────────────────────────
+export const BOMB_FUSE_START = 11_000; // ms; shrinks after every explosion
+export const BOMB_FUSE_MIN = 5_000;
+export const BOMB_FUSE_STEP = 1_500;
+export const BOMB_PASS_COOLDOWN = 450; // ms before the bomb can be passed back
+export const CROWN_STEAL_COOLDOWN = 900;
+export const CROWN_PICKUP_RADIUS = 1.4;
+export const HILL_RADIUS = 3.2;
+export const HILL_HEIGHT = 1.1;
+export const SCORE_FLUSH_MS = 400; // host batches HILL / CROWN time into state this often
+export const COIN_WAVE_INTERVAL = 9_000;
+export const COIN_WAVE_SIZE = 12;
+export const COIN_WAVES = 6;
+export const COIN_PICKUP_RADIUS = 1.1;
+export const COIN_GOLD_POINTS = 3;
+export const COLOR_WARN_MS = 2_300;
+export const COLOR_DROP_MS = 2_600;
+export const COLOR_CYCLE_START = 9_000;
+export const COLOR_CYCLE_MIN = 5_200;
+export const COLOR_CYCLE_STEP = 450;
+export const COLOR_GRID = 11; // tiles per side
+export const COLOR_FALL_Y = -8;
+export const WALLS_HALF_X = 8;
+export const WALLS_HALF_Z = 12;
+export const WALLS_INTERVAL_START = 4_200;
+export const WALLS_INTERVAL_MIN = 2_100;
+export const WALLS_SPEED_START = 5;
+export const WALLS_SPEED_MAX = 9.5;
+export const WALLS_SLOTS = 5; // wall is split into slots; gaps are missing slots
+export const WALLS_FALL_Y = -8;
+export const TIPTOE_ROWS = 12;
+export const TIPTOE_COLS = 4;
+export const TIPTOE_TILE = 2.4;
+export const TIPTOE_FALL_Y = -8;
+export const TOWER_PLATFORMS = 24;
+export const TOWER_STEP_Y = 1.45;
+export const TOWER_LAVA_START_Y = -3.5;
+export const TOWER_LAVA_SPEED = 0.42; // m/s
+export const TOWER_LAVA_DELAY = 3_000; // ms after GO! before it starts rising
+export const SPIN_RADIUS = 7.5;
+export const SPIN_FALL_Y = -8;
 
 // ── Meteors (DROPZONE) ───────────────────────────────────────────────
 export const METEOR_FIRST_AT = 9_000;

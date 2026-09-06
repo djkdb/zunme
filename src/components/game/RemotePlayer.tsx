@@ -2,7 +2,7 @@
 
 import { useFrame } from "@react-three/fiber";
 import { CapsuleCollider, RigidBody, useBeforePhysicsStep, type RapierRigidBody } from "@react-three/rapier";
-import { useRef } from "react";
+import { useMemo, useRef } from "react";
 import * as THREE from "three";
 import type { Cosmetics } from "@/game/items";
 import { Character, createAnim, type CharacterAnim } from "@/components/game/Character";
@@ -37,6 +37,7 @@ export function RemotePlayer({ id, nickname, colorHex, spawn, showLabel, cosmeti
   const halfHeight = ((PLAYER_HEIGHT - PLAYER_RADIUS * 2) / 2) * scale;
   const wasGrounded = useRef(true);
   const lastTrail = useRef(0);
+  const userData = useMemo(() => ({ type: "player", id }), [id]);
 
   useBeforePhysicsStep(() => {
     const rb = body.current;
@@ -76,7 +77,7 @@ export function RemotePlayer({ id, nickname, colorHex, spawn, showLabel, cosmeti
   });
 
   return (
-    <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[spawn[0], spawn[1] + (PLAYER_HEIGHT / 2) * scale, spawn[2]]} userData={{ type: "player", id }}>
+    <RigidBody ref={body} type="kinematicPosition" colliders={false} position={[spawn[0], spawn[1] + (PLAYER_HEIGHT / 2) * scale, spawn[2]]} userData={userData}>
       {!ghost && <CapsuleCollider args={[halfHeight, PLAYER_RADIUS * scale]} />}
       <group position={[0, (-PLAYER_HEIGHT / 2) * scale, 0]}>
         <Character colorHex={colorHex} nickname={nickname} animRef={animRef} showLabel={showLabel} cosmetics={cosmetics} scale={scale} />

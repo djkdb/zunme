@@ -61,7 +61,7 @@ export function CameraController({ menu = false }: { menu?: boolean }) {
     const localPlaying = state.alive.includes(localId) && (state.status === "PLAYING" || state.status === "COUNTDOWN");
 
     const gameMode = state.mode;
-    const race = gameMode === "RACE";
+    const race = gameMode === "RACE" || gameMode === "TIPTOE";
     const run = gameMode === "GOGUN";
     let mode: Mode = "lobby";
     if (menu) mode = "lobby";
@@ -134,7 +134,7 @@ export function CameraController({ menu = false }: { menu?: boolean }) {
       // lobby / menu: slow wide orbit around the map
       orbit.current += dt * (menu ? 0.08 : 0.12);
       const r = menu ? 30 : race ? 34 : run ? 30 : 26;
-      const cz = race ? -22 : run ? -18 : 0;
+      const cz = gameMode === "TIPTOE" ? -12 : race ? -22 : run ? -18 : 0;
       desired.current.set(Math.cos(orbit.current) * r, menu ? 11 : race ? 18 : 14, cz + Math.sin(orbit.current) * r);
       lookAt.current.set(0, menu ? 1.5 : 0.5, cz);
     }

@@ -10,6 +10,16 @@ five party modes, one 6-letter room code, no accounts:
 | 🔥 **MELTDOWN** | Three shrinking floors of tiles that vanish right after you step on them. Keep moving. Last survivor wins. |
 | 🐱 **GOGUN RUN** | A 3D take on the 2007 Hangame classic *고군분투*: auto-run over night-city rooftops, tap to jump the gaps, tap again in the air to hook a wire onto a lantern anchor and swing across the wide ones, grab silver and gold coins. Six stages, faster every stage. Fall = out; first to the goal wins (solo = classic single-player). |
 | ⚔️ **1 vs ALL** | One player is the BOSS (1.35× size, heavy, hard-hitting, fast dash) on the sumo island; everyone else hunts them. Boss survives 60 s or clears the hunters → boss wins; boss falls → hunters win. Boss rotates every round. |
+| 🧟 **INFECTION** | One player starts infected; a touch spreads it, falling off turns you too. Survivors win at time-out, patient zero wins if everyone turns. |
+| 💣 **HOT POTATO** | Someone holds a bomb with a shrinking fuse; touch another player to pass it. Explosion = holder out, a new bomb appears. Last one standing wins. |
+| ⛰️ **HILL KING** | Stand on the raised hill in the middle to score seconds; shove rivals off it. Falls only cost time (respawn on the ring). Most hill time wins. |
+| 🪙 **COIN FRENZY** | Six waves of coins rain onto the island (gold = 3). Falls respawn you. Highest total wins. |
+| 🎨 **COLOR PANIC** | An 11×11 grid in four colours. A colour is called, then every other tile drops away; the pattern reshuffles each cycle and cycles get faster. Last survivor wins. |
+| 🧱 **WALL RUSH** | Walls with one or two gaps sweep the platform, faster every time and sometimes from behind. Slip through or get pushed into the void. |
+| 👣 **TIPTOE** | A hidden safe path across 12 rows of fake tiles. Stepping on a fake one drops you back to the start; every reveal is shared with everyone. First across wins. |
+| 🌋 **LAVA CLIMB** | Lava rises up a 24-platform spiral tower. Lava = out, summit = finish. First to the top wins. |
+| 🌀 **SPIN CYCLE** | A small disc with counter-rotating bars at two heights plus an off-centre sweeper, all speeding up. Last one on the disc wins. |
+| 👑 **CROWN RUSH** | Grab the crown, run. Touching the holder steals it; falling drops it back to the centre. Longest total crown time wins. |
 
 Every player is a variation of the ZUN character (navy "ZUN" cap, hoodie in
 the player colour, sneakers) dressed up from the **ZUN Shop**.

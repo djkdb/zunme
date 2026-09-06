@@ -9,7 +9,7 @@ import {
   type CollisionPayload,
   type RapierRigidBody,
 } from "@react-three/rapier";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { TRAIL_COLORS, type Cosmetics } from "@/game/items";
 import { Character, createAnim, type CharacterAnim } from "@/components/game/Character";
@@ -70,6 +70,16 @@ export interface PlayerRules {
   consumeLaunch?: () => number;
   /** GOGUN RUN: auto-run + wire controller replaces normal movement */
   autoRun?: AutoRunRules;
+  /** dynamic fall height (rising lava); overrides fallY when present */
+  fallYAt?: () => number;
+  /** called every physics step with the feet position (coins, zones, progress) */
+  onStep?: (x: number, y: number, z: number, grounded: boolean) => void;
+  /** touched another player's body */
+  onContact?: (otherId: string) => void;
+  /** about to respawn after a fall (respawn modes) */
+  onRespawn?: () => void;
+  /** movement speed multiplier (zombies, crown holder…) */
+  speedScale?: () => number;
 }
 
 export interface AutoRunRules {
@@ -126,6 +136,8 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
   const dashDir = useRef({ x: 0, z: 1 });
   const blockedSince = useRef(0);
   const lastCommandedVz = useRef(0);
+  // Stable identity: rapier re-applies every mutable body option (position included) when this changes.
+  const userData = useMemo(() => ({ type: "player", id }) satisfies BodyUserData, [id]);
 
   // Dev-only hook so e2e tests / the console can move the local player.
   useEffect(() => {
@@ -349,7 +361,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       vz = v.z * (grounded.current ? 0.97 : 0.995);
     } else {
       const control = grounded.current ? 1 : PLAYER_AIR_CONTROL;
-      const moveSpeed = boss ? BOSS_SPEED : PLAYER_SPEED;
+      const moveSpeed = (boss ? BOSS_SPEED : PLAYER_SPEED) * (rulesRef.current.speedScale?.() ?? 1);
       const targetX = mx * moveSpeed + (surface?.[0] ?? 0) + (wind?.[0] ?? 0);
       const targetZ = mz * moveSpeed + (surface?.[1] ?? 0) + (wind?.[1] ?? 0);
       const carried = Boolean(surface) || Boolean(wind && (wind[0] !== 0 || wind[1] !== 0));
@@ -408,10 +420,14 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
 
     if (len > 0.1) anim.yaw = Math.atan2(mx, mz);
 
-    // Fell off
     const r = rulesRef.current;
-    if (t.y < r.fallY && active) {
+    r.onStep?.(t.x, t.y - PLAYER_HEIGHT / 2, t.z, grounded.current);
+
+    // Fell off
+    const fallY = r.fallYAt ? r.fallYAt() : r.fallY;
+    if (t.y < fallY && active) {
       if (r.onFall === "respawn" && r.respawnAt) {
+        r.onRespawn?.();
         const [x, y, z] = r.respawnAt();
         rb.setTranslation({ x, y, z }, true);
         rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
@@ -466,6 +482,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
     const now = performance.now();
 
     if (data.type === "player") {
+      if (data.id) rulesRef.current.onContact?.(data.id);
       tmpDir.set(me.x - them.x, 0, me.z - them.z);
       if (tmpDir.lengthSq() < 1e-4) tmpDir.set(Math.random() - 0.5, 0, Math.random() - 0.5);
       tmpDir.normalize();
@@ -533,7 +550,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
       enabledRotations={[false, false, false]}
       ccd
       canSleep={false}
-      userData={{ type: "player", id } satisfies BodyUserData}
+      userData={userData}
       onCollisionEnter={onCollisionEnter}
     >
       <CapsuleCollider args={[halfHeight, radius]} friction={0.2} restitution={0.15} />

@@ -22,6 +22,8 @@ export interface RoundSummary {
   coinPoints?: number;
   /** GOGUN: metres run */
   distance?: number;
+  /** HILL / CROWN: ms held; COIN: coin points */
+  score?: number;
 }
 
 export interface Stats {
@@ -101,6 +103,14 @@ export function roundPoints(s: RoundSummary, streak: number): PointLine[] {
     if (s.finished) lines.push({ label: "Reached the goal", points: 40 });
     if (s.distance && s.distance > 0) lines.push({ label: `${Math.floor(s.distance)} m run`, points: Math.min(40, Math.floor(s.distance / 10)) });
     if (s.coinPoints && s.coinPoints > 0) lines.push({ label: "Coins", points: Math.min(60, s.coinPoints) });
+  } else if (s.mode === "TIPTOE" || s.mode === "TOWER") {
+    if (s.finished) lines.push({ label: s.mode === "TOWER" ? "Reached the summit" : "Crossed the grid", points: 35 });
+    if (s.checkpoints > 0) lines.push({ label: `${s.checkpoints} step${s.checkpoints > 1 ? "s" : ""} of progress`, points: Math.min(30, s.checkpoints * 3) });
+  } else if (s.mode === "COIN") {
+    if (s.score && s.score > 0) lines.push({ label: `${s.score} coin points`, points: Math.min(45, s.score * 2) });
+  } else if (s.mode === "HILL" || s.mode === "CROWN") {
+    const sec = Math.floor((s.score ?? 0) / 1000);
+    if (sec > 0) lines.push({ label: `${sec}s ${s.mode === "HILL" ? "on the hill" : "with the crown"}`, points: Math.min(45, sec * 2) });
   } else {
     const survival = Math.min(30, Math.floor(s.survivedMs / 5000) * 2);
     if (survival > 0) lines.push({ label: `Survived ${Math.floor(s.survivedMs / 1000)}s`, points: survival });

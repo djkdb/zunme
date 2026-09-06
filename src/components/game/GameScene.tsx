@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Arena } from "@/components/game/Arena";
 import { CameraController } from "@/components/game/CameraController";
 import { EffectsDirector } from "@/components/game/EffectsDirector";
@@ -14,6 +14,9 @@ import { PhysicsStepper } from "@/components/game/PhysicsStepper";
 import { RaceCourse } from "@/components/game/RaceCourse";
 import { RemotePlayer } from "@/components/game/RemotePlayer";
 import { RooftopCourse, useCourse } from "@/components/game/RooftopCourse";
+import { CoinField, ColorArena, CrownArena, HillArena, ModeMarkers, SpinCycle, WallRush } from "@/components/game/PartyArenas";
+import { TiptoeCourse, tiptoeStep } from "@/components/game/TiptoeCourse";
+import { LavaTower } from "@/components/game/LavaTower";
 import {
   GOGUN_COIN_POINTS,
   GOGUN_COIN_RADIUS,
@@ -33,14 +36,62 @@ import {
 import { burst } from "@/game/effects";
 import { sound } from "@/game/audio";
 import { spawnPosition } from "@/game/arena";
-import { FALL_Y, MELTDOWN_FALL_Y, RACE_FALL_Y, SPAWN_RADIUS } from "@/game/config";
+import {
+  COIN_PICKUP_RADIUS,
+  COLOR_FALL_Y,
+  CROWN_PICKUP_RADIUS,
+  FALL_Y,
+  HILL_HEIGHT,
+  HILL_RADIUS,
+  MELTDOWN_FALL_Y,
+  RACE_FALL_Y,
+  SPAWN_RADIUS,
+  SPIN_FALL_Y,
+  TIPTOE_FALL_Y,
+  TOWER_PLATFORMS,
+  TOWER_STEP_Y,
+  WALLS_FALL_Y,
+} from "@/game/config";
+import { elapsedSinceStart } from "@/game/clock";
+import { TIPTOE_GOAL_Z, TOWER_TOP_Y, buildCoinWaves, colorSpawn, lavaYAt, spinSpawn, tiptoeSpawn, towerSpawn, wallsSpawn, type CoinDef } from "@/game/modes";
+import { partyRuntime, ringRespawn } from "@/game/party";
+import { localPose } from "@/game/remote";
 import { meltdownSpawn } from "@/game/meltdown";
 import { raceSpawn } from "@/game/race";
 import { raceRuntime } from "@/game/sync";
 import { selectPlayers, useGameStore } from "@/store/gameStore";
 import type { GameMode } from "@/types";
 
-const BASE_RULES: Record<Exclude<GameMode, "GOGUN">, PlayerRules> = {
+/** Progress ticks for the host (ranking of non-finishers). */
+function reportProgress(index: number) {
+  if (index <= partyRuntime.lastProgress) return;
+  partyRuntime.lastProgress = index;
+  const store = useGameStore.getState();
+  if (store.state.status === "PLAYING") store.reportCheckpoint(index);
+}
+
+function reportFinishOnce(x: number, y: number, z: number) {
+  if (partyRuntime.finished) return;
+  const store = useGameStore.getState();
+  if (store.state.status !== "PLAYING") return;
+  partyRuntime.finished = true;
+  store.reportFinish();
+  sound.play("win");
+  burst({ position: { x, y: y + 1, z }, color: ["#ffd32a", "#2ed573", "#ffffff"], count: 30, speed: 5, life: 1.2, size: 0.14, gravity: 5 });
+}
+
+/** Contact with another player in TAG / BOMB / CROWN — throttled, the host validates. */
+function contactTag(otherId: string) {
+  const now = performance.now();
+  if (now - partyRuntime.lastTagAt < 120) return;
+  partyRuntime.lastTagAt = now;
+  const store = useGameStore.getState();
+  if (store.state.status === "PLAYING") store.reportTag(otherId);
+}
+
+const ringRules = (): Pick<PlayerRules, "fallY" | "onFall" | "respawnAt"> => ({ fallY: FALL_Y, onFall: "respawn", respawnAt: () => ringRespawn() });
+
+const BASE_RULES: Record<Exclude<GameMode, "GOGUN" | "COIN">, PlayerRules> = {
   SUMO: { fallY: FALL_Y, onFall: "eliminate" },
   RACE: {
     fallY: RACE_FALL_Y,
@@ -56,7 +107,112 @@ const BASE_RULES: Record<Exclude<GameMode, "GOGUN">, PlayerRules> = {
   },
   MELTDOWN: { fallY: MELTDOWN_FALL_Y, onFall: "eliminate", onGround: meltdownStep },
   BOSS: { fallY: FALL_Y, onFall: "eliminate" },
+  TAG: {
+    ...ringRules(),
+    // falling turns you: the host infects on the fall report, then you respawn as a zombie
+    onRespawn: () => useGameStore.getState().reportFall(),
+    onContact: contactTag,
+    speedScale: () => {
+      const s = useGameStore.getState();
+      return s.state.tagged.includes(s.localId) ? 1.06 : 1;
+    },
+  },
+  BOMB: {
+    fallY: FALL_Y,
+    onFall: "eliminate",
+    onContact: contactTag,
+    speedScale: () => {
+      const s = useGameStore.getState();
+      return s.state.holderId === s.localId ? 1.12 : 1;
+    },
+  },
+  HILL: {
+    ...ringRules(),
+    onStep: (x, y, z, grounded) => {
+      const on = grounded && Math.hypot(x, z) < HILL_RADIUS && y > HILL_HEIGHT - 0.4;
+      const now = performance.now();
+      if (on !== partyRuntime.onHill && now - partyRuntime.hillChangedAt > 120) {
+        partyRuntime.onHill = on;
+        partyRuntime.hillChangedAt = now;
+        const store = useGameStore.getState();
+        if (store.state.status === "PLAYING") store.reportZone(on);
+        if (on) sound.play("click", { volume: 0.4 });
+      }
+    },
+    onRespawn: () => {
+      if (partyRuntime.onHill) {
+        partyRuntime.onHill = false;
+        useGameStore.getState().reportZone(false);
+      }
+    },
+  },
+  COLOR: { fallY: COLOR_FALL_Y, onFall: "eliminate" },
+  WALLS: { fallY: WALLS_FALL_Y, onFall: "eliminate" },
+  TIPTOE: {
+    fallY: TIPTOE_FALL_Y,
+    onFall: "respawn",
+    respawnAt: () => tiptoeSpawn(Math.floor(Math.random() * 4), 4),
+    onGround: tiptoeStep,
+    onStep: (x, y, z, grounded) => {
+      if (grounded && z < TIPTOE_GOAL_Z + 2) reportFinishOnce(x, y, z);
+    },
+  },
+  TOWER: {
+    fallY: -20,
+    onFall: "eliminate",
+    fallYAt: () => lavaYAt(elapsedSinceStart()) + 0.55,
+    onStep: (x, y, z, grounded) => {
+      if (!grounded) return;
+      const idx = Math.round(y / TOWER_STEP_Y);
+      if (idx > 0) reportProgress(Math.min(TOWER_PLATFORMS - 1, idx));
+      if (y > TOWER_TOP_Y - 0.5) reportFinishOnce(x, y, z);
+    },
+  },
+  SPIN: { fallY: SPIN_FALL_Y, onFall: "eliminate" },
+  CROWN: {
+    ...ringRules(),
+    onContact: contactTag,
+    onRespawn: () => {
+      const s = useGameStore.getState();
+      if (s.state.holderId === s.localId) s.reportDrop();
+    },
+    onStep: (x, y, z) => {
+      const s = useGameStore.getState();
+      if (s.state.holderId !== null || s.state.status !== "PLAYING") return;
+      if (Math.hypot(x, z) < CROWN_PICKUP_RADIUS && y < 1.5 && performance.now() - partyRuntime.lastTagAt > 300) {
+        partyRuntime.lastTagAt = performance.now();
+        s.reportTag(null);
+      }
+    },
+    speedScale: () => {
+      const s = useGameStore.getState();
+      return s.state.holderId === s.localId ? 0.94 : 1;
+    },
+  },
 };
+
+/** COIN FRENZY rules need the seeded wave list to test pickups. */
+function buildCoinRules(coins: CoinDef[]): PlayerRules {
+  return {
+    ...ringRules(),
+    onStep: (x, y, z) => {
+      const store = useGameStore.getState();
+      if (store.state.status !== "PLAYING") return;
+      const elapsed = elapsedSinceStart(store.state);
+      const taken = store.state.taken;
+      for (const c of coins) {
+        if (c.at > elapsed || partyRuntime.collected.has(c.id)) continue;
+        if (Math.abs(c.x - x) > COIN_PICKUP_RADIUS || Math.abs(c.z - z) > COIN_PICKUP_RADIUS) continue;
+        if (Math.hypot(c.x - x, c.z - z) < COIN_PICKUP_RADIUS && y < 2.5 && !taken.includes(c.id)) {
+          partyRuntime.collected.add(c.id);
+          store.reportCoin(c.id);
+          sound.play(c.gold ? "go" : "click", { volume: c.gold ? 0.5 : 0.35, throttleMs: 40 });
+          burst({ position: { x: c.x, y: 1, z: c.z }, color: c.gold ? ["#ffd32a", "#fff6c2"] : ["#ffffff", "#dfe6f2"], count: c.gold ? 12 : 5, speed: 2, life: 0.4, size: 0.1, gravity: 2 });
+        }
+      }
+    },
+  };
+}
 
 function buildGogunRules(course: Course): PlayerRules {
   return {
@@ -128,6 +284,16 @@ export function spawnFor(mode: GameMode, index: number, count: number): [number,
       return raceSpawn(index, count);
     case "MELTDOWN":
       return meltdownSpawn(index, count);
+    case "COLOR":
+      return colorSpawn(index, count);
+    case "WALLS":
+      return wallsSpawn(index, count);
+    case "TIPTOE":
+      return tiptoeSpawn(index, count);
+    case "TOWER":
+      return towerSpawn(index, count);
+    case "SPIN":
+      return spinSpawn(index, count);
     default:
       return spawnPosition(index, count, SPAWN_RADIUS);
   }
@@ -149,8 +315,15 @@ export function GameScene({ mobile }: { mobile: boolean }) {
   const participants = useGameStore((s) => s.state.participants);
   const alive = useGameStore((s) => s.state.alive);
   const bossId = useGameStore((s) => s.state.bossId);
+  const seed = useGameStore((s) => s.state.seed);
   const course = useCourse();
-  const rules = useMemo(() => (mode === "GOGUN" ? buildGogunRules(course) : BASE_RULES[mode]), [mode, course]);
+  const round = useGameStore((s) => s.state.round);
+  const rules = useMemo(() => (mode === "GOGUN" ? buildGogunRules(course) : mode === "COIN" ? buildCoinRules(buildCoinWaves(seed)) : BASE_RULES[mode]), [mode, course, seed]);
+  // Per-round runtime reset for the party modes (respawn points, coin pickups, finish flags).
+  useEffect(() => {
+    partyRuntime.reset();
+    localPose.pendingImpulse = null;
+  }, [round, mode]);
 
   const visible = useMemo(() => {
     if (status === "LOBBY") return players;
@@ -180,6 +353,21 @@ export function GameScene({ mobile }: { mobile: boolean }) {
       {mode === "RACE" && <RaceCourse />}
       {mode === "MELTDOWN" && <MeltdownArena />}
       {mode === "GOGUN" && <RooftopCourse course={course} />}
+      {(mode === "TAG" || mode === "BOMB") && (
+        <>
+          <Arena />
+          <Obstacles />
+          <ModeMarkers />
+        </>
+      )}
+      {mode === "HILL" && <HillArena />}
+      {mode === "COIN" && <CoinField />}
+      {mode === "CROWN" && <CrownArena />}
+      {mode === "COLOR" && <ColorArena />}
+      {mode === "WALLS" && <WallRush />}
+      {mode === "SPIN" && <SpinCycle />}
+      {mode === "TIPTOE" && <TiptoeCourse />}
+      {mode === "TOWER" && <LavaTower />}
       {visible.map((p) => {
         const idx = Math.max(0, spawnOrder.indexOf(p.id));
         const spawn: [number, number, number] = mode === "BOSS" && bossId === p.id ? [0, 2, 0] : spawnFor(mode, idx, spawnOrder.length);

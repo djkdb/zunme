@@ -18,7 +18,7 @@ export interface Theme {
   dust: string;
 }
 
-export const THEMES: Record<GameMode, Theme> = {
+const BASE: Record<"SUMO" | "RACE" | "MELTDOWN" | "BOSS" | "GOGUN", Theme> = {
   SUMO: {
     skyTop: "#4f9cff",
     skyHorizon: "#ffd9c9",
@@ -99,4 +99,18 @@ export const THEMES: Record<GameMode, Theme> = {
     rim: "#ffd32a",
     dust: "#ffe0a0",
   },
+};
+
+export const THEMES: Record<GameMode, Theme> = {
+  ...BASE,
+  TAG: { ...BASE.MELTDOWN, skyTop: "#0f2a1e", skyHorizon: "#8fe3a0", skyBottom: "#1f4d3a", fog: "#3f7a58", sun: "#d8ffe0", hemiSky: "#6fd6a0", hemiGround: "#2f5a45", sea: "#1f6a4a", seaDeep: "#0b2a1e", rim: "#2ed573", dust: "#b8ffcf" },
+  BOMB: { ...BASE.BOSS, skyTop: "#2a1010", skyHorizon: "#ff9a5c", skyBottom: "#5a2a1a", fog: "#8a4a3a", rim: "#ff7f30", dust: "#ffd0a0" },
+  HILL: { ...BASE.SUMO, skyTop: "#3f8fe0", skyHorizon: "#ffe8b0", rim: "#ffd32a" },
+  COIN: { ...BASE.SUMO, skyTop: "#6a4fd8", skyHorizon: "#ffd88a", skyBottom: "#c9a0ff", fog: "#ffd88a", rim: "#ffd32a", dust: "#fff0b0" },
+  COLOR: { ...BASE.RACE, skyTop: "#2a2a6e", skyHorizon: "#ff9ad5", skyBottom: "#8a6ad8", fog: "#c99ad8", sea: "#5a3a9a", seaDeep: "#241040", rim: "#ff6bcb", dust: "#ffd0f0" },
+  WALLS: { ...BASE.RACE, skyTop: "#1f3a5a", skyHorizon: "#a0d8ff", skyBottom: "#5a8ac0", fog: "#8fb8e0", sea: "#3a6ea0", seaDeep: "#1a3050", rim: "#18dcff", dust: "#e0f4ff" },
+  TIPTOE: { ...BASE.GOGUN, skyTop: "#101a3a", skyHorizon: "#8fb0ff", skyBottom: "#2a3a6a", fog: "#3a4a7a", sea: "#1a2a5a", seaDeep: "#0a1030", rim: "#8fb0ff", dust: "#d0e0ff" },
+  TOWER: { ...BASE.MELTDOWN, skyTop: "#1a0a0a", skyHorizon: "#ff6a3c", skyBottom: "#4a1a10", fog: "#6a2a1a", sea: "#ff5a1c", seaDeep: "#7a1a0a", rim: "#ff7a3c", dust: "#ffb090" },
+  SPIN: { ...BASE.SUMO, skyTop: "#18a0c0", skyHorizon: "#c0f8ff", skyBottom: "#5ad0e0", fog: "#b0eefc", sea: "#2fa0c0", seaDeep: "#0f5a80", rim: "#18dcff", dust: "#ffffff" },
+  CROWN: { ...BASE.RACE, skyTop: "#4a2a8a", skyHorizon: "#ffd36a", skyBottom: "#b08ad8", fog: "#e0b070", rim: "#ffd32a", dust: "#fff4c0" },
 };
