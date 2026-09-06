@@ -7,6 +7,7 @@ import { itemById } from "@/game/items";
 import { SERIES_OPTIONS } from "@/game/series";
 import { MODIFIERS, MODIFIER_POOL } from "@/game/modifiers";
 import { MuteButton } from "@/components/hud/MuteButton";
+import { QualityButton } from "@/components/hud/QualityButton";
 import { ShopButton } from "@/components/shop/ShopButton";
 import { GAME_MODES, MAX_PLAYERS, MIN_PLAYERS_TO_START } from "@/game/config";
 import type { GameMode } from "@/types";
@@ -113,6 +114,7 @@ export function Lobby({ roomCode }: { roomCode: string }) {
         </button>
         <div className="flex items-center gap-2">
           <ShopButton compact />
+          <QualityButton />
           <MuteButton />
         </div>
       </div>

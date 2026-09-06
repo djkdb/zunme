@@ -3,6 +3,7 @@
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { particleScale } from "@/game/quality";
 import { burstEvents, type BurstRequest } from "@/game/effects";
 
 const tmpObj = new THREE.Object3D();
@@ -52,7 +53,8 @@ export function Particles({ max = 600 }: { max?: number }) {
       if (!m) return;
       const pool = getPool();
       const colors = Array.isArray(req.color) ? req.color : [req.color];
-      for (let n = 0; n < req.count; n++) {
+      const count = Math.max(1, Math.round(req.count * particleScale()));
+      for (let n = 0; n < count; n++) {
         if (pool.alive >= max) break;
         const i = pool.alive++;
         const spread = req.spread ?? 1;

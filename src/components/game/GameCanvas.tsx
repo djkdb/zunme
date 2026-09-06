@@ -8,6 +8,8 @@ import { CAMERA_FOV, GRAVITY } from "@/game/config";
 import { MODIFIERS } from "@/game/modifiers";
 import { useGameStore } from "@/store/gameStore";
 import { PostFX } from "@/components/game/PostFX";
+import { AdaptiveQuality } from "@/components/game/AdaptiveQuality";
+import { useQualityStore } from "@/game/quality";
 
 interface Props {
   children: ReactNode;
@@ -24,9 +26,10 @@ const MENU_DPR: [number, number] = [1, 1.25];
  */
 export function GameCanvas({ children, mobile, ambient = false }: Props) {
   const gravityScale = useGameStore((st) => MODIFIERS[st.state.modifier].gravity);
+  const quality = useQualityStore((s) => s.level);
   return (
     <Canvas
-      shadows={{ type: THREE.PCFShadowMap }}
+      shadows={quality > 0 ? { type: THREE.PCFShadowMap } : false}
       dpr={ambient ? MENU_DPR : mobile ? [1, 1.5] : [1, 2]}
       camera={{ fov: CAMERA_FOV, near: 0.1, far: 900, position: [0, 14, 26] }}
       gl={{
@@ -43,7 +46,8 @@ export function GameCanvas({ children, mobile, ambient = false }: Props) {
         <Physics paused gravity={[0, GRAVITY * gravityScale, 0]} timeStep={1 / 60} interpolate={false} updateLoop="follow">
           {children}
         </Physics>
-        <PostFX enabled={!mobile} />
+        <PostFX enabled={!mobile && quality === 2} />
+        {!ambient && <AdaptiveQuality mobile={mobile} />}
       </Suspense>
     </Canvas>
   );

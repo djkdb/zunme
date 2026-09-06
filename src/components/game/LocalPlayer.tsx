@@ -63,6 +63,7 @@ import { DUMMY_ID, dummyState } from "@/components/game/TrainingDummy";
 import { NET_BURST_AFTER_MS } from "@/game/config";
 import { useGameStore } from "@/store/gameStore";
 import { MODIFIERS } from "@/game/modifiers";
+import { qualityLevel } from "@/game/quality";
 import { isRoundActive } from "@/game/clock";
 
 /** Mode-specific behaviour injected by the scene. */
@@ -73,7 +74,8 @@ export interface PlayerRules {
   onFall: "eliminate" | "respawn";
   respawnAt?: () => [number, number, number];
   /** called every physics step with the collider the player stands on */
-  onGround?: (colliderHandle: number) => void;
+  /** Called with the collider stood on; return false when it can't hold the player (a fake tile) so no jump can launch off it. */
+  onGround?: (colliderHandle: number) => boolean | void;
   /** surface velocity of the collider stood on (conveyor belts) */
   surfaceVelocity?: (colliderHandle: number) => [number, number] | undefined;
   /** horizontal velocity offset applied while in a wind zone */
@@ -221,7 +223,15 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
     const hit = world.castRay(ray, (PLAYER_HEIGHT / 2) * scale + 0.12, true, undefined, undefined, undefined, rb);
     const wasGrounded = grounded.current;
     grounded.current = hit !== null && v.y <= 0.5;
-    if (hit && grounded.current) rulesRef.current.onGround?.(hit.collider.handle);
+    if (hit && grounded.current) {
+      const solid = rulesRef.current.onGround?.(hit.collider.handle);
+      if (solid === false) {
+        // Fake tile: it crumbles under us right now — no footing, no coyote time, no buffered jump.
+        grounded.current = false;
+        lastGroundedAt.current = 0;
+        jumpBufferedAt.current = 0;
+      }
+    }
     const surface = hit && grounded.current ? rulesRef.current.surfaceVelocity?.(hit.collider.handle) : undefined;
     const wind = rulesRef.current.wind?.();
     if (grounded.current && !wasGrounded && localPose.velocity.y < -4) {
@@ -687,7 +697,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
 /** Running trail particles for equipped trail cosmetics (throttled). */
 export function emitTrail(trail: string, p: { x: number; y: number; z: number }, speed: number, grounded: boolean, last: { current: number }) {
   const colors = TRAIL_COLORS[trail];
-  if (!colors || !grounded || speed < 2.5) return;
+  if (!colors || !grounded || speed < 2.5 || qualityLevel() === 0) return;
   const now = performance.now();
   if (now - last.current < 70) return;
   last.current = now;

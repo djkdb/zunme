@@ -8,6 +8,7 @@ import { THEMES, type Theme } from "@/game/theme";
 import { getPhase } from "@/game/phase";
 import { useGameStore } from "@/store/gameStore";
 import { MODIFIERS } from "@/game/modifiers";
+import { useQualityStore } from "@/game/quality";
 
 const SKY_VERT = /* glsl */ `
   varying vec3 vWorld;
@@ -323,8 +324,16 @@ function Sea({ themeRef }: { themeRef: React.MutableRefObject<Theme> }) {
 
 export function Lighting({ mobile }: { mobile: boolean }) {
   const { ref } = useTheme();
+  const quality = useQualityStore((s) => s.level);
   const sun = useRef<THREE.DirectionalLight>(null);
   const hemi = useRef<THREE.HemisphereLight>(null);
+  // three keeps the first shadow map it allocated; drop it so a new mapSize takes effect.
+  useEffect(() => {
+    const light = sun.current;
+    if (!light?.shadow.map) return;
+    light.shadow.map.dispose();
+    light.shadow.map = null;
+  }, [quality]);
   useFrame((_, dt) => {
     const k = Math.min(1, dt * 1.5);
     const t = ref.current;
@@ -346,8 +355,8 @@ export function Lighting({ mobile }: { mobile: boolean }) {
         position={SUN_POSITION}
         intensity={2.4}
         color="#fff4e0"
-        castShadow
-        shadow-mapSize={mobile ? [1024, 1024] : [2048, 2048]}
+        castShadow={quality > 0}
+        shadow-mapSize={mobile || quality < 2 ? [1024, 1024] : [2048, 2048]}
         shadow-camera-left={-18}
         shadow-camera-right={18}
         shadow-camera-top={18}

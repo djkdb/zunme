@@ -34,13 +34,15 @@ const pendingSteps: number[] = [];
 let pendingRow = -1;
 
 /** Called by the local player controller with the collider it stands on. */
-export function tiptoeStep(colliderHandle: number) {
+export function tiptoeStep(colliderHandle: number): boolean {
   const idx = handleToTile.get(colliderHandle);
-  if (idx === undefined) return;
+  if (idx === undefined) return true;
   if (revealed[idx] === 0) pendingSteps.push(idx);
   // Standing on a safe tile counts as progress even when someone else revealed it.
   const t = tilesRef[idx];
   if (t?.safe && revealed[idx] !== 2 && t.row > pendingRow) pendingRow = t.row;
+  // A fake tile gives no footing: the caller cancels the jump so bunny-hopping can't skip the trap.
+  return t ? t.safe : true;
 }
 
 export function TiptoeCourse() {
