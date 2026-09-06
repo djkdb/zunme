@@ -29,6 +29,9 @@ export function Meteors() {
   const hitDone = useRef<Set<number>>(new Set());
   const warned = useRef<Set<number>>(new Set());
   const lastRound = useRef(-1);
+  const scorches = useRef<(THREE.Mesh | null)[]>(Array(MAX_VISIBLE).fill(null));
+  const scorchAt = useRef<number[]>(Array(MAX_VISIBLE).fill(0));
+  const scorchSlot = useRef(0);
 
   useFrame(() => {
     const state = useGameStore.getState().state;
@@ -73,7 +76,16 @@ export function Meteors() {
         hitDone.current.add(i);
         burst({ position: { x: s.x, y: 0.3, z: s.z }, color: ["#8a6a52", "#ff7a3c", "#ffd32a", "#ffffff"], count: 36, speed: 6, life: 0.9, size: 0.18, gravity: 12, spread: 1.2 });
         shake(0.45);
-        sound.play("impact", { volume: 1 });
+        sound.play("heavy", { volume: 1 });
+        // scorch mark where it landed (recycled, fades over a few seconds)
+        const k = scorchSlot.current++ % MAX_VISIBLE;
+        const sc = scorches.current[k];
+        if (sc) {
+          sc.visible = true;
+          sc.position.set(s.x, 0.02, s.z);
+          sc.rotation.z = Math.random() * Math.PI;
+          scorchAt.current[k] = performance.now();
+        }
         const p = localPose.position;
         const dx = p.x - s.x;
         const dz = p.z - s.z;
@@ -93,10 +105,24 @@ export function Meteors() {
       if (ring) ring.visible = false;
       if (rock) rock.visible = false;
     }
+    const now = performance.now();
+    for (let k = 0; k < MAX_VISIBLE; k++) {
+      const sc = scorches.current[k];
+      if (!sc || !sc.visible) continue;
+      const age = (now - scorchAt.current[k]) / 6000;
+      if (age >= 1 || !active) sc.visible = false;
+      else (sc.material as THREE.MeshBasicMaterial).opacity = 0.55 * (1 - age);
+    }
   });
 
   return (
     <group>
+      {Array.from({ length: MAX_VISIBLE }, (_, i) => (
+        <mesh key={`scorch-${i}`} ref={(m) => { scorches.current[i] = m; }} visible={false} rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[METEOR_RADIUS * 0.7, 20]} />
+          <meshBasicMaterial color="#1b1410" transparent opacity={0.5} depthWrite={false} />
+        </mesh>
+      ))}
       {Array.from({ length: MAX_VISIBLE }, (_, i) => (
         <group key={i}>
           <mesh ref={(m) => { rings.current[i] = m; }} visible={false} rotation={[-Math.PI / 2, 0, 0]}>

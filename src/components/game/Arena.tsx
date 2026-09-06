@@ -15,6 +15,7 @@ import { useGameStore } from "@/store/gameStore";
 import { burst } from "@/game/effects";
 import { roundedTile } from "@/components/game/tileGeometry";
 import { THEMES } from "@/game/theme";
+import { getPhase } from "@/game/phase";
 
 const TILE_THICKNESS = 0.7;
 const TILE_HALF = TILE_SIZE * 0.5 * 0.98;
@@ -55,6 +56,7 @@ export function Arena() {
   const scratch = useRef<TileState>({ phase: "NORMAL", progress: 0, permanent: false });
   const yOffsets = useRef<Float32Array>(new Float32Array(TILES.length));
   const rimRef = useRef<THREE.Mesh>(null);
+  const safeRef = useRef<THREE.Mesh>(null);
 
   const bindCollider = useCallback((index: number) => (c: RapierCollider | null) => {
     colliders.current[index] = c;
@@ -81,9 +83,16 @@ export function Arena() {
     const state = useGameStore.getState().state;
     if (rimRef.current) {
       const m = rimRef.current.material as THREE.MeshBasicMaterial;
-      const sudden = state.status === "PLAYING" && hostNowSafe() >= state.endAt;
-      m.opacity = 0.45 + 0.25 * Math.sin(performance.now() * (sudden ? 0.012 : 0.003));
-      m.color.set(sudden ? "#ff3b3b" : THEMES.SUMO.rim);
+      const phase = getPhase(state, hostNowSafe());
+      const sudden = phase === "SUDDEN" || (phase === "FINAL" && state.mode === "SUMO");
+      const danger = phase === "DANGER";
+      m.opacity = 0.45 + 0.25 * Math.sin(performance.now() * (sudden ? 0.012 : danger ? 0.007 : 0.003));
+      m.color.set(sudden ? "#ff3b3b" : danger ? "#ff6a3c" : THEMES.SUMO.rim);
+      if (safeRef.current) {
+        // the core that never collapses: shown once sudden death starts eating the rim
+        safeRef.current.visible = sudden;
+        (safeRef.current.material as THREE.MeshBasicMaterial).opacity = 0.25 + 0.2 * Math.sin(performance.now() * 0.008);
+      }
     }
     const active = state.status === "PLAYING" || state.status === "COUNTDOWN";
     const elapsed = active ? elapsedSinceStart(state) : -Infinity;
@@ -200,6 +209,11 @@ export function Arena() {
         <meshStandardMaterial color="#6fcf7a" roughness={0.9} flatShading />
       </mesh>
 
+      {/* Safe core outline during sudden death */}
+      <mesh ref={safeRef} visible={false} position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[COLLAPSIBLE_MIN_RADIUS - 0.35, COLLAPSIBLE_MIN_RADIUS, 48]} />
+        <meshBasicMaterial color="#ffd32a" transparent opacity={0.3} side={THREE.DoubleSide} toneMapped={false} depthWrite={false} />
+      </mesh>
       {/* Glowing danger ring at the rim, purely visual */}
       <mesh ref={rimRef} position={[0, -TILE_THICKNESS - 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[ARENA_RADIUS - 0.2, ARENA_RADIUS + 0.35, 64]} />
