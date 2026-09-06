@@ -3,6 +3,9 @@
  * controller (not React state; read from the frame loop).
  */
 import { SPAWN_RADIUS } from "@/game/config";
+import { sound } from "@/game/audio";
+import { burst } from "@/game/effects";
+import { useGameStore } from "@/store/gameStore";
 
 export const partyRuntime = {
   /** respawn point for respawn modes */
@@ -27,6 +30,25 @@ export const partyRuntime = {
     this.lastTagAt = 0;
   },
 };
+
+/** Progress ticks for the host (ranking of non-finishers). Monotonic per round. */
+export function reportProgress(index: number) {
+  if (index <= partyRuntime.lastProgress) return;
+  partyRuntime.lastProgress = index;
+  const store = useGameStore.getState();
+  if (store.state.status === "PLAYING") store.reportCheckpoint(index);
+}
+
+/** Cross the finish line once per round — position based, no ground contact needed. */
+export function reportFinishOnce(x: number, y: number, z: number) {
+  if (partyRuntime.finished) return;
+  const store = useGameStore.getState();
+  if (store.state.status !== "PLAYING") return;
+  partyRuntime.finished = true;
+  store.reportFinish();
+  sound.play("win");
+  burst({ position: { x, y: y + 1, z }, color: ["#ffd32a", "#2ed573", "#ffffff"], count: 30, speed: 5, life: 1.2, size: 0.14, gravity: 5 });
+}
 
 /** COLOR PANIC: what the HUD shows (written by the arena every frame). */
 export const colorRuntime = {

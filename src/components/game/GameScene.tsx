@@ -53,32 +53,16 @@ import {
   WALLS_FALL_Y,
 } from "@/game/config";
 import { elapsedSinceStart } from "@/game/clock";
-import { TIPTOE_GOAL_Z, TOWER_TOP_Y, buildCoinWaves, colorSpawn, lavaYAt, spinSpawn, tiptoeSpawn, towerSpawn, wallsSpawn, type CoinDef } from "@/game/modes";
-import { partyRuntime, ringRespawn } from "@/game/party";
+import { TIPTOE_GOAL_Z, TOWER_PLATFORM_LIST, TOWER_TOP_Y, buildCoinWaves, colorSpawn, lavaYAt, spinSpawn, tiptoeSpawn, towerSpawn, wallsSpawn, type CoinDef } from "@/game/modes";
+import { partyRuntime, reportFinishOnce, reportProgress, ringRespawn } from "@/game/party";
+import { raceFinishNow, racePassCheckpoint } from "@/components/game/RaceCourse";
+import { RACE_CHECKPOINTS, RACE_FINISH_Z, TRACK_WIDTH } from "@/game/race";
 import { localPose } from "@/game/remote";
 import { meltdownSpawn } from "@/game/meltdown";
 import { raceSpawn } from "@/game/race";
 import { raceRuntime } from "@/game/sync";
 import { selectPlayers, useGameStore } from "@/store/gameStore";
 import type { GameMode } from "@/types";
-
-/** Progress ticks for the host (ranking of non-finishers). */
-function reportProgress(index: number) {
-  if (index <= partyRuntime.lastProgress) return;
-  partyRuntime.lastProgress = index;
-  const store = useGameStore.getState();
-  if (store.state.status === "PLAYING") store.reportCheckpoint(index);
-}
-
-function reportFinishOnce(x: number, y: number, z: number) {
-  if (partyRuntime.finished) return;
-  const store = useGameStore.getState();
-  if (store.state.status !== "PLAYING") return;
-  partyRuntime.finished = true;
-  store.reportFinish();
-  sound.play("win");
-  burst({ position: { x, y: y + 1, z }, color: ["#ffd32a", "#2ed573", "#ffffff"], count: 30, speed: 5, life: 1.2, size: 0.14, gravity: 5 });
-}
 
 /** Contact with another player in TAG / BOMB / CROWN — throttled, the host validates. */
 function contactTag(otherId: string) {
@@ -103,6 +87,15 @@ const BASE_RULES: Record<Exclude<GameMode, "GOGUN" | "COIN">, PlayerRules> = {
       const v = raceRuntime.launch;
       raceRuntime.launch = 0;
       return v;
+    },
+    // Position fallback for the sensor gates: crossing the line counts even if the
+    // intersection event was missed (fast dash, respawn teleport, frame hitch).
+    onStep: (x, y, z) => {
+      if (y < RACE_FALL_Y + 1) return;
+      for (const cp of RACE_CHECKPOINTS) {
+        if (cp.index > raceRuntime.lastCheckpoint && z < cp.z - 0.3 && Math.abs(x) <= cp.halfWidth + 1) racePassCheckpoint(cp.index);
+      }
+      if (!raceRuntime.finished && z < RACE_FINISH_Z - 0.3 && Math.abs(x) <= TRACK_WIDTH / 2 + 1) raceFinishNow();
     },
   },
   MELTDOWN: { fallY: MELTDOWN_FALL_Y, onFall: "eliminate", onGround: meltdownStep },
@@ -153,8 +146,9 @@ const BASE_RULES: Record<Exclude<GameMode, "GOGUN" | "COIN">, PlayerRules> = {
     onFall: "respawn",
     respawnAt: () => tiptoeSpawn(Math.floor(Math.random() * 4), 4),
     onGround: tiptoeStep,
-    onStep: (x, y, z, grounded) => {
-      if (grounded && z < TIPTOE_GOAL_Z + 2) reportFinishOnce(x, y, z);
+    onStep: (x, y, z) => {
+      // Past the goal line and not falling into the void = finished, airborne or not.
+      if (z < TIPTOE_GOAL_Z + 2.4 && y > -1.5) reportFinishOnce(x, y, z);
     },
   },
   TOWER: {
@@ -162,10 +156,13 @@ const BASE_RULES: Record<Exclude<GameMode, "GOGUN" | "COIN">, PlayerRules> = {
     onFall: "eliminate",
     fallYAt: () => lavaYAt(elapsedSinceStart()) + 0.55,
     onStep: (x, y, z, grounded) => {
-      if (!grounded) return;
-      const idx = Math.round(y / TOWER_STEP_Y);
-      if (idx > 0) reportProgress(Math.min(TOWER_PLATFORMS - 1, idx));
-      if (y > TOWER_TOP_Y - 0.5) reportFinishOnce(x, y, z);
+      if (grounded) {
+        const idx = Math.round(y / TOWER_STEP_Y);
+        if (idx > 0) reportProgress(Math.min(TOWER_PLATFORMS - 1, idx));
+      }
+      // Summit: above the top platform and over it (landing not required).
+      const top = TOWER_PLATFORM_LIST[TOWER_PLATFORM_LIST.length - 1];
+      if (y > TOWER_TOP_Y - 0.8 && Math.hypot(x - top.x, z - top.z) < top.radius + 0.9) reportFinishOnce(x, y, z);
     },
   },
   SPIN: { fallY: SPIN_FALL_Y, onFall: "eliminate" },

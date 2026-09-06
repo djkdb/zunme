@@ -9,6 +9,7 @@ import { TIPTOE_COLS, TIPTOE_TILE } from "@/game/config";
 import { burst, shake } from "@/game/effects";
 import { TIPTOE_GOAL_Z, TIPTOE_START_Z, buildTiptoe, type TiptoeTile } from "@/game/modes";
 import { sound } from "@/game/audio";
+import { reportProgress } from "@/game/party";
 import { onGameplayEvent } from "@/game/sync";
 import { THEMES } from "@/game/theme";
 import { useGameStore } from "@/store/gameStore";
@@ -30,11 +31,16 @@ const handleToTile = new Map<number, number>();
 let tilesRef: TiptoeTile[] = [];
 const revealed: Uint8Array = new Uint8Array(64); // 0 hidden, 1 safe, 2 fake (fallen)
 const pendingSteps: number[] = [];
+let pendingRow = -1;
 
 /** Called by the local player controller with the collider it stands on. */
 export function tiptoeStep(colliderHandle: number) {
   const idx = handleToTile.get(colliderHandle);
-  if (idx !== undefined && revealed[idx] === 0) pendingSteps.push(idx);
+  if (idx === undefined) return;
+  if (revealed[idx] === 0) pendingSteps.push(idx);
+  // Standing on a safe tile counts as progress even when someone else revealed it.
+  const t = tilesRef[idx];
+  if (t?.safe && revealed[idx] !== 2 && t.row > pendingRow) pendingRow = t.row;
 }
 
 export function TiptoeCourse() {
@@ -71,6 +77,7 @@ export function TiptoeCourse() {
     revealed.fill(0);
     fellAt.current.fill(0);
     pendingSteps.length = 0;
+    pendingRow = -1;
     colliders.current.forEach((c) => c?.setEnabled(true));
     paint();
   }, [paint]);
@@ -143,8 +150,10 @@ export function TiptoeCourse() {
       if (revealed[idx] !== 0) continue;
       reveal(idx, false);
       store.client?.broadcastGameplay({ k: "reveal", index: idx });
-      const t = tilesRef[idx];
-      if (t?.safe && store.state.status === "PLAYING") store.reportCheckpoint(t.row);
+    }
+    if (pendingRow >= 0) {
+      reportProgress(pendingRow);
+      pendingRow = -1;
     }
     const now = performance.now();
     let dirty = false;
@@ -174,7 +183,13 @@ export function TiptoeCourse() {
       <RigidBody type="fixed" colliders={false} userData={{ type: "ground" }}>
         <CuboidCollider args={[halfW, 0.5, 3.2]} position={[0, -0.5, TIPTOE_START_Z]} friction={0.9} />
         <CuboidCollider args={[halfW, 0.5, 2.6]} position={[0, -0.5, goalZ]} friction={0.9} />
+        {/* back wall so nobody sprints off the far edge of the goal */}
+        <CuboidCollider args={[halfW, 1.5, 0.3]} position={[0, 1.5, goalZ - 2.6]} />
       </RigidBody>
+      <mesh position={[0, 1.2, goalZ - 2.6]} castShadow>
+        <boxGeometry args={[halfW * 2, 2.4, 0.5]} />
+        <meshStandardMaterial color="#ffd9a0" roughness={0.8} />
+      </mesh>
       <mesh position={[0, -0.5, TIPTOE_START_Z]} receiveShadow castShadow>
         <boxGeometry args={[halfW * 2, 1, 6.4]} />
         <meshStandardMaterial color="#f4f1ea" roughness={0.8} />

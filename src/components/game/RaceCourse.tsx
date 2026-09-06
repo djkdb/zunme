@@ -61,17 +61,32 @@ function makeBannerTexture(): THREE.CanvasTexture {
   return tex;
 }
 
+/** Local player reached checkpoint `index` (sensor gate or position fallback). */
+export function racePassCheckpoint(index: number) {
+  if (raceRuntime.lastCheckpoint >= index) return;
+  const cp = RACE_CHECKPOINTS[index];
+  raceRuntime.lastCheckpoint = index;
+  raceRuntime.respawn = cp.respawn;
+  useGameStore.getState().reportCheckpoint(index);
+  sound.play("countdown", { volume: 0.5 });
+  const p = livePoses.get(useGameStore.getState().localId);
+  if (p) burst({ position: { x: p.x, y: p.y + 1, z: p.z }, color: ["#ffd32a", "#ffffff"], count: 12, speed: 3, life: 0.5, size: 0.12 });
+}
+
+/** Local player crossed the finish line (sensor gate or position fallback). */
+export function raceFinishNow() {
+  if (raceRuntime.finished || useGameStore.getState().state.status !== "PLAYING") return;
+  raceRuntime.finished = true;
+  useGameStore.getState().reportFinish();
+  shake(0.4);
+  sound.play("win");
+  const p = livePoses.get(useGameStore.getState().localId);
+  if (p) burst({ position: { x: p.x, y: p.y + 1.2, z: p.z }, color: ["#ffd32a", "#2ed573", "#ffffff", "#18dcff"], count: 36, speed: 5, life: 1.4, size: 0.14, gravity: 5 });
+}
+
 function CheckpointArch({ z, halfWidth, index }: { z: number; halfWidth: number; index: number }) {
   const onEnter = (payload: IntersectionEnterPayload) => {
-    if (!isLocalPlayer(payload)) return;
-    if (raceRuntime.lastCheckpoint >= index) return;
-    const cp = RACE_CHECKPOINTS[index];
-    raceRuntime.lastCheckpoint = index;
-    raceRuntime.respawn = cp.respawn;
-    useGameStore.getState().reportCheckpoint(index);
-    sound.play("countdown", { volume: 0.5 });
-    const p = livePoses.get(useGameStore.getState().localId);
-    if (p) burst({ position: { x: p.x, y: p.y + 1, z: p.z }, color: ["#ffd32a", "#ffffff"], count: 12, speed: 3, life: 0.5, size: 0.12 });
+    if (isLocalPlayer(payload)) racePassCheckpoint(index);
   };
   return (
     <group position={[0, 0, z]}>
@@ -99,13 +114,7 @@ function CheckpointArch({ z, halfWidth, index }: { z: number; halfWidth: number;
 function FinishGate() {
   const texture = useMemo(() => makeBannerTexture(), []);
   const onEnter = (payload: IntersectionEnterPayload) => {
-    if (!isLocalPlayer(payload) || raceRuntime.finished) return;
-    raceRuntime.finished = true;
-    useGameStore.getState().reportFinish();
-    shake(0.4);
-    sound.play("win");
-    const p = livePoses.get(useGameStore.getState().localId);
-    if (p) burst({ position: { x: p.x, y: p.y + 1.2, z: p.z }, color: ["#ffd32a", "#2ed573", "#ffffff", "#18dcff"], count: 36, speed: 5, life: 1.4, size: 0.14, gravity: 5 });
+    if (isLocalPlayer(payload)) raceFinishNow();
   };
   const half = TRACK_WIDTH / 2;
   return (

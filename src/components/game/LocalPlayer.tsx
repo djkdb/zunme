@@ -50,6 +50,7 @@ import { GOGUN_CRASH_MS, GOGUN_JUMP_CUT, GOGUN_WIRE_MAX_MS, GOGUN_WIRE_RELEASE_B
 import { livePoses, localPose } from "@/game/remote";
 import { sound } from "@/game/audio";
 import { raceRuntime } from "@/game/sync";
+import { partyRuntime } from "@/game/party";
 import { useGameStore } from "@/store/gameStore";
 import { isRoundActive } from "@/game/clock";
 
@@ -136,6 +137,7 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
   const dashDir = useRef({ x: 0, z: 1 });
   const blockedSince = useRef(0);
   const lastCommandedVz = useRef(0);
+  const lastReportRetry = useRef(0);
   // Stable identity: rapier re-applies every mutable body option (position included) when this changes.
   const userData = useMemo(() => ({ type: "player", id }) satisfies BodyUserData, [id]);
 
@@ -324,6 +326,10 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
         fellReported.current = true;
         wire.active = false;
         useGameStore.getState().reportFall();
+      } else if (!active && t.y < r0.fallY - 4) {
+        // lobby / results playground: walked off the roof — put them back
+        rb.setTranslation({ x: spawn[0], y: spawn[1], z: spawn[2] }, true);
+        rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
       }
       return;
     }
@@ -439,6 +445,11 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
         fellReported.current = true;
         useGameStore.getState().reportFall();
       }
+    } else if (!active && t.y < fallY - 4) {
+      // Lobby / results playground: walked off the edge — back to the spawn point
+      // instead of falling forever until the next round.
+      rb.setTranslation({ x: spawn[0], y: spawn[1], z: spawn[2] }, true);
+      rb.setLinvel({ x: 0, y: 0, z: 0 }, true);
     }
   });
 
@@ -461,6 +472,23 @@ export function LocalPlayer({ id, nickname, colorHex, spawn, showLabel, rules, c
     anim.grounded = grounded.current;
     anim.vy = v.y;
     emitTrail(cosmetics.trail, localPose.position, anim.speed, grounded.current, lastTrail);
+
+    // Reliability: if the host never acknowledged our fall / finish (lost event,
+    // host handover), re-send it until the shared state reflects it.
+    const store = useGameStore.getState();
+    if (store.state.status === "PLAYING") {
+      const now = performance.now();
+      if (now - lastReportRetry.current > 1500) {
+        const r = rulesRef.current;
+        if (fellReported.current && r.onFall === "eliminate" && store.state.alive.includes(id)) {
+          lastReportRetry.current = now;
+          store.reportFall();
+        } else if ((partyRuntime.finished || raceRuntime.finished || gogunRuntime.finished) && !store.state.finishOrder.includes(id)) {
+          lastReportRetry.current = now;
+          store.reportFinish();
+        }
+      }
+    }
 
     useGameStore.getState().client?.sendSnapshot(() => ({
       p: [round(t.x), round(t.y - PLAYER_HEIGHT / 2), round(t.z)],
